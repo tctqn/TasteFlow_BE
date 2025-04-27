@@ -1,0 +1,31 @@
+package com.startup.tasteflowbe.controller;
+
+import com.startup.tasteflowbe.model.StockMovement;
+import com.startup.tasteflowbe.service.StockMovementService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/stock-movements")
+public class StockMovementController {
+
+    @Autowired
+    private StockMovementService stockMovementService;
+
+    @PostMapping
+    public StockMovement createStockMovement(@RequestBody StockMovement stockMovement) {
+        return stockMovementService.createStockMovement(stockMovement);
+    }
+
+    @GetMapping("/{id}")
+    public StockMovement getStockMovementById(@PathVariable("id") Long id) {
+        return stockMovementService.getStockMovementById(id);
+    }
+
+    @GetMapping
+    public List<StockMovement> getAllStockMovements() {
+        return stockMovementService.getAllStockMovements();
+    }
+}

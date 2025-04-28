@@ -37,6 +37,7 @@ public class InventoryServiceImpl implements InventoryService {
                     inventory.setWarehouse(updatedInventory.getWarehouse());
                     inventory.setStore(updatedInventory.getStore());
                     inventory.setProduct(updatedInventory.getProduct());
+                    inventory.setBatch(updatedInventory.getBatch());
                     inventory.setQuantity(updatedInventory.getQuantity());
                     inventory.setReorderLevel(updatedInventory.getReorderLevel());
                     return inventoryRepository.save(inventory);

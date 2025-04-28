@@ -23,12 +23,8 @@ public class ProductBatch {
     private Product product;
 
     @ManyToOne
-    @JoinColumn(name = "warehouse_id")
+    @JoinColumn(name = "warehouse_id", nullable = false)
     private Warehouse warehouse;
-
-    @ManyToOne
-    @JoinColumn(name = "store_id")
-    private Store store;
 
     @ManyToOne
     @JoinColumn(name = "supplier_id", nullable = false)
@@ -49,7 +45,7 @@ public class ProductBatch {
     @Column(name = "expiration_date")
     private LocalDate expirationDate;
 
-    @Column(name = "received_date")
+    @Column(name = "received_date", nullable = false)
     private LocalDateTime receivedDate = LocalDateTime.now();
 
     @Column(name = "note")

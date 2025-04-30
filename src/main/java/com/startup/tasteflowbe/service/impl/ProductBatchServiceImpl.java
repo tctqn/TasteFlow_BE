@@ -44,6 +44,7 @@ public class ProductBatchServiceImpl implements ProductBatchService {
                     batch.setExpirationDate(updatedProductBatch.getExpirationDate());
                     batch.setReceivedDate(updatedProductBatch.getReceivedDate());
                     batch.setNote(updatedProductBatch.getNote());
+                    batch.setImportPrice(updatedProductBatch.getImportPrice());
                     return productBatchRepository.save(batch);
                 })
                 .orElseThrow(() -> new RuntimeException("ProductBatch not found with id " + id));

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -50,4 +51,7 @@ public class ProductBatch {
 
     @Column(name = "note")
     private String note;
+
+    @Column(name = "import_price", nullable = false)
+    private BigDecimal importPrice = BigDecimal.ZERO;
 }

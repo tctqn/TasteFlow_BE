@@ -1,6 +1,7 @@
 package com.startup.tasteflowbe.controller;
 
 import com.startup.tasteflowbe.model.StockMovement;
+import com.startup.tasteflowbe.model.dto.StoreTransferParam;
 import com.startup.tasteflowbe.service.StockMovementService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -28,4 +29,14 @@ public class StockMovementController {
     public List<StockMovement> getAllStockMovements() {
         return stockMovementService.getAllStockMovements();
     }
+
+    @PostMapping("/transfer-to-stores")
+    public void transferToStores(
+            @RequestParam Long warehouseId,
+            @RequestParam Long productId,
+            @RequestParam Long batchId,
+            @RequestBody List<StoreTransferParam> transferList) {
+        stockMovementService.transferToStores(warehouseId, productId, batchId, transferList);
+    }
+
 }

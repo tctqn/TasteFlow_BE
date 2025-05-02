@@ -1,11 +1,16 @@
 package com.startup.tasteflowbe.controller;
 
 import com.startup.tasteflowbe.model.ProductBatch;
+import com.startup.tasteflowbe.model.StockMovement;
+import com.startup.tasteflowbe.model.enums.MovementType;
+import com.startup.tasteflowbe.service.InventoryService;
 import com.startup.tasteflowbe.service.ProductBatchService;
+import com.startup.tasteflowbe.service.StockMovementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -14,6 +19,10 @@ import java.util.List;
 public class ProductBatchController {
 
     private final ProductBatchService productBatchService;
+
+    private final InventoryService inventoryService;
+
+    private final StockMovementService stockMovementService;
 
     @GetMapping
     public ResponseEntity<List<ProductBatch>> getAllProductBatches() {
@@ -29,8 +38,30 @@ public class ProductBatchController {
 
     @PostMapping
     public ResponseEntity<ProductBatch> createProductBatch(@RequestBody ProductBatch productBatch) {
-        return ResponseEntity.ok(productBatchService.createProductBatch(productBatch));
+        // Lưu lô hàng mới vào bảng product_batches
+        ProductBatch savedBatch = productBatchService.createProductBatch(productBatch);
+
+        // Cập nhật bảng inventories
+        inventoryService.updateInventoryForNewBatch(
+                savedBatch.getProduct().getProductId(),
+                savedBatch.getWarehouse().getWarehouseId(),
+                savedBatch.getBatchId(),
+                savedBatch.getInitialQuantity()
+        );
+
+        // Ghi nhận chuyển động hàng hóa vào bảng stock_movements
+        StockMovement stockMovement = new StockMovement();
+        stockMovement.setWarehouse(savedBatch.getWarehouse());
+        stockMovement.setProduct(savedBatch.getProduct());
+        stockMovement.setQuantity(savedBatch.getInitialQuantity());
+        stockMovement.setBatch(savedBatch);
+        stockMovement.setMovementDate(LocalDateTime.now());
+        stockMovement.setNote(MovementType.IMPORT_BATCH.getDescription());
+        stockMovement.setMovementType(MovementType.IMPORT_BATCH);
+        stockMovementService.createStockMovement(stockMovement);
+        return ResponseEntity.ok(savedBatch);
     }
+
 
     @PutMapping("/{id}")
     public ResponseEntity<ProductBatch> updateProductBatch(@PathVariable Long id, @RequestBody ProductBatch productBatch) {

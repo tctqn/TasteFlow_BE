@@ -24,21 +24,19 @@ public class ProductBatch {
     private Product product;
 
     @ManyToOne
+    @JoinColumn(name = "supplier_id", nullable = false)
+    private Supplier supplier;
+
+    @ManyToOne
     @JoinColumn(name = "warehouse_id", nullable = false)
     private Warehouse warehouse;
 
     @ManyToOne
-    @JoinColumn(name = "supplier_id", nullable = false)
-    private Supplier supplier;
+    @JoinColumn(name = "unit_id", nullable = false)
+    private Unit unit;
 
-    @Column(name = "initial_quantity", nullable = false)
-    private Integer initialQuantity;
-
-    @Column(name = "available_quantity", nullable = false)
-    private Integer availableQuantity;
-
-    @Column(name = "damaged_quantity", nullable = false)
-    private Integer damagedQuantity = 0;
+    @Column(name = "quantity", nullable = false)
+    private Integer quantity;
 
     @Column(name = "manufacture_date")
     private LocalDate manufactureDate;
@@ -49,7 +47,7 @@ public class ProductBatch {
     @Column(name = "received_date", nullable = false)
     private LocalDateTime receivedDate = LocalDateTime.now();
 
-    @Column(name = "note")
+    @Column(name = "note", columnDefinition = "TEXT")
     private String note;
 
     @Column(name = "import_price", nullable = false)

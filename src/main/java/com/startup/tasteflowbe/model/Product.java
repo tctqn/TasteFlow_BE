@@ -35,9 +35,6 @@ public class Product {
     @JoinColumn(name = "category_id")
     private Category category;
 
-    @Column(name = "stock_quantity", nullable = false)
-    private Integer stockQuantity;
-
     @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
 

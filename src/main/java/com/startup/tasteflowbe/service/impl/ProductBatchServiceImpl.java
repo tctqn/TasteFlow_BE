@@ -37,9 +37,8 @@ public class ProductBatchServiceImpl implements ProductBatchService {
                     batch.setProduct(updatedProductBatch.getProduct());
                     batch.setWarehouse(updatedProductBatch.getWarehouse());
                     batch.setSupplier(updatedProductBatch.getSupplier());
-                    batch.setInitialQuantity(updatedProductBatch.getInitialQuantity());
-                    batch.setAvailableQuantity(updatedProductBatch.getAvailableQuantity());
-                    batch.setDamagedQuantity(updatedProductBatch.getDamagedQuantity());
+                    batch.setUnit(updatedProductBatch.getUnit());
+                    batch.setQuantity(updatedProductBatch.getQuantity());
                     batch.setManufactureDate(updatedProductBatch.getManufactureDate());
                     batch.setExpirationDate(updatedProductBatch.getExpirationDate());
                     batch.setReceivedDate(updatedProductBatch.getReceivedDate());

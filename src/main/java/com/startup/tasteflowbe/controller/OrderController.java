@@ -1,6 +1,7 @@
 package com.startup.tasteflowbe.controller;
 
 import com.startup.tasteflowbe.model.Order;
+import com.startup.tasteflowbe.model.User;
 import com.startup.tasteflowbe.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -42,4 +43,20 @@ public class OrderController {
         orderService.deleteOrder(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/checkout")
+    public ResponseEntity<Order> checkoutFromCartItems(
+            @RequestBody List<Long> cartItemIds,
+            @RequestParam(required = false) Long voucherId,
+            @RequestParam Long shippingAddressId,
+            @RequestParam Long storeId) {
+
+        // Giả sử bạn có phương thức để lấy User từ session/security context
+        Long currentUser = 1L;
+        Order createdOrder = orderService.checkoutFromCartItems(currentUser, cartItemIds,
+                voucherId,shippingAddressId, storeId);
+        return ResponseEntity.ok(createdOrder);
+    }
+
+
 }

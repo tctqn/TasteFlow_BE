@@ -47,7 +47,4 @@ public class StockMovement {
     @Column(name = "note")
     private String note;
 
-    @ManyToOne
-    @JoinColumn(name = "related_order_id")
-    private Order relatedOrder;
 }

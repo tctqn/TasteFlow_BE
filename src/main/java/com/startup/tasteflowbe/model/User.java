@@ -1,5 +1,6 @@
 package com.startup.tasteflowbe.model;
 
+import com.startup.tasteflowbe.model.enums.Role;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -26,8 +27,9 @@ public class User {
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 20)
-    private String role = "user";
+    private Role role;
 
     @Column(name = "first_name", length = 50)
     private String firstName;

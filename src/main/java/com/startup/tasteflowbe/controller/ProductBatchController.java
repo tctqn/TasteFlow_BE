@@ -46,14 +46,14 @@ public class ProductBatchController {
                 savedBatch.getProduct().getProductId(),
                 savedBatch.getWarehouse().getWarehouseId(),
                 savedBatch.getBatchId(),
-                savedBatch.getInitialQuantity()
+                savedBatch.getQuantity()
         );
 
         // Ghi nhận chuyển động hàng hóa vào bảng stock_movements
         StockMovement stockMovement = new StockMovement();
         stockMovement.setWarehouse(savedBatch.getWarehouse());
         stockMovement.setProduct(savedBatch.getProduct());
-        stockMovement.setQuantity(savedBatch.getInitialQuantity());
+        stockMovement.setQuantity(savedBatch.getQuantity());
         stockMovement.setBatch(savedBatch);
         stockMovement.setMovementDate(LocalDateTime.now());
         stockMovement.setNote(MovementType.IMPORT_BATCH.getDescription());

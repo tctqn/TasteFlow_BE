@@ -4,6 +4,11 @@ import com.startup.tasteflowbe.model.ProductUnit;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface ProductUnitRepository extends JpaRepository<ProductUnit, Long> {
+    Optional<Object> findByProduct_ProductIdAndUnit_UnitIdAndIsBaseUnit(Long productProductId, Long unitUnitId, Boolean isBaseUnit);
+
+    Optional<Object> findByProduct_ProductIdAndUnit_UnitId(Long productProductId, Long unitUnitId);
 }

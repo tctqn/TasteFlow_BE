@@ -24,7 +24,7 @@ public class ProductUnit {
     private Unit unit;
 
     @Column(name = "conversion_rate")
-    private Double conversionRate;
+    private Integer conversionRate;
 
     @Column(name = "is_base_unit")
     private Boolean isBaseUnit;

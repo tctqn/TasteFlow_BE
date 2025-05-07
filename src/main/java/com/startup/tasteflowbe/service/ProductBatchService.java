@@ -11,4 +11,5 @@ public interface ProductBatchService {
     ProductBatch createProductBatch(ProductBatch productBatch);
     ProductBatch updateProductBatch(Long id, ProductBatch productBatch);
     void deleteProductBatch(Long id);
+    void addNewBatch(ProductBatch productBatch);
 }

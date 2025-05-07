@@ -11,7 +11,4 @@ public interface InventoryService {
     Inventory createInventory(Inventory inventory);
     Inventory updateInventory(Long id, Inventory inventory);
     void deleteInventory(Long id);
-
-    // Add new product batch
-    void updateInventoryForNewBatch(Long productId, Long warehouseId,Long batchId, int quantity);
 }

@@ -56,24 +56,4 @@ public class InventoryServiceImpl implements InventoryService {
         inventoryRepository.deleteById(id);
     }
 
-    @Override
-    public void updateInventoryForNewBatch(Long productId, Long warehouseId,Long batchId,int quantity) {
-        Optional<Inventory> inventory = inventoryRepository.findByStore_StoreIdAndProduct_ProductIdAndBatch_BatchId(warehouseId, productId, batchId);
-        if (inventory.isPresent()) {
-            // Cập nhật số lượng tồn kho
-            Inventory existingInventory = inventory.get();
-            existingInventory.setQuantity(existingInventory.getQuantity() + quantity);
-            inventoryRepository.save(existingInventory);
-        } else {
-            // Tạo mới bản ghi tồn kho nếu chưa có
-            Inventory newInventory = new Inventory();
-            newInventory.setProduct(productService.getProductById(productId).orElse(null));
-            newInventory.setWarehouse(warehouseService.getWarehouseById(warehouseId).orElse(null));
-            newInventory.setBatch(productBatchService.getProductBatchById(batchId).orElse(null));
-            newInventory.setQuantity(quantity);
-            newInventory.setReorderLevel(10);  // Mức cảnh báo tái nhập kho mặc định
-            inventoryRepository.save(newInventory);
-        }
-    }
-
 }

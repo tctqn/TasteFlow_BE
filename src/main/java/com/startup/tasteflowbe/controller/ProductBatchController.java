@@ -38,28 +38,13 @@ public class ProductBatchController {
 
     @PostMapping
     public ResponseEntity<ProductBatch> createProductBatch(@RequestBody ProductBatch productBatch) {
-        // Lưu lô hàng mới vào bảng product_batches
-        ProductBatch savedBatch = productBatchService.createProductBatch(productBatch);
+        return ResponseEntity.ok(productBatchService.createProductBatch(productBatch));
+    }
 
-        // Cập nhật bảng inventories
-        inventoryService.updateInventoryForNewBatch(
-                savedBatch.getProduct().getProductId(),
-                savedBatch.getWarehouse().getWarehouseId(),
-                savedBatch.getBatchId(),
-                savedBatch.getQuantity()
-        );
-
-        // Ghi nhận chuyển động hàng hóa vào bảng stock_movements
-        StockMovement stockMovement = new StockMovement();
-        stockMovement.setWarehouse(savedBatch.getWarehouse());
-        stockMovement.setProduct(savedBatch.getProduct());
-        stockMovement.setQuantity(savedBatch.getQuantity());
-        stockMovement.setBatch(savedBatch);
-        stockMovement.setMovementDate(LocalDateTime.now());
-        stockMovement.setNote(MovementType.IMPORT_BATCH.getDescription());
-        stockMovement.setMovementType(MovementType.IMPORT_BATCH);
-        stockMovementService.createStockMovement(stockMovement);
-        return ResponseEntity.ok(savedBatch);
+    @PostMapping("/add-batch")
+    public ResponseEntity<ProductBatch> addNewBatch(@RequestBody ProductBatch productBatch) {
+        productBatchService.addNewBatch(productBatch);
+        return ResponseEntity.ok(productBatch);
     }
 
 

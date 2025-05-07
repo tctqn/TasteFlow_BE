@@ -26,10 +26,9 @@ public class StockMovementServiceImpl implements StockMovementService {
 
     private final InventoryRepository inventoryRepository;
 
-    @Autowired
-    private StockMovementRepository stockMovementRepository;
-    @Autowired
-    private StoreRepository storeRepository;
+    private final StockMovementRepository stockMovementRepository;
+
+    private final StoreRepository storeRepository;
 
     @Override
     public StockMovement createStockMovement(StockMovement stockMovement) {

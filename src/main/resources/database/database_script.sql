@@ -1,10 +1,10 @@
--- 1. Independent Tables (No Foreign Keys)
+-- 1. Tạo bảng đơn giản trước (không có foreign key)
 CREATE TABLE users (
    user_id SERIAL PRIMARY KEY,
    username VARCHAR(50) UNIQUE NOT NULL,
    email VARCHAR(100) UNIQUE NOT NULL,
    password_hash VARCHAR(255) NOT NULL,
-   role VARCHAR(20) NOT NULL DEFAULT 'user',
+   role VARCHAR(20) NOT NULL DEFAULT 'CUSTOMER' CHECK (role IN ('CUSTOMER', 'EMPLOYEE', 'ADMIN')),
    first_name VARCHAR(50),
    last_name VARCHAR(50),
    phone VARCHAR(20),
@@ -12,6 +12,7 @@ CREATE TABLE users (
    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
    points INT DEFAULT 0
 );
+
 
 CREATE TABLE suppliers (
    supplier_id SERIAL PRIMARY KEY,
@@ -63,7 +64,7 @@ CREATE TABLE vouchers (
    end_date TIMESTAMP NOT NULL
 );
 
--- 2. Tables with Foreign Key Dependencies
+-- 2. Tạo các bảng có foreign key phụ thuộc vào các bảng trên
 CREATE TABLE products (
    product_id SERIAL PRIMARY KEY,
    name VARCHAR(255) NOT NULL,
@@ -71,10 +72,14 @@ CREATE TABLE products (
    price DECIMAL(10,2) NOT NULL,
    sku VARCHAR(50) UNIQUE NOT NULL,
    category_id INT,
-   stock_quantity INT NOT NULL DEFAULT 0,
    image_url TEXT,
    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
    FOREIGN KEY (category_id) REFERENCES categories(category_id)
+);
+
+CREATE TABLE units (
+   unit_id SERIAL PRIMARY KEY,
+   name VARCHAR(100) NOT NULL
 );
 
 CREATE TABLE shipping_addresses (
@@ -103,43 +108,50 @@ CREATE TABLE orders (
    FOREIGN KEY (store_id) REFERENCES stores(store_id)
 );
 
--- 3. Product Batches (Updated)
+-- 3. Tạo các bảng liên quan đến đơn vị và sản phẩm
 CREATE TABLE product_batches (
    batch_id SERIAL PRIMARY KEY,
    product_id INT NOT NULL,
-   warehouse_id INT NOT NULL,
    supplier_id INT NOT NULL,
-   initial_quantity INT NOT NULL,
-   available_quantity INT NOT NULL,
-   damaged_quantity INT NOT NULL DEFAULT 0,
+   warehouse_id INT NOT NULL,                  -- ✅ thêm lại cột này
+   unit_id INT NOT NULL,                       -- đơn vị nhập (thùng, kiện...)
+   quantity INT NOT NULL,                      -- số lượng nhập theo đơn vị ở unit_id
    manufacture_date DATE,
    expiration_date DATE,
    received_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
    note TEXT,
    import_price NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
    FOREIGN KEY (product_id) REFERENCES products(product_id),
-   FOREIGN KEY (warehouse_id) REFERENCES warehouses(warehouse_id),
-   FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id)
+   FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id),
+   FOREIGN KEY (warehouse_id) REFERENCES warehouses(warehouse_id),  -- ✅ khóa ngoại
+   FOREIGN KEY (unit_id) REFERENCES units(unit_id)
 );
 
 
--- 4. Inventories (Updated)
+CREATE TABLE product_units (
+    product_unit_id SERIAL PRIMARY KEY,
+    product_id INT NOT NULL,
+    unit_id INT NOT NULL,
+    conversion_rate INT NOT NULL,  -- VD: 1 thùng = 12 đơn vị cơ bản
+    is_base_unit BOOLEAN NOT NULL DEFAULT FALSE,
+    FOREIGN KEY (product_id) REFERENCES products(product_id),
+    FOREIGN KEY (unit_id) REFERENCES units(unit_id)
+);
+
+-- 4. Tạo bảng liên quan đến kho và tồn kho
 CREATE TABLE inventories (
    inventory_id SERIAL PRIMARY KEY,
    warehouse_id INT NULL,
    store_id INT NULL,
    product_id INT NOT NULL,
    batch_id INT NOT NULL,
-   quantity INT NOT NULL DEFAULT 0,
-   reorder_level INT NOT NULL DEFAULT 10,
+   quantity INT NOT NULL,               
+   reorder_level INT NOT NULL DEFAULT 10,       
    FOREIGN KEY (warehouse_id) REFERENCES warehouses(warehouse_id),
    FOREIGN KEY (store_id) REFERENCES stores(store_id),
    FOREIGN KEY (product_id) REFERENCES products(product_id),
    FOREIGN KEY (batch_id) REFERENCES product_batches(batch_id)
 );
-
--- Nếu muốn chặt chẽ hơn, bạn có thể thêm UNIQUE constraint:
--- UNIQUE (warehouse_id, store_id, product_id, batch_id)
 
 -- 5. Promotion Products
 CREATE TABLE promotion_products (
@@ -228,16 +240,13 @@ CREATE TABLE stock_movements (
    product_id INT NOT NULL,
    batch_id INT NOT NULL,
    movement_type VARCHAR(30) NOT NULL CHECK (
-      movement_type IN ('IMPORT_BATCH', 'TRANSFER_TO_STORE', 'SALE')
+      movement_type IN ('IMPORT_BATCH', 'TRANSFER_TO_STORE', 'SALE', 'DAMAGE')
    ),
    quantity INT NOT NULL,
    movement_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
    note TEXT,
-   related_order_id INT NULL,
    FOREIGN KEY (warehouse_id) REFERENCES warehouses(warehouse_id),
    FOREIGN KEY (store_id) REFERENCES stores(store_id),
    FOREIGN KEY (product_id) REFERENCES products(product_id),
-   FOREIGN KEY (batch_id) REFERENCES product_batches(batch_id),
-   FOREIGN KEY (related_order_id) REFERENCES orders(order_id)
+   FOREIGN KEY (batch_id) REFERENCES product_batches(batch_id)
 );
-

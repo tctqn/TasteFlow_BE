@@ -44,4 +44,9 @@ public class Product {
     // Thêm quan hệ ManyToMany ngược lại
     @ManyToMany(mappedBy = "products")
     private List<Promotion> promotions;
+
+    @Override
+    public String toString() {
+        return "Product{productId=" + productId + ", name='" + name + "', price=" + price + "}";
+    }
 }

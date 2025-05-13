@@ -30,4 +30,9 @@ public class CartItem {
 
     @Column(name = "added_at", nullable = false)
     private LocalDateTime addedAt = LocalDateTime.now();
+
+    @Override
+    public String toString() {
+        return "CartItem{cartItemId=" + cartItemId + ", product=" + (product != null ? product.getProductId() : "null") + ", quantity=" + quantity + "}";
+    }
 }

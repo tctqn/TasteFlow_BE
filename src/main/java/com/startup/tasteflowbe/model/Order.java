@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "orders")
@@ -28,9 +29,13 @@ public class Order {
     @Column(name = "total_price", nullable = false, precision = 10, scale = 2)
     private BigDecimal totalPrice;
 
-    @ManyToOne
-    @JoinColumn(name = "voucher_id")
-    private Voucher voucher;
+    @ManyToMany
+    @JoinTable(
+            name = "order_vouchers",
+            joinColumns = @JoinColumn(name = "order_id"),
+            inverseJoinColumns = @JoinColumn(name = "voucher_id")
+    )
+    private List<Voucher> vouchers;
 
     @Column(name = "voucher_discount", nullable = false, precision = 10, scale = 2)
     private BigDecimal voucherDiscount;

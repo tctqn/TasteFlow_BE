@@ -2,6 +2,7 @@ package com.startup.tasteflowbe.controller;
 
 import com.startup.tasteflowbe.model.Order;
 import com.startup.tasteflowbe.model.User;
+import com.startup.tasteflowbe.model.dto.CheckoutRequest;
 import com.startup.tasteflowbe.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -45,18 +46,21 @@ public class OrderController {
     }
 
     @PostMapping("/checkout")
-    public ResponseEntity<Order> checkoutFromCartItems(
-            @RequestBody List<Long> cartItemIds,
-            @RequestParam(required = false) Long voucherId,
-            @RequestParam Long shippingAddressId,
-            @RequestParam Long storeId) {
-
+    public ResponseEntity<Order> checkoutFromCartItems(@RequestBody CheckoutRequest checkoutRequestDto) {
         // Giả sử bạn có phương thức để lấy User từ session/security context
         Long currentUser = 1L;
+
+        // Lấy các giá trị từ DTO
+        List<Long> cartItemIds = checkoutRequestDto.getCartItemIds();
+        List<Long> voucherIds = checkoutRequestDto.getVoucherIds();
+        Long shippingAddressId = checkoutRequestDto.getShippingAddressId();
+        Long storeId = checkoutRequestDto.getStoreId();
+
+        // Tạo đơn hàng từ các thông tin trong DTO
         Order createdOrder = orderService.checkoutFromCartItems(currentUser, cartItemIds,
-                voucherId,shippingAddressId, storeId);
+                voucherIds, shippingAddressId, storeId);
+
         return ResponseEntity.ok(createdOrder);
     }
-
 
 }

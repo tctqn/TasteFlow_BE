@@ -1,6 +1,7 @@
 package com.startup.tasteflowbe.service.impl;
 
 import com.startup.tasteflowbe.model.*;
+import com.startup.tasteflowbe.model.enums.MovementType;
 import com.startup.tasteflowbe.repository.*;
 import com.startup.tasteflowbe.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -36,6 +38,8 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderItemRepository orderItemRepository;
 
+    private final StockMovementRepository stockMovementRepository;
+
     @Override
     public List<Order> getAllOrders() {
         return orderRepository.findAll();
@@ -57,7 +61,7 @@ public class OrderServiceImpl implements OrderService {
                 .map(existingOrder -> {
                     existingOrder.setStatus(order.getStatus());
                     existingOrder.setTotalPrice(order.getTotalPrice());
-                    existingOrder.setVoucher(order.getVoucher());
+                    existingOrder.setVouchers(order.getVouchers());
                     existingOrder.setVoucherDiscount(order.getVoucherDiscount());
                     existingOrder.setShippingAddress(order.getShippingAddress());
                     return orderRepository.save(existingOrder);
@@ -72,8 +76,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public Order checkoutFromCartItems(Long userId, List<Long> cartItemIds, Long voucherId, Long shippingAddressId, Long storeId) {
-        userId = 1L; // Test cố định
+    public Order checkoutFromCartItems(Long userId, List<Long> cartItemIds, List<Long> voucherIds, Long shippingAddressId, Long storeId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng."));
 
@@ -100,9 +103,9 @@ public class OrderServiceImpl implements OrderService {
                     .orElse(BigDecimal.ZERO);
 
             BigDecimal discountedPrice = unitPrice.multiply(BigDecimal.ONE.subtract(
-                    maxPromotionDiscount.divide(BigDecimal.valueOf(100))));
+                    maxPromotionDiscount.divide(BigDecimal.valueOf(100),2,RoundingMode.HALF_UP)));
 
-            // Truy vấn các inventory còn hàng, chưa hết hạn theo batch, tại cửa hàng
+            // Truy vấn các inventory còn hàng, chưa hết hạn theo batch gần hết hạn trước tại cửa hàng
             List<Inventory> inventories = inventoryRepository
                     .findByStore_StoreIdAndProduct_ProductIdAndQuantityGreaterThanAndBatch_ExpirationDateAfterOrderByBatch_ExpirationDateAsc(
                             storeId, product.getProductId(), 0, LocalDate.now());
@@ -128,6 +131,17 @@ public class OrderServiceImpl implements OrderService {
                 inv.setQuantity(inv.getQuantity() - usableQty);
                 inventoryRepository.save(inv);
 
+                // Ghi nhận chuyển động tồn kho
+                StockMovement stockMovement = new StockMovement();
+                stockMovement.setWarehouse(inv.getWarehouse());
+                stockMovement.setStore(storeRepository.findByStoreId(storeId));
+                stockMovement.setProduct(product);
+                stockMovement.setBatch(inv.getBatch());
+                stockMovement.setMovementType(MovementType.SALE);  // Giảm tồn kho
+                stockMovement.setQuantity(usableQty);
+                stockMovement.setNote("Đặt hàng cho sản phẩm: " + product.getName());
+                stockMovementRepository.save(stockMovement);
+
                 remainingQty -= usableQty;
             }
 
@@ -139,29 +153,38 @@ public class OrderServiceImpl implements OrderService {
             totalPrice = totalPrice.add(discountedPrice.multiply(BigDecimal.valueOf(quantity)));
         }
 
-        // Tính giảm giá từ voucher (nếu có)
-        Voucher voucher = null;
-        BigDecimal voucherDiscount = BigDecimal.ZERO;
-        if (voucherId != null) {
-            voucher = voucherRepository.findById(voucherId)
+        // Tính giảm giá từ các voucher (nếu có)
+        BigDecimal totalDiscount = BigDecimal.ZERO;
+        for (Long voucherId : voucherIds) {
+            Voucher voucher = voucherRepository.findById(voucherId)
                     .orElseThrow(() -> new IllegalArgumentException("Voucher không hợp lệ."));
 
             if (voucher.getStartDate().isAfter(LocalDateTime.now()) || voucher.getEndDate().isBefore(LocalDateTime.now())) {
                 throw new IllegalArgumentException("Voucher đã hết hạn hoặc chưa bắt đầu.");
             }
 
+            BigDecimal voucherDiscount = BigDecimal.ZERO;
+
             if ("PERCENT".equalsIgnoreCase(voucher.getDiscountType())) {
+                // Giảm giá phần trăm: tính trên giá trị đã giảm sau các voucher trước đó
                 voucherDiscount = totalPrice.multiply(voucher.getDiscountAmount()
-                        .divide(BigDecimal.valueOf(100)));
+                        .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP));
             } else if ("AMOUNT".equalsIgnoreCase(voucher.getDiscountType())) {
+                // Giảm giá tiền mặt
                 voucherDiscount = voucher.getDiscountAmount();
             }
 
+            // Kiểm tra nếu giảm giá quá giá trị tổng đơn hàng thì chỉ giảm giá bằng tổng giá trị đơn hàng
             if (voucherDiscount.compareTo(totalPrice) > 0) {
                 voucherDiscount = totalPrice;
             }
+
+            // Cộng dồn giảm giá từ các voucher
+            totalDiscount = totalDiscount.add(voucherDiscount);
         }
-        totalPrice = totalPrice.subtract(voucherDiscount);
+
+        // Áp dụng tổng giảm giá vào totalPrice
+        totalPrice = totalPrice.subtract(totalDiscount);
 
         // Tạo đơn hàng
         Order order = new Order();
@@ -169,8 +192,8 @@ public class OrderServiceImpl implements OrderService {
         order.setOrderDate(LocalDateTime.now());
         order.setStatus("PENDING");
         order.setTotalPrice(totalPrice);
-        order.setVoucher(voucher);
-        order.setVoucherDiscount(voucherDiscount);
+        order.setVouchers(voucherRepository.findByVoucherIdIn(voucherIds));
+        order.setVoucherDiscount(totalDiscount);
         order.setShippingAddress(shippingAddressRepository.findByAddressId(shippingAddressId));
         order.setStore(storeRepository.findByStoreId(storeId));
 
@@ -181,6 +204,8 @@ public class OrderServiceImpl implements OrderService {
             orderItem.setOrder(order);
             orderItemRepository.save(orderItem);
         }
+
+        // Xử lý thanh toán
 
         // Xóa cart items đã xử lý
         cartItemRepository.deleteAll(cartItems);

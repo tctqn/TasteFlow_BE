@@ -1,6 +1,6 @@
 package com.startup.tasteflowbe.model;
 
-import com.startup.tasteflowbe.model.enums.Role;
+import com.startup.tasteflowbe.enums.Role;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;

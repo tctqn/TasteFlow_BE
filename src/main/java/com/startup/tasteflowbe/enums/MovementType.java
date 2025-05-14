@@ -1,4 +1,4 @@
-package com.startup.tasteflowbe.model.enums;
+package com.startup.tasteflowbe.enums;
 
 public enum MovementType {
     IMPORT_BATCH("Nhập kho từ lô sản phẩm"),

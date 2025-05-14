@@ -1,4 +1,4 @@
-package com.startup.tasteflowbe.model.enums;
+package com.startup.tasteflowbe.enums;
 
 public enum Role {
     CUSTOMER,

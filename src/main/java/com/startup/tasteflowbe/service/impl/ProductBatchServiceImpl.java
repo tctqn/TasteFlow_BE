@@ -4,7 +4,7 @@ import com.startup.tasteflowbe.model.Inventory;
 import com.startup.tasteflowbe.model.ProductBatch;
 import com.startup.tasteflowbe.model.ProductUnit;
 import com.startup.tasteflowbe.model.StockMovement;
-import com.startup.tasteflowbe.model.enums.MovementType;
+import com.startup.tasteflowbe.enums.MovementType;
 import com.startup.tasteflowbe.repository.InventoryRepository;
 import com.startup.tasteflowbe.repository.ProductBatchRepository;
 import com.startup.tasteflowbe.repository.ProductUnitRepository;

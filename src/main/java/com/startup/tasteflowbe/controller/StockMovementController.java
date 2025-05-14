@@ -1,7 +1,7 @@
 package com.startup.tasteflowbe.controller;
 
 import com.startup.tasteflowbe.model.StockMovement;
-import com.startup.tasteflowbe.model.dto.StoreTransferParam;
+import com.startup.tasteflowbe.dto.StoreTransferParam;
 import com.startup.tasteflowbe.service.StockMovementService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;

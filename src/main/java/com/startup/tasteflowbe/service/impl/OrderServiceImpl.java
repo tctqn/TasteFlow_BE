@@ -1,7 +1,7 @@
 package com.startup.tasteflowbe.service.impl;
 
 import com.startup.tasteflowbe.model.*;
-import com.startup.tasteflowbe.model.enums.MovementType;
+import com.startup.tasteflowbe.enums.MovementType;
 import com.startup.tasteflowbe.repository.*;
 import com.startup.tasteflowbe.service.OrderService;
 import lombok.RequiredArgsConstructor;

@@ -1,8 +1,6 @@
 package com.startup.tasteflowbe.controller;
 
 import com.startup.tasteflowbe.model.ProductBatch;
-import com.startup.tasteflowbe.model.StockMovement;
-import com.startup.tasteflowbe.model.enums.MovementType;
 import com.startup.tasteflowbe.service.InventoryService;
 import com.startup.tasteflowbe.service.ProductBatchService;
 import com.startup.tasteflowbe.service.StockMovementService;
@@ -10,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController

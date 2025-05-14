@@ -1,12 +1,11 @@
 package com.startup.tasteflowbe.service.impl;
 
 import com.startup.tasteflowbe.model.*;
-import com.startup.tasteflowbe.model.dto.StoreTransferParam;
-import com.startup.tasteflowbe.model.enums.MovementType;
+import com.startup.tasteflowbe.dto.StoreTransferParam;
+import com.startup.tasteflowbe.enums.MovementType;
 import com.startup.tasteflowbe.repository.*;
 import com.startup.tasteflowbe.service.StockMovementService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

@@ -1,6 +1,6 @@
 package com.startup.tasteflowbe.model;
 
-import com.startup.tasteflowbe.model.enums.MovementType;
+import com.startup.tasteflowbe.enums.MovementType;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;

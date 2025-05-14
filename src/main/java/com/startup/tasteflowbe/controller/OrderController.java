@@ -1,8 +1,7 @@
 package com.startup.tasteflowbe.controller;
 
 import com.startup.tasteflowbe.model.Order;
-import com.startup.tasteflowbe.model.User;
-import com.startup.tasteflowbe.model.dto.CheckoutRequest;
+import com.startup.tasteflowbe.dto.CheckoutRequest;
 import com.startup.tasteflowbe.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

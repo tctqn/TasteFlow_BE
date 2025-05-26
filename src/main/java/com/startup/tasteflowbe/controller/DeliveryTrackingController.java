@@ -2,17 +2,18 @@ package com.startup.tasteflowbe.controller;
 
 import com.startup.tasteflowbe.model.DeliveryTracking;
 import com.startup.tasteflowbe.service.DeliveryTrackingService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/delivery-trackings")
 public class DeliveryTrackingController {
 
-    @Autowired
-    private DeliveryTrackingService deliveryTrackingService;
+    private final DeliveryTrackingService deliveryTrackingService;
 
     @PostMapping
     public DeliveryTracking createDeliveryTracking(@RequestBody DeliveryTracking deliveryTracking) {

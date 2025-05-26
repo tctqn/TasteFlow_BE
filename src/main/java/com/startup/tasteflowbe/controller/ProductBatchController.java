@@ -17,10 +17,6 @@ public class ProductBatchController {
 
     private final ProductBatchService productBatchService;
 
-    private final InventoryService inventoryService;
-
-    private final StockMovementService stockMovementService;
-
     @GetMapping
     public ResponseEntity<List<ProductBatch>> getAllProductBatches() {
         return ResponseEntity.ok(productBatchService.getAllProductBatches());

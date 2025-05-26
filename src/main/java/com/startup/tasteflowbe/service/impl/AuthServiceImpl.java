@@ -49,9 +49,4 @@ public class AuthServiceImpl implements AuthService {
         return jwtUtil.generateToken(user);  // You could return the JWT token for the newly registered user
     }
 
-    @Override
-    public void logout() {
-        // For simplicity, if you're using JWT, logout typically involves deleting the token on the client-side.
-        // You could also manage token blacklisting if necessary.
-    }
 }

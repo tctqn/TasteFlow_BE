@@ -2,6 +2,7 @@ package com.startup.tasteflowbe.controller;
 
 import com.startup.tasteflowbe.model.OrderItem;
 import com.startup.tasteflowbe.service.OrderItemService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -9,11 +10,11 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/order-items")
 public class OrderItemController {
 
-    @Autowired
-    private OrderItemService orderItemService;
+    private final OrderItemService orderItemService;
 
     @GetMapping
     public List<OrderItem> getAllOrderItems() {

@@ -3,17 +3,18 @@ package com.startup.tasteflowbe.controller;
 import com.startup.tasteflowbe.model.StockMovement;
 import com.startup.tasteflowbe.dto.StoreTransferParam;
 import com.startup.tasteflowbe.service.StockMovementService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/stock-movements")
 public class StockMovementController {
 
-    @Autowired
-    private StockMovementService stockMovementService;
+    private final StockMovementService stockMovementService;
 
     @PostMapping
     public StockMovement createStockMovement(@RequestBody StockMovement stockMovement) {

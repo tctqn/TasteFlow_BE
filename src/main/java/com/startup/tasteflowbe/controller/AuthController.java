@@ -37,12 +37,4 @@ public class AuthController {
             return ResponseEntity.badRequest().body(e.getMessage());  // Nếu thông tin đăng nhập không hợp lệ
         }
     }
-
-    // Đăng xuất (mặc dù JWT không cần quá nhiều thao tác để đăng xuất, chúng ta có thể xử lý ở phía client)
-    @PostMapping("/logout")
-    public ResponseEntity<String> logout() {
-        // Ở đây bạn có thể xử lý logout (có thể liên quan đến việc blacklisting token nếu cần thiết)
-        authService.logout();
-        return ResponseEntity.noContent().build();  // Trả về HTTP status 204 No Content
-    }
 }

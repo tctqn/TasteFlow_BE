@@ -7,9 +7,16 @@ import java.util.Optional;
 
 public interface ProductBatchService {
     List<ProductBatch> getAllProductBatches();
+
     Optional<ProductBatch> getProductBatchById(Long id);
+
+    List<ProductBatch> getProductBatchByWarehouseId(String username);
+
     ProductBatch createProductBatch(ProductBatch productBatch);
+
     ProductBatch updateProductBatch(Long id, ProductBatch productBatch);
+
     void deleteProductBatch(Long id);
+
     void addNewBatch(ProductBatch productBatch);
 }

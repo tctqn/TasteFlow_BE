@@ -50,6 +50,9 @@ public class ProductBatch {
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;
 
+    @Column(name = "status", nullable = false)
+    private String status;
+
     @Column(name = "import_price", nullable = false)
     private BigDecimal importPrice = BigDecimal.ZERO;
 }

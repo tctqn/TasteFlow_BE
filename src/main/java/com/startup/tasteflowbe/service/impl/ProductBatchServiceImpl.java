@@ -4,11 +4,13 @@ import com.startup.tasteflowbe.model.Inventory;
 import com.startup.tasteflowbe.model.ProductBatch;
 import com.startup.tasteflowbe.model.ProductUnit;
 import com.startup.tasteflowbe.model.StockMovement;
+import com.startup.tasteflowbe.model.Warehouse;
 import com.startup.tasteflowbe.enums.MovementType;
 import com.startup.tasteflowbe.repository.InventoryRepository;
 import com.startup.tasteflowbe.repository.ProductBatchRepository;
 import com.startup.tasteflowbe.repository.ProductUnitRepository;
 import com.startup.tasteflowbe.repository.StockMovementRepository;
+import com.startup.tasteflowbe.repository.WarehouseRepository;
 import com.startup.tasteflowbe.service.ProductBatchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,6 +32,8 @@ public class ProductBatchServiceImpl implements ProductBatchService {
 
     private final ProductUnitRepository productUnitRepository;
 
+    private final WarehouseRepository warehouseRepository;
+
     @Override
     public List<ProductBatch> getAllProductBatches() {
         return productBatchRepository.findAll();
@@ -38,6 +42,13 @@ public class ProductBatchServiceImpl implements ProductBatchService {
     @Override
     public Optional<ProductBatch> getProductBatchById(Long id) {
         return productBatchRepository.findById(id);
+    }
+
+    @Override
+    public List<ProductBatch> getProductBatchByWarehouseId(String username) {
+        Warehouse warehouse = warehouseRepository.findByManagerName(username)
+                .orElseThrow(() -> new RuntimeException("Warehouse not found for user: " + username));
+        return productBatchRepository.findByWarehouseWarehouseId(warehouse.getWarehouseId());
     }
 
     @Override
@@ -79,16 +90,16 @@ public class ProductBatchServiceImpl implements ProductBatchService {
         ProductUnit productUnit = (ProductUnit) productUnitRepository
                 .findByProduct_ProductIdAndUnit_UnitId(
                         productBatch.getProduct().getProductId(),
-                        productBatch.getUnit().getUnitId()
-                ).orElseThrow(() -> new RuntimeException("Không tìm thấy đơn vị quy đổi cho sản phẩm"));
+                        productBatch.getUnit().getUnitId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn vị quy đổi cho sản phẩm"));
         int quantityInBaseUnit = productBatch.getQuantity() * productUnit.getConversionRate();
 
         // Cập nhật bảng inventories
-        Optional<Inventory> inventory = inventoryRepository.
-                findByWarehouse_WarehouseIdAndProduct_ProductIdAndBatch_BatchId(
-                productBatch.getWarehouse().getWarehouseId(),
-                productBatch.getProduct().getProductId(),
-                productBatch.getBatchId());
+        Optional<Inventory> inventory = inventoryRepository
+                .findByWarehouse_WarehouseIdAndProduct_ProductIdAndBatch_BatchId(
+                        productBatch.getWarehouse().getWarehouseId(),
+                        productBatch.getProduct().getProductId(),
+                        productBatch.getBatchId());
         if (inventory.isPresent()) {
             // Cập nhật số lượng tồn kho
             Inventory existingInventory = inventory.get();
@@ -101,7 +112,7 @@ public class ProductBatchServiceImpl implements ProductBatchService {
             newInventory.setWarehouse(productBatch.getWarehouse());
             newInventory.setBatch(productBatch);
             newInventory.setQuantity(quantityInBaseUnit);
-            newInventory.setReorderLevel(10);  // Mức cảnh báo tái nhập kho mặc định
+            newInventory.setReorderLevel(10); // Mức cảnh báo tái nhập kho mặc định
             inventoryRepository.save(newInventory);
         }
 

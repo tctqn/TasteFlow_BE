@@ -42,4 +42,9 @@ public class WarehouseController {
         warehouseService.deleteWarehouse(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/manager")
+    public ResponseEntity<Warehouse> getWarehousesByManager(@RequestHeader String username) {
+        return ResponseEntity.ok(warehouseService.getWarehouseByManager(username));
+    }
 }

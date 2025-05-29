@@ -47,4 +47,10 @@ public class WarehouseServiceImpl implements WarehouseService {
     public void deleteWarehouse(Long id) {
         warehouseRepository.deleteById(id);
     }
+
+    @Override
+    public Warehouse getWarehouseByManager(String username) {
+        return warehouseRepository.findByManagerName(username)
+                .orElseThrow(() -> new RuntimeException("No warehouses found for manager: " + username));
+    }
 }

@@ -1,5 +1,8 @@
 package com.startup.tasteflowbe.model;
 
+import com.startup.tasteflowbe.enums.Region;
+import com.startup.tasteflowbe.enums.Role;
+import com.startup.tasteflowbe.enums.WarehouseStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -23,11 +26,25 @@ public class Warehouse {
     @Column(name = "location", nullable = false, columnDefinition = "TEXT")
     private String location;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "region", nullable = false, columnDefinition = "TEXT")
+    private Region region;
+
     @Column(name = "manager_name", length = 100)
     private String managerName;
 
     @Column(name = "phone", length = 20)
     private String phone;
+
+    @Column(name = "capacity", nullable = false)
+    private Double capacity; // đơn vị m²
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 50)
+    private WarehouseStatus status;
+
+    @Transient
+    private Integer totalProduct; // tổng số sản phẩm trong kho
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();

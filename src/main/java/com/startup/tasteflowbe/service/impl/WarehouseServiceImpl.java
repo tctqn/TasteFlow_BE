@@ -1,6 +1,7 @@
 package com.startup.tasteflowbe.service.impl;
 
 import com.startup.tasteflowbe.model.Warehouse;
+import com.startup.tasteflowbe.repository.InventoryRepository;
 import com.startup.tasteflowbe.repository.WarehouseRepository;
 import com.startup.tasteflowbe.service.WarehouseService;
 import lombok.RequiredArgsConstructor;
@@ -15,9 +16,16 @@ public class WarehouseServiceImpl implements WarehouseService {
 
     private final WarehouseRepository warehouseRepository;
 
+    private final InventoryRepository inventoryRepository;
+
     @Override
     public List<Warehouse> getAllWarehouses() {
-        return warehouseRepository.findAll();
+        List<Warehouse> warehouses = warehouseRepository.findAll();
+        for (Warehouse warehouse : warehouses) {
+            Integer total = inventoryRepository.getTotalProductByWarehouseId(warehouse.getWarehouseId()).orElse(null);
+            warehouse.setTotalProduct(total != null ? total : 0);
+        }
+        return warehouses;
     }
 
     @Override
@@ -36,8 +44,12 @@ public class WarehouseServiceImpl implements WarehouseService {
                 .map(warehouse -> {
                     warehouse.setName(updatedWarehouse.getName());
                     warehouse.setLocation(updatedWarehouse.getLocation());
+                    warehouse.setRegion(updatedWarehouse.getRegion());
                     warehouse.setManagerName(updatedWarehouse.getManagerName());
                     warehouse.setPhone(updatedWarehouse.getPhone());
+                    warehouse.setStatus(updatedWarehouse.getStatus());
+                    warehouse.setCapacity(updatedWarehouse.getCapacity());
+                    warehouse.setTotalProduct(updatedWarehouse.getTotalProduct());
                     return warehouseRepository.save(warehouse);
                 })
                 .orElseThrow(() -> new RuntimeException("Warehouse not found with id " + id));

@@ -1,9 +1,5 @@
 package com.startup.tasteflowbe.service.impl;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.CannedAccessControlList;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.startup.tasteflowbe.model.ImageStorage;
 import com.startup.tasteflowbe.repository.ImageStorageRepository;
 import com.startup.tasteflowbe.service.ImageStorageService;
@@ -15,12 +11,15 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.core.sync.RequestBody;
 
 @Service
 @RequiredArgsConstructor
 public class ImageStorageServiceImpl implements ImageStorageService {
 
-    private final AmazonS3 amazonS3;
+    private final S3Client s3Client;
     private final ImageStorageRepository imageRepo;
 
     @Value("${cloud.aws.s3.bucket}")
@@ -30,20 +29,21 @@ public class ImageStorageServiceImpl implements ImageStorageService {
     public ImageStorage uploadImage(MultipartFile file, String relatedTable, Long recordId) throws IOException {
         String key = UUID.randomUUID() + "_" + file.getOriginalFilename();
 
-        ObjectMetadata metadata = new ObjectMetadata();
-        metadata.setContentType(file.getContentType());
-        metadata.setContentLength(file.getSize());
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucket)
+                .key(key)
+                .contentType(file.getContentType())
+                .build();
 
-        amazonS3.putObject(new PutObjectRequest(bucket, key, file.getInputStream(), metadata)
-                .withCannedAcl(CannedAccessControlList.PublicRead));
+        s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
-        String fileUrl = amazonS3.getUrl(bucket, key).toString();
+        String fileUrl = "https://" + bucket + ".s3.amazonaws.com/" + key;
 
         ImageStorage image = ImageStorage.builder()
                 .imageUrl(fileUrl)
-                .relatedTable(relatedTable)
-                .recordId(recordId)
-                .uploadedAt(LocalDateTime.now())
+                .referenceTable(relatedTable)
+                .referenceId(recordId)
+                .createdAt(LocalDateTime.now())
                 .build();
 
         return imageRepo.save(image);

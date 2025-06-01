@@ -42,4 +42,10 @@ public class UserController {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/available-managers")
+    public ResponseEntity<List<User>> getAvailableWarehouseManagers() {
+        return ResponseEntity.ok(userService.getAvailableWarehouseManagers());
+    }
+
 }

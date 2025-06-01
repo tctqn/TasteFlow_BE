@@ -98,7 +98,7 @@ public class ProductBatchController {
     }
 
     @GetMapping("/warehouse")
-    public ResponseEntity<List<ProductBatch>> getProductBatchByWarehouseId(@RequestHeader String username) {
-        return ResponseEntity.ok(productBatchService.getProductBatchByWarehouseId(username));
+    public ResponseEntity<List<ProductBatch>> getProductBatchByWarehouseId(@RequestHeader Long managerId) {
+        return ResponseEntity.ok(productBatchService.getProductBatchByWarehouseId(managerId));
     }
 }

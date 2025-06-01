@@ -30,8 +30,10 @@ public class Warehouse {
     @Column(name = "region", nullable = false, columnDefinition = "TEXT")
     private Region region;
 
-    @Column(name = "manager_name", length = 100)
-    private String managerName;
+    @OneToOne
+    @JoinColumn(name = "manager_id", referencedColumnName = "user_id", unique = true)
+    private User manager;
+
 
     @Column(name = "phone", length = 20)
     private String phone;

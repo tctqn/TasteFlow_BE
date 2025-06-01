@@ -16,5 +16,5 @@ public interface WarehouseService {
 
     void deleteWarehouse(Long id);
 
-    Warehouse getWarehouseByManager(String username);
+    Warehouse getWarehouseByManager(Long managerId);
 }

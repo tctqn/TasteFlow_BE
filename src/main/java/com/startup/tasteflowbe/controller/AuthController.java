@@ -1,7 +1,9 @@
 package com.startup.tasteflowbe.controller;
 
+import com.startup.tasteflowbe.dto.ForgotPasswordRequest;
 import com.startup.tasteflowbe.dto.LoginRequest;
 import com.startup.tasteflowbe.dto.RegisterRequest;
+import com.startup.tasteflowbe.dto.ResetPasswordRequest;
 import com.startup.tasteflowbe.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -37,4 +39,31 @@ public class AuthController {
             return ResponseEntity.badRequest().body(e.getMessage());  // Nếu thông tin đăng nhập không hợp lệ
         }
     }
+
+    @GetMapping("/verify")
+    public ResponseEntity<String> verifyEmail(@RequestParam("token") String token) {
+        authService.enableUser(token);
+        return ResponseEntity.ok("Email verified successfully!");
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        try {
+            authService.forgotPassword(request.getEmail());
+            return ResponseEntity.ok("Email đặt lại mật khẩu đã được gửi.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest request) {
+        try {
+            authService.resetPassword(request.getToken(), request.getNewPassword());
+            return ResponseEntity.ok("Mật khẩu đã được đặt lại thành công.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
 }

@@ -48,4 +48,9 @@ public class User {
 
     @Column(name = "points")
     private Integer points = 0;
+
+    @Column(nullable = false)
+    private boolean enabled = false;
+
+    private String verificationToken;
 }

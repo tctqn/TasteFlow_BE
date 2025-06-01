@@ -66,7 +66,6 @@ public class AuthServiceImpl implements AuthService {
         user.setEnabled(true);
         user.setVerificationToken(null);
         userRepository.save(user);
-        return user;
     }
 
     @Override

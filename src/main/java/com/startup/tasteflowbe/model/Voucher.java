@@ -1,16 +1,19 @@
 package com.startup.tasteflowbe.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "vouchers")
 @Data
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Voucher {
 
     @Id
@@ -32,4 +35,14 @@ public class Voucher {
 
     @Column(name = "end_date", nullable = false)
     private LocalDateTime endDate;
+
+    @Column(name = "quantity", nullable = false)
+    private Integer quantity;
+
+    @Column(name = "claimed_count", nullable = false)
+    private Integer claimedCount;
+
+    @OneToMany(mappedBy = "voucher", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<UserVoucher> userVouchers = new ArrayList<>();
 }

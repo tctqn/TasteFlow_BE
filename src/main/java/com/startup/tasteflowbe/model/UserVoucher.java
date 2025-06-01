@@ -27,4 +27,7 @@ public class UserVoucher {
 
     @Column(name = "claimed_at", nullable = false)
     private LocalDateTime claimedAt = LocalDateTime.now();
+
+    @Column(name = "used", nullable = false)
+    private boolean used = false; // Mặc định là chưa dùng
 }

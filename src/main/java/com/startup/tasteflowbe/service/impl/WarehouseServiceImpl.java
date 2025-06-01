@@ -45,7 +45,7 @@ public class WarehouseServiceImpl implements WarehouseService {
                     warehouse.setName(updatedWarehouse.getName());
                     warehouse.setLocation(updatedWarehouse.getLocation());
                     warehouse.setRegion(updatedWarehouse.getRegion());
-                    warehouse.setManagerName(updatedWarehouse.getManagerName());
+                    warehouse.setManager(updatedWarehouse.getManager());
                     warehouse.setPhone(updatedWarehouse.getPhone());
                     warehouse.setStatus(updatedWarehouse.getStatus());
                     warehouse.setCapacity(updatedWarehouse.getCapacity());
@@ -61,8 +61,8 @@ public class WarehouseServiceImpl implements WarehouseService {
     }
 
     @Override
-    public Warehouse getWarehouseByManager(String username) {
-        return warehouseRepository.findByManagerName(username)
-                .orElseThrow(() -> new RuntimeException("No warehouses found for manager: " + username));
+    public Warehouse getWarehouseByManager(Long managerId) {
+        return warehouseRepository.findByManager_UserId(managerId)
+                .orElseThrow(() -> new RuntimeException("No warehouses found"));
     }
 }

@@ -1,5 +1,6 @@
 package com.startup.tasteflowbe.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.startup.tasteflowbe.enums.Role;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -48,4 +49,9 @@ public class User {
 
     @Column(name = "points")
     private Integer points = 0;
+
+    @OneToOne(mappedBy = "manager")
+    @JsonIgnore
+    private Warehouse warehouse;
+
 }

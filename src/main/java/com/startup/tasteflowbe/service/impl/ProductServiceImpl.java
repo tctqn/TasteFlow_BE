@@ -1,7 +1,14 @@
 package com.startup.tasteflowbe.service.impl;
 
+import com.startup.tasteflowbe.dto.request.ProductRequestDTO;
+import com.startup.tasteflowbe.dto.response.ProductResponseDTO;
+import com.startup.tasteflowbe.mapper.ProductMapper;
+import com.startup.tasteflowbe.model.Category;
 import com.startup.tasteflowbe.model.Product;
+import com.startup.tasteflowbe.model.Promotion;
+import com.startup.tasteflowbe.repository.CategoryRepository;
 import com.startup.tasteflowbe.repository.ProductRepository;
+import com.startup.tasteflowbe.repository.PromotionRepository;
 import com.startup.tasteflowbe.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,33 +21,52 @@ import java.util.Optional;
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
+    private final PromotionRepository promotionRepository;
+    private final ProductMapper productMapper;
 
     @Override
-    public List<Product> getAllProducts() {
-        return productRepository.findAll();
+    public List<ProductResponseDTO> getAllProducts() {
+        return productRepository.findAll().stream()
+                .map(productMapper::toResponse)
+                .toList();
     }
 
     @Override
-    public Optional<Product> getProductById(Long id) {
-        return productRepository.findById(id);
-    }
-
-    @Override
-    public Product createProduct(Product product) {
-        return productRepository.save(product);
-    }
-
-    @Override
-    public Product updateProduct(Long id, Product product) {
+    public Optional<ProductResponseDTO> getProductById(Long id) {
         return productRepository.findById(id)
-                .map(existingProduct -> {
-                    existingProduct.setName(product.getName());
-                    existingProduct.setDescription(product.getDescription());
-                    existingProduct.setPrice(product.getPrice());
-                    existingProduct.setSku(product.getSku());
-                    existingProduct.setCategory(product.getCategory());
-                    existingProduct.setImageUrl(product.getImageUrl());
-                    return productRepository.save(existingProduct);
+                .map(productMapper::toResponse);
+    }
+
+    @Override
+    public ProductResponseDTO createProduct(ProductRequestDTO dto) {
+        Product product = productMapper.toEntity(dto);
+
+        Category category = categoryRepository.findById(dto.getCategoryId())
+                .orElseThrow(() -> new RuntimeException("Category not found with id " + dto.getCategoryId()));
+
+        List<Promotion> promotions = promotionRepository.findAllById(dto.getPromotionIds());
+
+        product.setCategory(category);
+        product.setPromotions(promotions);
+
+        return productMapper.toResponse(productRepository.save(product));
+    }
+
+    @Override
+    public ProductResponseDTO updateProduct(Long id, ProductRequestDTO dto) {
+        return productRepository.findById(id)
+                .map(existing -> {
+                    productMapper.updateEntityFromDTO(dto, existing); // dùng @MappingTarget
+                    Category category = categoryRepository.findById(dto.getCategoryId())
+                            .orElseThrow(() -> new RuntimeException("Category not found"));
+
+                    List<Promotion> promotions = promotionRepository.findAllById(dto.getPromotionIds());
+
+                    existing.setCategory(category);
+                    existing.setPromotions(promotions);
+
+                    return productMapper.toResponse(productRepository.save(existing));
                 })
                 .orElseThrow(() -> new RuntimeException("Product not found with id " + id));
     }

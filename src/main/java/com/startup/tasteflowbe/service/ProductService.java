@@ -1,14 +1,15 @@
 package com.startup.tasteflowbe.service;
 
-import com.startup.tasteflowbe.model.Product;
+import com.startup.tasteflowbe.dto.request.ProductRequestDTO;
+import com.startup.tasteflowbe.dto.response.ProductResponseDTO;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface ProductService {
-    List<Product> getAllProducts();
-    Optional<Product> getProductById(Long id);
-    Product createProduct(Product product);
-    Product updateProduct(Long id, Product product);
+    List<ProductResponseDTO> getAllProducts();
+    Optional<ProductResponseDTO> getProductById(Long id);
+    ProductResponseDTO createProduct(ProductRequestDTO dto);
+    ProductResponseDTO updateProduct(Long id, ProductRequestDTO dto);
     void deleteProduct(Long id);
 }

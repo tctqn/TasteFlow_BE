@@ -42,59 +42,66 @@ public class SecurityConfig {
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 http
-                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                                .csrf(csrf -> csrf.disable())
-                                .sessionManagement(session -> session
-                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                                .authorizeHttpRequests(auth -> auth
-                                                // Public access
-                                                .requestMatchers("/api/auth/**").permitAll()
-                                                .requestMatchers(
-                                                                "/api/products/**",
-                                                                "/api/stores/**",
-                                                                "/api/promotions/**",
-                                                                "/api/vouchers/**")
-                                                .permitAll()
+                        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                        .csrf(csrf -> csrf.disable())
+                        .sessionManagement(session -> session
+                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                        .authorizeHttpRequests(auth -> auth
+                                // Public access
+                                .requestMatchers("/api/auth/**").permitAll()
+                                .requestMatchers(
+                                        "/api/products/**",
+                                        "/api/stores/**",
+                                        "/api/promotions/**",
+                                        "/api/vouchers/**")
+                                .permitAll()
 
-                                                // CUSTOMER routes
-                                                .requestMatchers(
-                                                                "/api/cart-items/**",
-                                                                "/api/orders/**",
-                                                                "/api/payments/**",
-                                                                "/api/refunds/**",
-                                                                "/api/invoices/**",
-                                                                "/api/delivery-trackings/**",
-                                                                "/api/shipping-addresses/**")
-                                                .hasRole("CUSTOMER")
+                                // Đảm bảo test-s3-connection được phép truy cập
+                                .requestMatchers("/test-s3-connection",
+                                        "/test-bucket-connection",
+                                        "/list-bucket-objects",
+                                        "/upload-file",
+                                        "/download-file").permitAll()
 
-                                                // STAFF + ADMIN routes
-                                                .requestMatchers(
-                                                                "/api/inventories/**",
-                                                                "/api/product-batches/**",
-                                                                "/api/stock-movements/**",
-                                                                "/api/order-items/**",
-                                                                "/api/categories/**",
-                                                                "/api/products-units/**",
-                                                                "/api/units/**",
-                                                                "/api/orders/**",
-                                                                "/api/invoices/**",
-                                                                "/api/payments/**",
-                                                                "/api/suppliers/**",
-                                                                "/api/refunds/**",
-                                                                "/api/warehouses/**",
-                                                                "/api/delivery-trackings/**")
-                                                .hasAnyRole("WAREHOUSE_MANAGER", "ADMIN", "SHOP_MANAGER", "SHOP_STAFF")
+                                // CUSTOMER routes
+                                .requestMatchers(
+                                        "/api/cart-items/**",
+                                        "/api/orders/**",
+                                        "/api/payments/**",
+                                        "/api/refunds/**",
+                                        "/api/invoices/**",
+                                        "/api/delivery-trackings/**",
+                                        "/api/shipping-addresses/**")
+                                .hasRole("CUSTOMER")
 
-                                                // ADMIN-only routes
-                                                .requestMatchers(
-                                                                "/api/users/**")
-                                                .hasRole("ADMIN")
+                                // STAFF + ADMIN routes
+                                .requestMatchers(
+                                        "/api/inventories/**",
+                                        "/api/product-batches/**",
+                                        "/api/stock-movements/**",
+                                        "/api/order-items/**",
+                                        "/api/categories/**",
+                                        "/api/products-units/**",
+                                        "/api/units/**",
+                                        "/api/orders/**",
+                                        "/api/invoices/**",
+                                        "/api/payments/**",
+                                        "/api/suppliers/**",
+                                        "/api/refunds/**",
+                                        "/api/warehouses/**",
+                                        "/api/delivery-trackings/**")
+                                .hasAnyRole("WAREHOUSE_MANAGER", "ADMIN", "SHOP_MANAGER", "SHOP_STAFF")
 
-                                                // All other requests must be authenticated
-                                                .anyRequest().authenticated())
-                                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                                .formLogin(form -> form.disable())
-                                .httpBasic(httpBasic -> httpBasic.disable());
+                                // ADMIN-only routes
+                                .requestMatchers("/api/users/**")
+                                .hasRole("ADMIN")
+
+                                // All other requests must be authenticated
+                                .anyRequest().authenticated())
+                        .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                        .formLogin(form -> form.disable())
+                        .httpBasic(httpBasic -> httpBasic.disable());
                 return http.build();
         }
+
 }

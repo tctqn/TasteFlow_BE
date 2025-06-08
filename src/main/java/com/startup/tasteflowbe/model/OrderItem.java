@@ -19,11 +19,11 @@ public class OrderItem {
 
     @ManyToOne
     @JoinColumn(name = "order_id", nullable = false)
-    private Order order; // Một Order có nhiều OrderItem
+    private Order order;
 
     @ManyToOne
     @JoinColumn(name = "product_id", nullable = false)
-    private Product product; // Một Product có thể có nhiều OrderItem (vì bán nhiều lần)
+    private Product product;
 
     @ManyToOne
     @JoinColumn(name = "batch_id")

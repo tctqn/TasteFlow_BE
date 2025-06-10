@@ -1,5 +1,6 @@
 package com.startup.tasteflowbe.service.impl;
 
+import com.startup.tasteflowbe.enums.WarehouseStatus;
 import com.startup.tasteflowbe.model.Warehouse;
 import com.startup.tasteflowbe.repository.InventoryRepository;
 import com.startup.tasteflowbe.repository.WarehouseRepository;
@@ -35,11 +36,13 @@ public class WarehouseServiceImpl implements WarehouseService {
 
     @Override
     public Warehouse createWarehouse(Warehouse warehouse) {
+        warehouse.setStatus(WarehouseStatus.ACTIVE);
         return warehouseRepository.save(warehouse);
     }
 
     @Override
     public Warehouse updateWarehouse(Long id, Warehouse updatedWarehouse) {
+
         return warehouseRepository.findById(id)
                 .map(warehouse -> {
                     warehouse.setName(updatedWarehouse.getName());
@@ -49,7 +52,6 @@ public class WarehouseServiceImpl implements WarehouseService {
                     warehouse.setPhone(updatedWarehouse.getPhone());
                     warehouse.setStatus(updatedWarehouse.getStatus());
                     warehouse.setCapacity(updatedWarehouse.getCapacity());
-                    warehouse.setTotalProduct(updatedWarehouse.getTotalProduct());
                     return warehouseRepository.save(warehouse);
                 })
                 .orElseThrow(() -> new RuntimeException("Warehouse not found with id " + id));

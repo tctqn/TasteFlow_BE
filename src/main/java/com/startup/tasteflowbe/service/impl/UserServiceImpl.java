@@ -57,4 +57,7 @@ public class UserServiceImpl implements UserService {
     public List<User> getAvailableWarehouseManagers() {
         return userRepository.findAvailableWarehouseManagers();
     }
+
+    @Override
+    public List<User> getAvailableShopManagers() { return userRepository.findAvailableShopManagers(); }
 }

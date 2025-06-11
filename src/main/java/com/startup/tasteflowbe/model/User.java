@@ -54,4 +54,8 @@ public class User {
     @JsonIgnore
     private Warehouse warehouse;
 
+    @OneToOne(mappedBy = "manager")
+    @JsonIgnore
+    private Store store;
+
 }

@@ -1,5 +1,7 @@
 package com.startup.tasteflowbe.model;
 
+import com.startup.tasteflowbe.enums.Region;
+import com.startup.tasteflowbe.enums.StoreStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -26,4 +28,16 @@ public class Store {
 
     @Column(name = "business_hours", length = 100)
     private String businessHours;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "region", nullable = false, columnDefinition = "TEXT")
+    private Region region;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 50)
+    private StoreStatus status;
+
+    @OneToOne
+    @JoinColumn(name = "manager_id", referencedColumnName = "user_id", unique = true)
+    private User manager;
 }

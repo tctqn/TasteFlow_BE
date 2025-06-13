@@ -17,5 +17,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findAvailableWarehouseManagers();
     @Query("SELECT u FROM User u WHERE u.role = com.startup.tasteflowbe.enums.Role.SHOP_MANAGER AND u.store IS NULL")
     List<User> findAvailableShopManagers();
-
+    User findByUserId(Long userId);
 }

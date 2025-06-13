@@ -40,4 +40,19 @@ public class Store {
     @OneToOne
     @JoinColumn(name = "manager_id", referencedColumnName = "user_id", unique = true)
     private User manager;
+
+    @Override
+    public String toString() {
+        return "Store{" +
+                "storeId=" + storeId +
+                ", name='" + name + '\'' +
+                ", address='" + address + '\'' +
+                ", contactInfo='" + contactInfo + '\'' +
+                ", businessHours='" + businessHours + '\'' +
+                ", region=" + region +
+                ", status=" + status +
+                ", manager=" + (manager != null ? manager.getUserId() : null) +
+                '}';
+    }
+
 }

@@ -3,6 +3,7 @@ package com.startup.tasteflowbe.service.impl;
 import com.startup.tasteflowbe.enums.WarehouseStatus;
 import com.startup.tasteflowbe.model.Warehouse;
 import com.startup.tasteflowbe.repository.InventoryRepository;
+import com.startup.tasteflowbe.repository.UserRepository;
 import com.startup.tasteflowbe.repository.WarehouseRepository;
 import com.startup.tasteflowbe.service.WarehouseService;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,8 @@ public class WarehouseServiceImpl implements WarehouseService {
     private final WarehouseRepository warehouseRepository;
 
     private final InventoryRepository inventoryRepository;
+
+    private final UserRepository userRepository;
 
     @Override
     public List<Warehouse> getAllWarehouses() {
@@ -42,13 +45,12 @@ public class WarehouseServiceImpl implements WarehouseService {
 
     @Override
     public Warehouse updateWarehouse(Long id, Warehouse updatedWarehouse) {
-
         return warehouseRepository.findById(id)
                 .map(warehouse -> {
                     warehouse.setName(updatedWarehouse.getName());
                     warehouse.setLocation(updatedWarehouse.getLocation());
                     warehouse.setRegion(updatedWarehouse.getRegion());
-                    warehouse.setManager(updatedWarehouse.getManager());
+                    warehouse.setManager(userRepository.findByUserId(updatedWarehouse.getManager().getUserId()));
                     warehouse.setPhone(updatedWarehouse.getPhone());
                     warehouse.setStatus(updatedWarehouse.getStatus());
                     warehouse.setCapacity(updatedWarehouse.getCapacity());

@@ -7,6 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
 @RequestMapping("/api/inventories")
@@ -42,4 +44,10 @@ public class InventoryController {
         inventoryService.deleteInventory(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/store/{store_id}")
+    public ResponseEntity<List<Inventory>> getInventoryOfStore(@PathVariable Long store_id) {
+        return ResponseEntity.ok(inventoryService.findByStore_StoreId(store_id));
+    }
+
 }

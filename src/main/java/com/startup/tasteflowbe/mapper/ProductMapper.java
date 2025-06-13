@@ -16,7 +16,7 @@ public interface ProductMapper {
     // ✅ Mapping từ DTO → entity để tạo
     @Mapping(target = "productId", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "category", ignore = true)    // category sẽ được set trong service
+    @Mapping(target = "category", ignore = true) // category sẽ được set trong service
     @Mapping(target = "promotions", ignore = true) // promotions sẽ được set trong service
     Product toEntity(ProductRequestDTO dto);
 

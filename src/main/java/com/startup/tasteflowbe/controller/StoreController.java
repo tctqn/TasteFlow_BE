@@ -7,6 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
 @RequestMapping("/api/stores")
@@ -41,5 +43,12 @@ public class StoreController {
     public ResponseEntity<Void> deleteStore(@PathVariable Long id) {
         storeService.deleteStore(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/manager/{managerId}")
+    public ResponseEntity<Store> getStoreByManager(@PathVariable Long managerId) {
+        return storeService.getStoreByManager(managerId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }

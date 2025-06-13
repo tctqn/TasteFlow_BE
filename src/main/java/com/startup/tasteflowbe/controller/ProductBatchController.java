@@ -1,11 +1,15 @@
 package com.startup.tasteflowbe.controller;
 
+import com.startup.tasteflowbe.dto.HandleImportProductBatch;
 import com.startup.tasteflowbe.dto.ProductBatchDTO;
 import com.startup.tasteflowbe.model.Product;
 import com.startup.tasteflowbe.model.ProductBatch;
 import com.startup.tasteflowbe.service.InventoryService;
 import com.startup.tasteflowbe.service.ProductBatchService;
 import com.startup.tasteflowbe.service.StockMovementService;
+
+import aj.org.objectweb.asm.Handle;
+
 import com.startup.tasteflowbe.model.User;
 import com.startup.tasteflowbe.model.Warehouse;
 import com.startup.tasteflowbe.model.Unit;
@@ -20,6 +24,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -74,7 +79,7 @@ public class ProductBatchController {
         productBatch.setNote(productBatchDTO.getNote());
         productBatch.setReceivedDate(LocalDateTime.now());
         productBatch.setImportPrice(BigDecimal.ZERO);
-        productBatch.setStatus("CREATED");
+        productBatch.setStatus("PENDING");
 
         return ResponseEntity.ok(productBatchService.createProductBatch(productBatch));
     }
@@ -91,6 +96,23 @@ public class ProductBatchController {
         return ResponseEntity.ok(productBatchService.updateProductBatch(id, productBatch));
     }
 
+    @PutMapping("/update/{id}")
+    public ResponseEntity<ProductBatch> updateProductBatchStatus(@PathVariable Long id,
+            @RequestBody HandleImportProductBatch handleImportProductBatch) {
+        String status = handleImportProductBatch.getStatus();
+        BigDecimal importPrice = handleImportProductBatch.getImportPrice();
+        LocalDate expirationDate = handleImportProductBatch.getExpirationDate();
+        if (status == null || importPrice == null || expirationDate == null) {
+            return ResponseEntity.badRequest().body(null);
+        }
+        ProductBatch productBatch = productBatchService.getProductBatchById(id)
+                .orElseThrow(() -> new IllegalArgumentException("ProductBatch not found with ID: " + id));
+        productBatch.setStatus(status);
+        productBatch.setImportPrice(importPrice);
+        productBatch.setExpirationDate(expirationDate);
+        return ResponseEntity.ok(productBatchService.updateProductBatch(id, productBatch));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProductBatch(@PathVariable Long id) {
         productBatchService.deleteProductBatch(id);
@@ -99,6 +121,10 @@ public class ProductBatchController {
 
     @GetMapping("/warehouse")
     public ResponseEntity<List<ProductBatch>> getProductBatchByWarehouseId(@RequestHeader Long managerId) {
+        System.out.println("Manager ID: " + managerId);
+        if (managerId == null) {
+            return ResponseEntity.badRequest().body(null);
+        }
         return ResponseEntity.ok(productBatchService.getProductBatchByWarehouseId(managerId));
     }
 }

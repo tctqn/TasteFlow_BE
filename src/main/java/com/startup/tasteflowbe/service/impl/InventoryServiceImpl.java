@@ -56,4 +56,8 @@ public class InventoryServiceImpl implements InventoryService {
         inventoryRepository.deleteById(id);
     }
 
+    @Override
+    public List<Inventory> findByStore_StoreId(Long storeId) {
+        return inventoryRepository.findByStore_StoreId(storeId);
+    }
 }

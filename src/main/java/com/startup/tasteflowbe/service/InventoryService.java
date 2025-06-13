@@ -7,8 +7,14 @@ import java.util.Optional;
 
 public interface InventoryService {
     List<Inventory> getAllInventories();
+
     Optional<Inventory> getInventoryById(Long id);
+
     Inventory createInventory(Inventory inventory);
+
     Inventory updateInventory(Long id, Inventory inventory);
+
     void deleteInventory(Long id);
+
+    List<Inventory> findByStore_StoreId(Long storeId);
 }

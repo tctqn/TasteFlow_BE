@@ -250,3 +250,25 @@ CREATE TABLE stock_movements (
    FOREIGN KEY (product_id) REFERENCES products(product_id),
    FOREIGN KEY (batch_id) REFERENCES product_batches(batch_id)
 );
+
+CREATE TABLE store_requests (
+    request_id SERIAL PRIMARY KEY,
+    store_id INT NOT NULL,
+    warehouse_id INT NOT NULL,
+    status VARCHAR(50) NOT NULL CHECK (status IN ('Pending', 'Approved', 'Rejected', 'Processing', 'Completed', 'Cancelled')) DEFAULT 'Pending',
+    request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_date TIMESTAMP,
+    notes TEXT,
+    FOREIGN KEY (store_id) REFERENCES stores(store_id),
+    FOREIGN KEY (warehouse_id) REFERENCES warehouses(warehouse_id)
+);
+CREATE TABLE store_request_items (
+    request_item_id SERIAL PRIMARY KEY,
+    request_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL CHECK (quantity > 0),
+    unit_id INT NOT NULL,
+    FOREIGN KEY (request_id) REFERENCES store_requests(request_id),
+    FOREIGN KEY (product_id) REFERENCES products(product_id),
+    FOREIGN KEY (unit_id) REFERENCES units(unit_id)
+);

@@ -34,4 +34,7 @@ public class Store {
 
     @Column(name = "village", length = 100)
     private String village;
+    @Column(name = "manager_id")
+    private Long managerId;
+
 }

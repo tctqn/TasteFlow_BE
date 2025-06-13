@@ -44,7 +44,7 @@ public class WarehouseController {
     }
 
     @GetMapping("/manager")
-    public ResponseEntity<Warehouse> getWarehousesByManager(@RequestHeader Long managerId) {
-        return ResponseEntity.ok(warehouseService.getWarehouseByManager(managerId));
+    public ResponseEntity<Warehouse> getWarehousesByManager(@RequestHeader Long manager_id) {
+        return ResponseEntity.ok(warehouseService.getWarehouseByManager(manager_id));
     }
 }

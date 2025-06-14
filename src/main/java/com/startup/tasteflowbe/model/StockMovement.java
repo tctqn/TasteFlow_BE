@@ -47,4 +47,8 @@ public class StockMovement {
     @Column(name = "note")
     private String note;
 
+    @OneToOne
+    @JoinColumn(name = "request_id")
+    private StoreRequest storeRequest;
+
 }

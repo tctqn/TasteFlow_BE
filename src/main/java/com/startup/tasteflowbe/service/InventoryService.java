@@ -1,5 +1,6 @@
 package com.startup.tasteflowbe.service;
 
+import com.startup.tasteflowbe.dto.request.StoreInventoryRequestDTO;
 import com.startup.tasteflowbe.model.Inventory;
 
 import java.util.List;
@@ -17,4 +18,6 @@ public interface InventoryService {
     void deleteInventory(Long id);
 
     List<Inventory> findByStore_StoreId(Long storeId);
+
+    void createStoreInventory(StoreInventoryRequestDTO storeInventoryRequestDTO);
 }

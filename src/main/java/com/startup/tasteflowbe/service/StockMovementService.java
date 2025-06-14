@@ -7,7 +7,12 @@ import java.util.List;
 
 public interface StockMovementService {
     StockMovement createStockMovement(StockMovement stockMovement);
+
     StockMovement getStockMovementById(Long movementId);
+
     List<StockMovement> getAllStockMovements();
+
     void transferToStores(Long warehouseId, Long productId, Long batchId, List<StoreTransferParam> transferList);
+
+    List<StockMovement> getStockMovementsToStore(Long storeId);
 }

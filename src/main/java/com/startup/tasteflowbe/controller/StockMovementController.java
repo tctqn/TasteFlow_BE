@@ -1,10 +1,12 @@
 package com.startup.tasteflowbe.controller;
 
 import com.startup.tasteflowbe.model.StockMovement;
+import com.startup.tasteflowbe.model.StoreRequest;
 import com.startup.tasteflowbe.dto.StoreTransferParam;
 import com.startup.tasteflowbe.service.StockMovementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -38,6 +40,11 @@ public class StockMovementController {
             @RequestParam Long batchId,
             @RequestBody List<StoreTransferParam> transferList) {
         stockMovementService.transferToStores(warehouseId, productId, batchId, transferList);
+    }
+
+    @GetMapping("/store/{storeId}")
+    public ResponseEntity<List<StockMovement>> getStockMovementsToStore(@PathVariable Long storeId) {
+        return ResponseEntity.ok(stockMovementService.getStockMovementsToStore(storeId));
     }
 
 }

@@ -1,6 +1,14 @@
 package com.startup.tasteflowbe.service.impl;
 
+import com.startup.tasteflowbe.dto.request.ProductRequestDTO;
+import com.startup.tasteflowbe.dto.request.StoreInventoryRequestDTO;
+import com.startup.tasteflowbe.dto.response.ProductResponseDTO;
 import com.startup.tasteflowbe.model.Inventory;
+import com.startup.tasteflowbe.model.Product;
+import com.startup.tasteflowbe.model.ProductBatch;
+import com.startup.tasteflowbe.model.Store;
+import com.startup.tasteflowbe.model.StoreRequest;
+import com.startup.tasteflowbe.model.Warehouse;
 import com.startup.tasteflowbe.repository.InventoryRepository;
 import com.startup.tasteflowbe.service.*;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +29,10 @@ public class InventoryServiceImpl implements InventoryService {
 
     private final ProductBatchService productBatchService;
 
+    private final StoreRequestService storeRequestService;
+
+    private final StoreService storeService;
+
     @Override
     public List<Inventory> getAllInventories() {
         return inventoryRepository.findAll();
@@ -34,6 +46,35 @@ public class InventoryServiceImpl implements InventoryService {
     @Override
     public Inventory createInventory(Inventory inventory) {
         return inventoryRepository.save(inventory);
+    }
+
+    @Override
+    public void createStoreInventory(StoreInventoryRequestDTO storeInventoryRequestDTO) {
+        System.out.print("Data here tuyennq223:" + storeInventoryRequestDTO);
+        Inventory inventory = new Inventory();
+        ProductBatch productBatch = productBatchService.getProductBatchById(storeInventoryRequestDTO.getBatchId())
+                .orElseThrow(() -> new RuntimeException(
+                        "ProductBatch not found with id " + storeInventoryRequestDTO.getBatchId()));
+        Warehouse warehouse = warehouseService.getWarehouseById(storeInventoryRequestDTO.getWarehouseId())
+                .orElseThrow(() -> new RuntimeException(
+                        "Warehouse not found with id " + storeInventoryRequestDTO.getWarehouseId()));
+        StoreRequest storeRequest = storeRequestService.getStoreRequestById(storeInventoryRequestDTO.getRequestId())
+                .orElseThrow(() -> new RuntimeException(
+                        "Store request not found with id " + storeInventoryRequestDTO.getRequestId()));
+        Store store = storeService.getStoreById(storeInventoryRequestDTO.getStoreId())
+                .orElseThrow(() -> new RuntimeException(
+                        "Store not found with id " + storeInventoryRequestDTO.getStoreId()));
+
+        inventory.setBatch(productBatch);
+        inventory.setProduct(productBatch.getProduct());
+        inventory.setQuantity(storeInventoryRequestDTO.getQuantity());
+        inventory.setStore(store);
+        inventory.setReorderLevel(storeInventoryRequestDTO.getReorder_level());
+        inventory.setWarehouse(warehouse);
+
+        inventoryRepository.save(inventory);
+
+        storeRequestService.updateStoreRequestStatus(storeRequest.getRequestId(), storeInventoryRequestDTO.getStatus());
     }
 
     @Override

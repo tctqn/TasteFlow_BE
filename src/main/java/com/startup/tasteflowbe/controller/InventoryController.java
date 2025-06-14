@@ -1,5 +1,6 @@
 package com.startup.tasteflowbe.controller;
 
+import com.startup.tasteflowbe.dto.request.StoreInventoryRequestDTO;
 import com.startup.tasteflowbe.model.Inventory;
 import com.startup.tasteflowbe.service.InventoryService;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +10,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @RequestMapping("/api/inventories")
@@ -32,6 +35,11 @@ public class InventoryController {
     @PostMapping
     public ResponseEntity<Inventory> createInventory(@RequestBody Inventory inventory) {
         return ResponseEntity.ok(inventoryService.createInventory(inventory));
+    }
+
+    @PostMapping("/store-import")
+    public void createStoreInventory(@RequestBody StoreInventoryRequestDTO storeInventoryRequestDTO) {
+        inventoryService.createStoreInventory(storeInventoryRequestDTO);
     }
 
     @PutMapping("/{id}")

@@ -46,8 +46,14 @@ public class StockMovementServiceImpl implements StockMovementService {
     }
 
     @Override
+    public List<StockMovement> getStockMovementsToStore(Long storeId) {
+        return stockMovementRepository.findByStore_StoreId(storeId);
+    }
+
+    @Override
     @Transactional
-    public void transferToStores(Long warehouseId, Long productId, Long batchId, List<StoreTransferParam> transferList) {
+    public void transferToStores(Long warehouseId, Long productId, Long batchId,
+            List<StoreTransferParam> transferList) {
         // Lấy thông tin kho, sản phẩm, và lô hàng từ database
         Warehouse warehouse = warehouseRepository.findById(warehouseId).orElseThrow();
         Product product = productRepository.findById(productId).orElseThrow();
@@ -109,6 +115,5 @@ public class StockMovementServiceImpl implements StockMovementService {
             stockMovementRepository.save(movement);
         }
     }
-
 
 }

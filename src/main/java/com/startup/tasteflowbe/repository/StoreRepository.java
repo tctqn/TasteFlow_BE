@@ -11,5 +11,5 @@ import org.springframework.stereotype.Repository;
 public interface StoreRepository extends JpaRepository<Store, Long> {
     Store findByStoreId(Long storeId);
 
-    Optional<Store> findByManagerId(Long managerId);
+    Optional<Store> findByManager_UserId(Long managerId);
 }

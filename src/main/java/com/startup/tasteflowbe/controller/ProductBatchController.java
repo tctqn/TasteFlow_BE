@@ -38,10 +38,6 @@ public class ProductBatchController {
     private final SupplierRepository supplierRepository;
     private final WarehouseRepository warehouseRepository;
     private final UnitRepository unitRepository;
-    private final ProductRepository productRepository;
-    private final SupplierRepository supplierRepository;
-    private final WarehouseRepository warehouseRepository;
-    private final UnitRepository unitRepository;
 
     @GetMapping
     public ResponseEntity<List<ProductBatch>> getAllProductBatches() {

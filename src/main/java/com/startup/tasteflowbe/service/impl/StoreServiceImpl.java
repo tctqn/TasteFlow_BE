@@ -31,7 +31,7 @@ public class StoreServiceImpl implements StoreService {
 
     @Override
     public Optional<Store> getStoreByManager(Long managerId) {
-        return storeRepository.findByManagerId(managerId);
+        return storeRepository.findByManager_UserId(managerId);
     }
 
     @Override

@@ -1,7 +1,9 @@
 package com.startup.tasteflowbe.service.impl;
 
+import com.startup.tasteflowbe.enums.StoreStatus;
 import com.startup.tasteflowbe.model.Store;
 import com.startup.tasteflowbe.repository.StoreRepository;
+import com.startup.tasteflowbe.repository.UserRepository;
 import com.startup.tasteflowbe.service.StoreService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,6 +16,8 @@ import java.util.Optional;
 public class StoreServiceImpl implements StoreService {
 
     private final StoreRepository storeRepository;
+
+    private final UserRepository userRepository;
 
     @Override
     public List<Store> getAllStores() {
@@ -32,6 +36,7 @@ public class StoreServiceImpl implements StoreService {
 
     @Override
     public Store createStore(Store store) {
+        store.setStatus(StoreStatus.OPEN);
         return storeRepository.save(store);
     }
 
@@ -41,7 +46,10 @@ public class StoreServiceImpl implements StoreService {
                 .map(store -> {
                     store.setName(updatedStore.getName());
                     store.setAddress(updatedStore.getAddress());
+                    store.setRegion(updatedStore.getRegion());
                     store.setContactInfo(updatedStore.getContactInfo());
+                    store.setManager(userRepository.findByUserId(updatedStore.getManager().getUserId()));
+                    store.setStatus(updatedStore.getStatus());
                     store.setBusinessHours(updatedStore.getBusinessHours());
                     return storeRepository.save(store);
                 })

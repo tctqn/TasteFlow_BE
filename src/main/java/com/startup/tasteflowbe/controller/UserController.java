@@ -48,4 +48,9 @@ public class UserController {
         return ResponseEntity.ok(userService.getAvailableWarehouseManagers());
     }
 
+    @GetMapping("/available-shop-managers")
+    public ResponseEntity<List<User>> getAvailableShopManagers() {
+        return ResponseEntity.ok(userService.getAvailableShopManagers());
+    }
+
 }

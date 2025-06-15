@@ -1,5 +1,9 @@
 package com.startup.tasteflowbe.controller;
 
+import com.startup.tasteflowbe.dto.request.OrderRequestDTO;
+import com.startup.tasteflowbe.dto.response.CreatePaymentResponseDTO;
+import com.startup.tasteflowbe.dto.response.OrderResponseDTO;
+import com.startup.tasteflowbe.enums.PaymentMethod;
 import com.startup.tasteflowbe.model.Order;
 import com.startup.tasteflowbe.dto.CheckoutRequest;
 import com.startup.tasteflowbe.service.OrderService;
@@ -45,21 +49,16 @@ public class OrderController {
     }
 
     @PostMapping("/checkout")
-    public ResponseEntity<Order> checkoutFromCartItems(@RequestBody CheckoutRequest checkoutRequestDto) {
-        // Giả sử bạn có phương thức để lấy User từ session/security context
-        Long currentUser = 1L;
+    public ResponseEntity<?> checkout(@RequestBody OrderRequestDTO requestDTO) {
+        System.out.println("Received checkout request: " + requestDTO);
+        OrderResponseDTO orderResponse = orderService.createOrder(requestDTO);
 
-        // Lấy các giá trị từ DTO
-        List<Long> cartItemIds = checkoutRequestDto.getCartItemIds();
-        List<Long> voucherIds = checkoutRequestDto.getVoucherIds();
-        Long shippingAddressId = checkoutRequestDto.getShippingAddressId();
-        Long storeId = checkoutRequestDto.getStoreId();
+        if (requestDTO.getPaymentMethod() == PaymentMethod.ONLINE) {
+            CreatePaymentResponseDTO paymentResponse = orderService.handleOnlinePayment(orderResponse);
+            return ResponseEntity.ok(paymentResponse);
+        }
 
-        // Tạo đơn hàng từ các thông tin trong DTO
-        Order createdOrder = orderService.checkoutFromCartItems(currentUser, cartItemIds,
-                voucherIds, shippingAddressId, storeId);
-
-        return ResponseEntity.ok(createdOrder);
+        return ResponseEntity.ok(orderResponse);
     }
 
 }

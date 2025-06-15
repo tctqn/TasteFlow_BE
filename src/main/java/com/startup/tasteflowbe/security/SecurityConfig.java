@@ -28,16 +28,27 @@ public class SecurityConfig {
 
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
-                CorsConfiguration configuration = new CorsConfiguration();
-                configuration.addAllowedOrigin("http://localhost:8081"); // Allow your frontend origin
-                configuration.addAllowedMethod("*"); // Allow all HTTP methods (GET, POST, etc.)
-                configuration.addAllowedHeader("*"); // Allow all headers
-                configuration.setAllowCredentials(true); // Allow credentials (e.g., cookies)
-
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-                source.registerCorsConfiguration("/**", configuration);
+
+                // ✅ Cho frontend (chỉ cho phép domain thật)
+                CorsConfiguration frontendConfig = new CorsConfiguration();
+                frontendConfig.addAllowedOrigin("http://localhost:8081"); // Allow your frontend origin
+                frontendConfig.addAllowedMethod("*"); // Allow all HTTP methods (GET, POST, etc.)
+                frontendConfig.addAllowedHeader("*"); // Allow all headers
+                frontendConfig.setAllowCredentials(true);
+                source.registerCorsConfiguration("/**", frontendConfig);
+
+                // ✅ Cho webhook (mở all origin vì từ PayOS call)
+                CorsConfiguration webhookConfig = new CorsConfiguration();
+                webhookConfig.addAllowedOriginPattern("*");
+                webhookConfig.addAllowedMethod("*");
+                webhookConfig.addAllowedHeader("*");
+                webhookConfig.setAllowCredentials(false);
+                source.registerCorsConfiguration("/api/webhook/**", webhookConfig);
+
                 return source;
         }
+
 
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -53,7 +64,10 @@ public class SecurityConfig {
                                         "/api/products/**",
                                         "/api/stores/**",
                                         "/api/promotions/**",
-                                        "/api/vouchers/**")
+                                        "/api/vouchers/**",
+                                        "/api/payments/**",
+                                        "/api/orders/**",
+                                        "/api/webhook/**")
                                 .permitAll()
 
                                 // Đảm bảo test-s3-connection được phép truy cập

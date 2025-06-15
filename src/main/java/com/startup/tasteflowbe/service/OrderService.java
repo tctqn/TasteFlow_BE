@@ -1,5 +1,8 @@
 package com.startup.tasteflowbe.service;
 
+import com.startup.tasteflowbe.dto.request.OrderRequestDTO;
+import com.startup.tasteflowbe.dto.response.CreatePaymentResponseDTO;
+import com.startup.tasteflowbe.dto.response.OrderResponseDTO;
 import com.startup.tasteflowbe.model.Order;
 
 import java.util.List;
@@ -12,4 +15,7 @@ public interface OrderService {
     Order updateOrder(Long id, Order order);
     void deleteOrder(Long id);
     Order checkoutFromCartItems(Long userId, List<Long> cartItemIds, List<Long> voucherIds, Long shippingAddressId, Long storeId);
+    OrderResponseDTO createOrder(OrderRequestDTO dto);
+    CreatePaymentResponseDTO handleOnlinePayment(OrderResponseDTO order);
+    void markOrderAsPaid(Long orderCode);
 }

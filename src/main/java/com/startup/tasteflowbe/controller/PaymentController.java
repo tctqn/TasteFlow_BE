@@ -3,7 +3,6 @@ package com.startup.tasteflowbe.controller;
 import com.startup.tasteflowbe.model.Payment;
 import com.startup.tasteflowbe.service.PaymentService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,10 +26,10 @@ public class PaymentController {
         return payment != null ? ResponseEntity.ok(payment) : ResponseEntity.notFound().build();
     }
 
-    @PostMapping
+/*    @PostMapping
     public Payment createPayment(@RequestBody Payment payment) {
         return paymentService.createPayment(payment);
-    }
+    }*/
 
     @PutMapping("/{id}")
     public ResponseEntity<Payment> updatePayment(@PathVariable Long id, @RequestBody Payment payment) {

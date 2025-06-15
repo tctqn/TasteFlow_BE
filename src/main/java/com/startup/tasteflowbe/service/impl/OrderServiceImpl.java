@@ -1,10 +1,19 @@
 package com.startup.tasteflowbe.service.impl;
 
+import com.startup.tasteflowbe.dto.request.OrderRequestDTO;
+import com.startup.tasteflowbe.dto.response.CreatePaymentResponseDTO;
+import com.startup.tasteflowbe.dto.response.OrderResponseDTO;
+import com.startup.tasteflowbe.enums.OrderStatus;
+import com.startup.tasteflowbe.mapper.OrderMapper;
 import com.startup.tasteflowbe.model.*;
 import com.startup.tasteflowbe.enums.MovementType;
 import com.startup.tasteflowbe.repository.*;
 import com.startup.tasteflowbe.service.OrderService;
+import com.startup.tasteflowbe.service.PaymentService;
+import com.startup.tasteflowbe.utils.OrderCodeGenerator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +24,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -39,7 +49,8 @@ public class OrderServiceImpl implements OrderService {
     private final OrderItemRepository orderItemRepository;
 
     private final StockMovementRepository stockMovementRepository;
-
+    private final OrderMapper orderMapper;
+    private final PaymentService paymentService;
     @Override
     public List<Order> getAllOrders() {
         return orderRepository.findAll();
@@ -190,7 +201,6 @@ public class OrderServiceImpl implements OrderService {
         Order order = new Order();
         order.setUser(user);
         order.setOrderDate(LocalDateTime.now());
-        order.setStatus("PENDING");
         order.setTotalPrice(totalPrice);
         order.setVouchers(voucherRepository.findByVoucherIdIn(voucherIds));
         order.setVoucherDiscount(totalDiscount);
@@ -211,6 +221,56 @@ public class OrderServiceImpl implements OrderService {
         cartItemRepository.deleteAll(cartItems);
 
         return order;
+    }
+
+    @Override
+    @Transactional
+    public OrderResponseDTO createOrder(OrderRequestDTO dto) {
+
+        // 1️⃣ Lấy userId từ SecurityContext
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = null;
+        if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getPrincipal())) {
+            String username = (String) authentication.getPrincipal();
+            user = userRepository.findByUsername(username).orElse(null);
+        }
+        System.out.println("Current user: " + (user != null ? user.getUsername() : "Guest"));
+
+        // 2️⃣ Map DTO → Entity
+        Order order = orderMapper.toEntity(dto);
+        order.setUser(user);
+
+        // 3️⃣ Handle Invoice nếu có
+        if (dto.isNeedInvoice() && dto.getInvoiceInfo() != null) {
+            order.setInvoiceCompanyName(dto.getInvoiceInfo().getCompanyName());
+            order.setInvoiceEmail(dto.getInvoiceInfo().getEmail());
+            order.setInvoiceTaxCode(dto.getInvoiceInfo().getTaxCode());
+            order.setInvoiceCompanyAddress(dto.getInvoiceInfo().getCompanyAddress());
+        }
+        order.setOrderDate(LocalDateTime.now());
+        order.setOrderCode(OrderCodeGenerator.generateOrderCode());
+        order = orderRepository.save(order);
+        return orderMapper.toDto(order);
+    }
+
+
+
+
+    @Override
+    public CreatePaymentResponseDTO handleOnlinePayment(OrderResponseDTO order) {
+        Long amount = order.getTotalPrice().longValue();
+        String description = "Thanh toán đơn hàng";
+        return paymentService.createPayment(    Long.parseLong(order.getOrderCode()), amount, description);
+    }
+
+    @Override
+    public void markOrderAsPaid(Long orderCode) {
+        Optional<Order> optionalOrder = orderRepository.findByOrderCode(orderCode.toString());
+        if (optionalOrder.isPresent()) {
+            Order order = optionalOrder.get();
+            order.setStatus(OrderStatus.PAID);
+            orderRepository.save(order);
+        }
     }
 
 }

@@ -2,6 +2,7 @@ package com.startup.tasteflowbe.service.impl;
 
 import com.startup.tasteflowbe.dto.request.ProductRequestDTO;
 import com.startup.tasteflowbe.dto.request.StoreInventoryRequestDTO;
+import com.startup.tasteflowbe.dto.response.InventoriesResponseDTO;
 import com.startup.tasteflowbe.dto.response.ProductResponseDTO;
 import com.startup.tasteflowbe.model.Inventory;
 import com.startup.tasteflowbe.model.Product;
@@ -98,7 +99,7 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
-    public List<Inventory> findByStore_StoreId(Long storeId) {
+    public List<Inventory> findInventoriesByStoreId(Long storeId) {
         return inventoryRepository.findByStore_StoreId(storeId);
     }
 }

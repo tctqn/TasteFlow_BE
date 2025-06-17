@@ -2,6 +2,8 @@ package com.startup.tasteflowbe.controller;
 
 import com.startup.tasteflowbe.dto.HandleImportProductBatch;
 import com.startup.tasteflowbe.dto.ProductBatchDTO;
+import com.startup.tasteflowbe.dto.response.ProductBatchResponseDTO;
+import com.startup.tasteflowbe.dto.response.ProductResponseDTO;
 import com.startup.tasteflowbe.model.Product;
 import com.startup.tasteflowbe.model.ProductBatch;
 import com.startup.tasteflowbe.service.InventoryService;
@@ -27,6 +29,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/product-batches")
@@ -40,8 +43,12 @@ public class ProductBatchController {
     private final UnitRepository unitRepository;
 
     @GetMapping
-    public ResponseEntity<List<ProductBatch>> getAllProductBatches() {
-        return ResponseEntity.ok(productBatchService.getAllProductBatches());
+    public ResponseEntity<List<ProductBatchResponseDTO>> getAllProductBatches() {
+        List<ProductBatchResponseDTO> dtoList = productBatchService.getAllProductBatches()
+                .stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(dtoList);
     }
 
     @GetMapping("/{id}")
@@ -126,5 +133,34 @@ public class ProductBatchController {
             return ResponseEntity.badRequest().body(null);
         }
         return ResponseEntity.ok(productBatchService.getProductBatchByWarehouseId(managerId));
+    }
+
+    private ProductBatchResponseDTO convertToDto(ProductBatch productBatch) {
+        ProductBatchResponseDTO dto = new ProductBatchResponseDTO();
+        dto.setBatchId(productBatch.getBatchId());
+        dto.setQuantity(productBatch.getQuantity());
+        dto.setManufactureDate(productBatch.getManufactureDate());
+        dto.setExpirationDate(productBatch.getExpirationDate());
+        dto.setReceivedDate(productBatch.getReceivedDate());
+        dto.setStatus(productBatch.getStatus());
+        dto.setImportPrice(productBatch.getImportPrice());
+        dto.setNote(productBatch.getNote());
+        if (productBatch.getProduct() != null) {
+            ProductResponseDTO productDto = new ProductResponseDTO();
+            Product product = productBatch.getProduct();
+            productDto.setProductId(product.getProductId());
+            productDto.setName(product.getName());
+            productDto.setPrice(product.getPrice());
+            productDto.setSku(product.getSku());
+            productDto.setImageUrl(product.getImageUrl());
+            dto.setProduct(productDto);
+        }
+        if (productBatch.getSupplier() != null) {
+            dto.setSupplierId(productBatch.getSupplier());
+        }
+        if (productBatch.getWarehouse() != null) {
+            dto.setWarehouseId(productBatch.getWarehouse());
+        }
+        return dto;
     }
 }

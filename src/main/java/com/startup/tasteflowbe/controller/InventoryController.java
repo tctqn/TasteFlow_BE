@@ -1,17 +1,21 @@
 package com.startup.tasteflowbe.controller;
 
 import com.startup.tasteflowbe.dto.request.StoreInventoryRequestDTO;
+import com.startup.tasteflowbe.dto.response.InventoriesResponseDTO;
+import com.startup.tasteflowbe.dto.response.ProductBatchResponseDTO;
+import com.startup.tasteflowbe.dto.response.ProductResponseDTO;
 import com.startup.tasteflowbe.model.Inventory;
+import com.startup.tasteflowbe.model.Product;
+import com.startup.tasteflowbe.model.ProductBatch;
+import com.startup.tasteflowbe.model.Store;
+import com.startup.tasteflowbe.model.Warehouse;
 import com.startup.tasteflowbe.service.InventoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/inventories")
@@ -54,8 +58,54 @@ public class InventoryController {
     }
 
     @GetMapping("/store/{store_id}")
-    public ResponseEntity<List<Inventory>> getInventoryOfStore(@PathVariable Long store_id) {
-        return ResponseEntity.ok(inventoryService.findByStore_StoreId(store_id));
+    public ResponseEntity<List<InventoriesResponseDTO>> getInventoryOfStore(@PathVariable Long store_id) {
+        List<InventoriesResponseDTO> dtoList = inventoryService.findInventoriesByStoreId(store_id)
+                .stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(dtoList);
+    }
+
+    private InventoriesResponseDTO convertToDto(Inventory inventory) {
+        if (inventory == null) {
+            return null;
+        }
+        InventoriesResponseDTO dto = new InventoriesResponseDTO();
+        dto.setInventoryId(inventory.getInventoryId());
+        dto.setQuantity(inventory.getQuantity());
+        dto.setReorderLevel(inventory.getReorderLevel());
+
+        if (inventory.getWarehouse() != null) {
+            dto.setWarehouseId(inventory.getWarehouse());
+        }
+
+        if (inventory.getStore() != null) {
+            dto.setStoreId(inventory.getStore().getStoreId());
+        }
+
+        if (inventory.getBatch() != null) {
+            ProductBatchResponseDTO batchDTO = new ProductBatchResponseDTO();
+            ProductBatch productBatch = inventory.getBatch();
+            batchDTO.setBatchId(productBatch.getBatchId());
+            batchDTO.setManufactureDate(productBatch.getManufactureDate());
+            batchDTO.setExpirationDate(productBatch.getExpirationDate());
+            batchDTO.setImportPrice(productBatch.getImportPrice());
+            batchDTO.setQuantity(productBatch.getQuantity());
+            dto.setBatchId(batchDTO);
+        }
+        if (inventory.getProduct() != null) {
+            ProductResponseDTO productDto = new ProductResponseDTO();
+            Product product = inventory.getProduct();
+            productDto.setProductId(product.getProductId());
+            productDto.setName(product.getName());
+            productDto.setPrice(product.getPrice());
+            productDto.setSku(product.getSku());
+            productDto.setImageUrl(product.getImageUrl());
+            productDto.setCategoryName(product.getCategory().getName());
+            dto.setProduct(productDto);
+        }
+
+        return dto;
     }
 
 }

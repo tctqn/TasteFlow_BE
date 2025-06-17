@@ -6,7 +6,6 @@ import com.startup.tasteflowbe.model.Inventory;
 import java.util.List;
 import java.util.Optional;
 
-
 public interface InventoryService {
     List<Inventory> getAllInventories();
 
@@ -18,7 +17,7 @@ public interface InventoryService {
 
     void deleteInventory(Long id);
 
-    List<Inventory> findByStore_StoreId(Long storeId);
+    List<Inventory> findInventoriesByStoreId(Long storeId);
 
     void createStoreInventory(StoreInventoryRequestDTO storeInventoryRequestDTO);
 }

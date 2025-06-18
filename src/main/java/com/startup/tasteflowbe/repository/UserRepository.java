@@ -15,8 +15,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
     @Query("SELECT u FROM User u WHERE u.role = com.startup.tasteflowbe.enums.Role.WAREHOUSE_MANAGER AND u.warehouse IS NULL")
     List<User> findAvailableWarehouseManagers();
-    @Query("SELECT u FROM User u WHERE u.role = com.startup.tasteflowbe.enums.Role.SHOP_MANAGER AND u.store IS NULL")
-    List<User> findAvailableShopManagers();
+    @Query("SELECT u FROM User u WHERE u.role = com.startup.tasteflowbe.enums.Role.STORE_MANAGER AND u.store IS NULL")
+    List<User> findAvailableStoreManagers();
     User findByUserId(Long userId);
     Optional<User> findByVerificationToken(String token);
     Optional<User> findByEmail(String email);

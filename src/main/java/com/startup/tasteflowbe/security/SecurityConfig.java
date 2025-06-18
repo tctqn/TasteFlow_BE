@@ -107,7 +107,7 @@ public class SecurityConfig {
                                         "/api/refunds/**",
                                         "/api/warehouses/**",
                                         "/api/delivery-trackings/**")
-                                .hasAnyRole("WAREHOUSE_MANAGER", "ADMIN", "SHOP_MANAGER", "SHOP_STAFF")
+                                .hasAnyRole("WAREHOUSE_MANAGER", "ADMIN", "STORE_MANAGER", "STORE_STAFF")
 
                                 // ADMIN-only routes
                                 .requestMatchers("/api/users/**")

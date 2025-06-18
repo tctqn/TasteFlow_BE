@@ -59,5 +59,5 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<User> getAvailableShopManagers() { return userRepository.findAvailableShopManagers(); }
+    public List<User> getAvailableStoreManagers() { return userRepository.findAvailableStoreManagers(); }
 }

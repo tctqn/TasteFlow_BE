@@ -10,7 +10,7 @@ public interface ProductBatchService {
 
     Optional<ProductBatch> getProductBatchById(Long id);
 
-    List<ProductBatch> getProductBatchByWarehouseId(Long managerId);
+    List<ProductBatch> getProductBatchByWarehouseId(Long id);
 
     ProductBatch createProductBatch(ProductBatch productBatch);
 

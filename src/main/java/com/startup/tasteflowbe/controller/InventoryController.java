@@ -91,6 +91,8 @@ public class InventoryController {
             batchDTO.setExpirationDate(productBatch.getExpirationDate());
             batchDTO.setImportPrice(productBatch.getImportPrice());
             batchDTO.setQuantity(productBatch.getQuantity());
+            batchDTO.setSupplierId(productBatch.getSupplier());
+            batchDTO.setReceivedDate(productBatch.getReceivedDate());
             dto.setBatchId(batchDTO);
         }
         if (inventory.getProduct() != null) {

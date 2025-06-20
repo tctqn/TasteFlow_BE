@@ -23,4 +23,5 @@ public class ProductBatchResponseDTO {
     private ProductResponseDTO product;
     private Supplier supplierId;
     private Warehouse warehouseId;
+    private String unitName;
 }

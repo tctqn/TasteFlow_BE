@@ -51,6 +51,7 @@ public class OrderServiceImpl implements OrderService {
     private final StockMovementRepository stockMovementRepository;
     private final OrderMapper orderMapper;
     private final PaymentService paymentService;
+
     @Override
     public List<Order> getAllOrders() {
         return orderRepository.findAll();
@@ -59,6 +60,11 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Optional<Order> getOrderById(Long id) {
         return orderRepository.findById(id);
+    }
+
+    @Override
+    public List<Order> getAllStoreOrders(Long id) {
+        return orderRepository.findByStore_StoreId(id);
     }
 
     @Override
@@ -81,13 +87,26 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    public OrderResponseDTO updateOrderStatus(Long id, String status, String notes) {
+        return orderRepository.findById(id)
+                .map(od -> {
+                    od.setStatus(OrderStatus.valueOf(status));
+                    od.setNote(notes);
+                    Order savedOrder = orderRepository.save(od);
+                    return orderMapper.toDto(savedOrder);
+                })
+                .orElseThrow(() -> new RuntimeException("Order not found with id " + id));
+    }
+
+    @Override
     public void deleteOrder(Long id) {
         orderRepository.deleteById(id);
     }
 
     @Override
     @Transactional
-    public Order checkoutFromCartItems(Long userId, List<Long> cartItemIds, List<Long> voucherIds, Long shippingAddressId, Long storeId) {
+    public Order checkoutFromCartItems(Long userId, List<Long> cartItemIds, List<Long> voucherIds,
+            Long shippingAddressId, Long storeId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng."));
 
@@ -114,9 +133,10 @@ public class OrderServiceImpl implements OrderService {
                     .orElse(BigDecimal.ZERO);
 
             BigDecimal discountedPrice = unitPrice.multiply(BigDecimal.ONE.subtract(
-                    maxPromotionDiscount.divide(BigDecimal.valueOf(100),2,RoundingMode.HALF_UP)));
+                    maxPromotionDiscount.divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)));
 
-            // Truy vấn các inventory còn hàng, chưa hết hạn theo batch gần hết hạn trước tại cửa hàng
+            // Truy vấn các inventory còn hàng, chưa hết hạn theo batch gần hết hạn trước
+            // tại cửa hàng
             List<Inventory> inventories = inventoryRepository
                     .findByStore_StoreIdAndProduct_ProductIdAndQuantityGreaterThanAndBatch_ExpirationDateAfterOrderByBatch_ExpirationDateAsc(
                             storeId, product.getProductId(), 0, LocalDate.now());
@@ -124,7 +144,8 @@ public class OrderServiceImpl implements OrderService {
             int remainingQty = quantity;
 
             for (Inventory inv : inventories) {
-                if (remainingQty <= 0) break;
+                if (remainingQty <= 0)
+                    break;
 
                 int usableQty = Math.min(inv.getQuantity(), remainingQty);
 
@@ -148,7 +169,7 @@ public class OrderServiceImpl implements OrderService {
                 stockMovement.setStore(storeRepository.findByStoreId(storeId));
                 stockMovement.setProduct(product);
                 stockMovement.setBatch(inv.getBatch());
-                stockMovement.setMovementType(MovementType.SALE);  // Giảm tồn kho
+                stockMovement.setMovementType(MovementType.SALE); // Giảm tồn kho
                 stockMovement.setQuantity(usableQty);
                 stockMovement.setNote("Đặt hàng cho sản phẩm: " + product.getName());
                 stockMovementRepository.save(stockMovement);
@@ -157,7 +178,8 @@ public class OrderServiceImpl implements OrderService {
             }
 
             if (remainingQty > 0) {
-                throw new IllegalArgumentException("Không đủ hàng cho sản phẩm: " + product.getName() + " tại cửa hàng.");
+                throw new IllegalArgumentException(
+                        "Không đủ hàng cho sản phẩm: " + product.getName() + " tại cửa hàng.");
             }
 
             // Cộng tổng tiền
@@ -170,7 +192,8 @@ public class OrderServiceImpl implements OrderService {
             Voucher voucher = voucherRepository.findById(voucherId)
                     .orElseThrow(() -> new IllegalArgumentException("Voucher không hợp lệ."));
 
-            if (voucher.getStartDate().isAfter(LocalDateTime.now()) || voucher.getEndDate().isBefore(LocalDateTime.now())) {
+            if (voucher.getStartDate().isAfter(LocalDateTime.now())
+                    || voucher.getEndDate().isBefore(LocalDateTime.now())) {
                 throw new IllegalArgumentException("Voucher đã hết hạn hoặc chưa bắt đầu.");
             }
 
@@ -185,7 +208,8 @@ public class OrderServiceImpl implements OrderService {
                 voucherDiscount = voucher.getDiscountAmount();
             }
 
-            // Kiểm tra nếu giảm giá quá giá trị tổng đơn hàng thì chỉ giảm giá bằng tổng giá trị đơn hàng
+            // Kiểm tra nếu giảm giá quá giá trị tổng đơn hàng thì chỉ giảm giá bằng tổng
+            // giá trị đơn hàng
             if (voucherDiscount.compareTo(totalPrice) > 0) {
                 voucherDiscount = totalPrice;
             }
@@ -230,7 +254,8 @@ public class OrderServiceImpl implements OrderService {
         // 1️⃣ Lấy userId từ SecurityContext
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = null;
-        if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getPrincipal())) {
+        if (authentication != null && authentication.isAuthenticated()
+                && !"anonymousUser".equals(authentication.getPrincipal())) {
             String username = (String) authentication.getPrincipal();
             user = userRepository.findByUsername(username).orElse(null);
         }
@@ -253,14 +278,11 @@ public class OrderServiceImpl implements OrderService {
         return orderMapper.toDto(order);
     }
 
-
-
-
     @Override
     public CreatePaymentResponseDTO handleOnlinePayment(OrderResponseDTO order) {
         Long amount = order.getTotalPrice().longValue();
         String description = "Thanh toán đơn hàng";
-        return paymentService.createPayment(    Long.parseLong(order.getOrderCode()), amount, description);
+        return paymentService.createPayment(Long.parseLong(order.getOrderCode()), amount, description);
     }
 
     @Override

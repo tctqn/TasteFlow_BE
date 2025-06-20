@@ -10,12 +10,25 @@ import java.util.Optional;
 
 public interface OrderService {
     List<Order> getAllOrders();
+
     Optional<Order> getOrderById(Long id);
+
     Order createOrder(Order order);
+
     Order updateOrder(Long id, Order order);
+
     void deleteOrder(Long id);
-    Order checkoutFromCartItems(Long userId, List<Long> cartItemIds, List<Long> voucherIds, Long shippingAddressId, Long storeId);
+
+    Order checkoutFromCartItems(Long userId, List<Long> cartItemIds, List<Long> voucherIds, Long shippingAddressId,
+            Long storeId);
+
     OrderResponseDTO createOrder(OrderRequestDTO dto);
+
     CreatePaymentResponseDTO handleOnlinePayment(OrderResponseDTO order);
+
     void markOrderAsPaid(Long orderCode);
+
+    List<Order> getAllStoreOrders(Long storeId);
+
+    OrderResponseDTO updateOrderStatus(Long id, String status, String notes);
 }

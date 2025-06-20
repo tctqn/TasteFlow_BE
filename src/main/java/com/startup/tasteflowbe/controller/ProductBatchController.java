@@ -126,13 +126,13 @@ public class ProductBatchController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/warehouse")
-    public ResponseEntity<List<ProductBatch>> getProductBatchByWarehouseId(@RequestHeader Long managerId) {
-        System.out.println("Manager ID: " + managerId);
-        if (managerId == null) {
-            return ResponseEntity.badRequest().body(null);
-        }
-        return ResponseEntity.ok(productBatchService.getProductBatchByWarehouseId(managerId));
+    @GetMapping("/warehouse/{id}")
+    public ResponseEntity<List<ProductBatchResponseDTO>> getProductBatchByWarehouseId(@PathVariable Long id) {
+        List<ProductBatchResponseDTO> dtoList = productBatchService.getProductBatchByWarehouseId(id)
+                .stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(dtoList);
     }
 
     private ProductBatchResponseDTO convertToDto(ProductBatch productBatch) {
@@ -145,6 +145,7 @@ public class ProductBatchController {
         dto.setStatus(productBatch.getStatus());
         dto.setImportPrice(productBatch.getImportPrice());
         dto.setNote(productBatch.getNote());
+        dto.setUnitName(productBatch.getUnit().getName());
         if (productBatch.getProduct() != null) {
             ProductResponseDTO productDto = new ProductResponseDTO();
             Product product = productBatch.getProduct();

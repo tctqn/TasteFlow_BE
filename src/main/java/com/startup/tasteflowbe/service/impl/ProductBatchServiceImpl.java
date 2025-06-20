@@ -45,10 +45,8 @@ public class ProductBatchServiceImpl implements ProductBatchService {
     }
 
     @Override
-    public List<ProductBatch> getProductBatchByWarehouseId(Long managerId) {
-        Warehouse warehouse = warehouseRepository.findByManager_UserId(managerId)
-                .orElseThrow(() -> new RuntimeException("Warehouse not found"));
-        return productBatchRepository.findByWarehouseWarehouseId(warehouse.getWarehouseId());
+    public List<ProductBatch> getProductBatchByWarehouseId(Long id) {
+        return productBatchRepository.findByWarehouseWarehouseId(id);
     }
 
     @Override

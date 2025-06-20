@@ -145,7 +145,11 @@ public class ProductBatchController {
         dto.setStatus(productBatch.getStatus());
         dto.setImportPrice(productBatch.getImportPrice());
         dto.setNote(productBatch.getNote());
-        dto.setUnitName(productBatch.getUnit().getName());
+        dto.setUnitName(productBatch.getUnit().getName());        
+        if (productBatch.getUnit() != null) {
+            dto.setUnit(productBatch.getUnit());
+        }
+
         if (productBatch.getProduct() != null) {
             ProductResponseDTO productDto = new ProductResponseDTO();
             Product product = productBatch.getProduct();

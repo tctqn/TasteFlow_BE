@@ -89,4 +89,10 @@ public class StoreRequestController {
         return new ResponseEntity<>(requests, HttpStatus.OK);
     }
 
+    @GetMapping("/warehouse/{warehouseId}")
+    public ResponseEntity<List<StoreRequest>> getStoreRequestByWarehouse(@PathVariable Long warehouseId) {
+        List<StoreRequest> requests = storeRequestService.getStoreRequestByWarehouse(warehouseId);
+        return new ResponseEntity<>(requests, HttpStatus.OK);
+    }
+
 }

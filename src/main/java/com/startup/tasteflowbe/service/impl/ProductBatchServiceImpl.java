@@ -60,6 +60,7 @@ public class ProductBatchServiceImpl implements ProductBatchService {
                 .map(batch -> {
                     batch.setProduct(updatedProductBatch.getProduct());
                     batch.setWarehouse(updatedProductBatch.getWarehouse());
+                    batch.setStatus(updatedProductBatch.getStatus());
                     batch.setSupplier(updatedProductBatch.getSupplier());
                     batch.setUnit(updatedProductBatch.getUnit());
                     batch.setQuantity(updatedProductBatch.getQuantity());

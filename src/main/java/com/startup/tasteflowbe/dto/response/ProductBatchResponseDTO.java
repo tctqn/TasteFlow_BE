@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import com.startup.tasteflowbe.model.Supplier;
+import com.startup.tasteflowbe.model.Unit;
 import com.startup.tasteflowbe.model.Warehouse;
 
 import lombok.Data;
@@ -23,5 +24,7 @@ public class ProductBatchResponseDTO {
     private ProductResponseDTO product;
     private Supplier supplierId;
     private Warehouse warehouseId;
-    private String unitName;
+    private String unitName;   
+    private Unit unit;
+
 }

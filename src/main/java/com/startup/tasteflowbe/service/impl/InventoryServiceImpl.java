@@ -102,4 +102,9 @@ public class InventoryServiceImpl implements InventoryService {
     public List<Inventory> findInventoriesByStoreId(Long storeId) {
         return inventoryRepository.findByStore_StoreId(storeId);
     }
+
+    @Override
+    public List<Inventory> findInventoriesByWarehouseId(Long warehouseId) {
+        return inventoryRepository.findByWarehouse_WarehouseId(warehouseId);
+    }
 }

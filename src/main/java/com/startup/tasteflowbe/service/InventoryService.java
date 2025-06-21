@@ -19,5 +19,7 @@ public interface InventoryService {
 
     List<Inventory> findInventoriesByStoreId(Long storeId);
 
+    List<Inventory> findInventoriesByWarehouseId(Long warehouseId);
+
     void createStoreInventory(StoreInventoryRequestDTO storeInventoryRequestDTO);
 }

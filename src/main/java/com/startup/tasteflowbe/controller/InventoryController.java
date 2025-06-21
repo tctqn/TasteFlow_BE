@@ -66,6 +66,15 @@ public class InventoryController {
         return ResponseEntity.ok(dtoList);
     }
 
+    @GetMapping("/warehouse/{warehouse_id}")
+    public ResponseEntity<List<InventoriesResponseDTO>> getInventoryOfWarehouse(@PathVariable Long warehouse_id) {
+        List<InventoriesResponseDTO> dtoList = inventoryService.findInventoriesByWarehouseId(warehouse_id)
+                .stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(dtoList);
+    }
+
     private InventoriesResponseDTO convertToDto(Inventory inventory) {
         if (inventory == null) {
             return null;

@@ -65,9 +65,17 @@ public class StockMovementServiceImpl implements StockMovementService {
                 .sum();
 
         // Lấy tồn kho hiện tại tại kho đối với sản phẩm và lô hàng tương ứng
-        Inventory warehouseInventory = inventoryRepository
-                .findByWarehouse_WarehouseIdAndProduct_ProductIdAndBatch_BatchId(warehouseId, productId, batchId)
-                .orElseThrow();
+        List<Inventory> results = inventoryRepository
+                .findByWarehouse_WarehouseIdAndProduct_ProductIdAndBatch_BatchId(warehouseId, productId, batchId);
+
+        if (results.isEmpty()) {
+            System.out.print("Lỗi");
+        }
+        if (results.size() > 1) {
+            System.out.print("Tìm thấy nhiều hơn 1 bản ghi tồn kho trùng khớp, dùng bản đầu tiên");
+        }
+
+        Inventory warehouseInventory = results.get(0);
 
         // Kiểm tra xem kho có đủ hàng để chuyển không
         if (warehouseInventory.getQuantity() < totalQuantity) {

@@ -15,7 +15,7 @@ import java.util.Optional;
 
 @Repository
 public interface InventoryRepository extends JpaRepository<Inventory, Long> {
-        Optional<Inventory> findByWarehouse_WarehouseIdAndProduct_ProductIdAndBatch_BatchId(Long warehouseWarehouseId,
+        List<Inventory> findByWarehouse_WarehouseIdAndProduct_ProductIdAndBatch_BatchId(Long warehouseWarehouseId,
                         Long productProductId, Long batchBatchId);
 
         Optional<Inventory> findByStore_StoreIdAndProduct_ProductIdAndBatch_BatchId(Long storeId, Long productId,
@@ -28,4 +28,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         Optional<Integer> getTotalProductByWarehouseId(@Param("warehouseId") Long warehouseId);
 
         List<Inventory> findByStore_StoreId(Long storeId);
+
+        @Query("SELECT i FROM Inventory i WHERE i.warehouse.warehouseId = :warehouseId")
+        List<Inventory> findByWarehouse_WarehouseId(Long warehouseId);
 }

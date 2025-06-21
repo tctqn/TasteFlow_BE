@@ -94,15 +94,17 @@ public class ProductBatchServiceImpl implements ProductBatchService {
         int quantityInBaseUnit = productBatch.getQuantity() * productUnit.getConversionRate();
 
         // Cập nhật bảng inventories
-        Optional<Inventory> inventory = inventoryRepository
+        List<Inventory> inventories = inventoryRepository
                 .findByWarehouse_WarehouseIdAndProduct_ProductIdAndBatch_BatchId(
                         productBatch.getWarehouse().getWarehouseId(),
                         productBatch.getProduct().getProductId(),
                         productBatch.getBatchId());
-        if (inventory.isPresent()) {
+
+        if (!inventories.isEmpty()) {
             // Cập nhật số lượng tồn kho
-            Inventory existingInventory = inventory.get();
-            existingInventory.setQuantity(existingInventory.getQuantity() + quantityInBaseUnit);
+            Inventory existingInventory = inventories.get(0); // Lấy phần tử đầu tiên
+            int updatedQuantity = existingInventory.getQuantity() + quantityInBaseUnit;
+            existingInventory.setQuantity(updatedQuantity);
             inventoryRepository.save(existingInventory);
         } else {
             // Tạo mới bản ghi tồn kho nếu chưa có

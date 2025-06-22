@@ -11,6 +11,7 @@ import com.startup.tasteflowbe.model.Store;
 import com.startup.tasteflowbe.model.StoreRequest;
 import com.startup.tasteflowbe.model.Warehouse;
 import com.startup.tasteflowbe.repository.InventoryRepository;
+import com.startup.tasteflowbe.repository.ProductBatchRepository;
 import com.startup.tasteflowbe.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,8 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class InventoryServiceImpl implements InventoryService {
+
+    private final ProductBatchRepository productBatchRepository;
 
     private final InventoryRepository inventoryRepository;
 

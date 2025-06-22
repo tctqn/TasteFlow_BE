@@ -29,6 +29,8 @@ public class StockMovementServiceImpl implements StockMovementService {
 
     private final StoreRepository storeRepository;
 
+    private final StoreRequestRepository storeRequestRepository;
+
     @Override
     public StockMovement createStockMovement(StockMovement stockMovement) {
         return stockMovementRepository.save(stockMovement);
@@ -52,7 +54,7 @@ public class StockMovementServiceImpl implements StockMovementService {
 
     @Override
     @Transactional
-    public void transferToStores(Long warehouseId, Long productId, Long batchId,
+    public void transferToStores(Long requestId, Long warehouseId, Long productId, Long batchId,
             List<StoreTransferParam> transferList) {
         // Lấy thông tin kho, sản phẩm, và lô hàng từ database
         Warehouse warehouse = warehouseRepository.findById(warehouseId).orElseThrow();
@@ -91,24 +93,25 @@ public class StockMovementServiceImpl implements StockMovementService {
             Long storeId = param.getStoreId();
             Integer quantity = param.getQuantity();
 
-            // Tìm tồn kho tại cửa hàng theo sản phẩm và lô hàng
-            Inventory storeInventory = inventoryRepository
-                    .findByStore_StoreIdAndProduct_ProductIdAndBatch_BatchId(storeId, productId, batchId)
-                    .orElse(null);
+            // // Tìm tồn kho tại cửa hàng theo sản phẩm và lô hàng
+            // Inventory storeInventory = inventoryRepository
+            // .findByStore_StoreIdAndProduct_ProductIdAndBatch_BatchId(storeId, productId,
+            // batchId)
+            // .orElse(null);
 
-            // Nếu chưa có tồn kho cho sản phẩm và lô hàng tại cửa hàng, tạo mới
-            if (storeInventory == null) {
-                storeInventory = new Inventory();
-                storeInventory.setStore(storeRepository.findById(storeId).orElseThrow());
-                storeInventory.setProduct(product);
-                storeInventory.setBatch(batch);
-                storeInventory.setQuantity(0); // Bắt đầu từ 0
-                storeInventory.setReorderLevel(10); // Mức cảnh báo mặc định
-            }
+            // // Nếu chưa có tồn kho cho sản phẩm và lô hàng tại cửa hàng, tạo mới
+            // if (storeInventory == null) {
+            // storeInventory = new Inventory();
+            // storeInventory.setStore(storeRepository.findById(storeId).orElseThrow());
+            // storeInventory.setProduct(product);
+            // storeInventory.setBatch(batch);
+            // storeInventory.setQuantity(0); // Bắt đầu từ 0
+            // storeInventory.setReorderLevel(10); // Mức cảnh báo mặc định
+            // }
 
-            // Cộng số lượng hàng được chuyển vào tồn kho của cửa hàng
-            storeInventory.setQuantity(storeInventory.getQuantity() + quantity);
-            inventoryRepository.save(storeInventory);
+            // // Cộng số lượng hàng được chuyển vào tồn kho của cửa hàng
+            // storeInventory.setQuantity(storeInventory.getQuantity() + quantity);
+            // inventoryRepository.save(storeInventory);
 
             // Ghi lại lịch sử di chuyển kho
             StockMovement movement = new StockMovement();
@@ -119,9 +122,13 @@ public class StockMovementServiceImpl implements StockMovementService {
             movement.setQuantity(quantity);
             movement.setMovementDate(LocalDateTime.now());
             movement.setMovementType(MovementType.TRANSFER_TO_STORE);
+            movement.setStoreRequest(storeRequestRepository.findById(requestId).orElseThrow());
             movement.setNote("Chuyển " + quantity + " sản phẩm đến cửa hàng " + storeId);
             stockMovementRepository.save(movement);
         }
+
+        StoreRequest storeRequest = storeRequestRepository.findById(requestId).orElseThrow();
+        storeRequest.setStatus("Processing");
     }
 
 }

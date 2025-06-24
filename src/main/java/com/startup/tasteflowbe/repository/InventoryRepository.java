@@ -28,4 +28,15 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         Optional<Integer> getTotalProductByWarehouseId(@Param("warehouseId") Long warehouseId);
 
         List<Inventory> findByStore_StoreId(Long storeId);
+
+    @Query("""
+        SELECT COALESCE(SUM(i.quantity), 0)
+        FROM Inventory i
+        WHERE i.store.storeId = :storeId
+          AND i.product.productId = :productId
+          AND i.batch.unit.unitId = :unitId
+    """)
+    int findAvailableQuantity(@Param("storeId") Long storeId,
+                              @Param("productId") Long productId,
+                              @Param("unitId") Long unitId);
 }

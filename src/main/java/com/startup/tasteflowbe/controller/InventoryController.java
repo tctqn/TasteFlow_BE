@@ -10,11 +10,14 @@ import com.startup.tasteflowbe.model.ProductBatch;
 import com.startup.tasteflowbe.model.Store;
 import com.startup.tasteflowbe.model.Warehouse;
 import com.startup.tasteflowbe.service.InventoryService;
+import com.startup.tasteflowbe.service.ProductUnitService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+
 import java.util.stream.Collectors;
 
 @RestController
@@ -23,6 +26,7 @@ import java.util.stream.Collectors;
 public class InventoryController {
 
     private final InventoryService inventoryService;
+    private final ProductUnitService productUnitService;
 
     @GetMapping
     public ResponseEntity<List<Inventory>> getAllInventories() {
@@ -98,7 +102,7 @@ public class InventoryController {
             Product product = inventory.getProduct();
             productDto.setProductId(product.getProductId());
             productDto.setName(product.getName());
-            productDto.setPrice(product.getPrice());
+            //productDto.setPrice(product.getPrice());
             productDto.setSku(product.getSku());
             productDto.setImageUrl(product.getImageUrl());
             productDto.setCategoryName(product.getCategory().getName());
@@ -106,6 +110,21 @@ public class InventoryController {
         }
 
         return dto;
+    }
+
+    @GetMapping("/store/stock")
+    public ResponseEntity<?> getAvailableStock(
+            @RequestParam Long storeId,
+            @RequestParam Long productId,
+            @RequestParam Long productUnitId
+    ) {
+        // Lấy unitId từ productUnitId
+        Long unitId = productUnitService.getUnitIdByProductUnitId(productUnitId);
+
+        // Truy vấn tồn kho từ store, product, unit
+        int availableQuantity = inventoryService.getAvailableStock(storeId, productId, unitId);
+
+        return ResponseEntity.ok(Map.of("availableQuantity", availableQuantity));
     }
 
 }

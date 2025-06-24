@@ -5,6 +5,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class OrderResponseDTO {
@@ -26,5 +27,8 @@ public class OrderResponseDTO {
     private String invoiceEmail;
     private String invoiceTaxCode;
     private String invoiceCompanyAddress;
+    private String invoiceUrl;
+    private LocalDateTime invoiceIssuedAt;
     private LocalDateTime orderDate;
+    private List<OrderItemResponseDTO> items;
 }

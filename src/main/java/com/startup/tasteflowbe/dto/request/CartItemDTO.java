@@ -1,4 +1,4 @@
-package com.startup.tasteflowbe.dto;
+package com.startup.tasteflowbe.dto.request;
 
 import lombok.Data;
 import java.math.BigDecimal;
@@ -10,4 +10,6 @@ public class CartItemDTO {
     private String description;
     private BigDecimal price;
     private String sku;
+    private Long productUnitId;
+    private Integer quantity;
 }

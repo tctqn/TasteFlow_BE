@@ -7,6 +7,8 @@ public interface S3Service {
     void testConnection();
     void testConnectionToBucket(String bucketName);
     void listObjectsInBucket(String bucketName);
+    String uploadInvoice(String orderCode, byte[] pdfBytes);
     void uploadFile(String bucketName, String key, String filePath);
     void downloadFile(String bucketName, String key, String downloadPath);
+    String generatePresignedUrl(String key);
 }

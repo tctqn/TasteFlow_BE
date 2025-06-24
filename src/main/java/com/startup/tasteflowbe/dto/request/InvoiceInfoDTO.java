@@ -1,4 +1,4 @@
-package com.startup.tasteflowbe.dto;
+package com.startup.tasteflowbe.dto.request;
 
 import lombok.Data;
 

@@ -44,7 +44,7 @@ public class PaymentServiceImpl implements PaymentService {
 
             PaymentData paymentData = PaymentData.builder()
                     .orderCode(orderCode)
-                    .amount(Integer.parseInt("2000"))
+                    .amount(2000)
                     .description(description)
                     .cancelUrl(config.getCancelUrl())
                     .returnUrl(config.getReturnUrl())

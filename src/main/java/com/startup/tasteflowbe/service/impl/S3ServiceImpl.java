@@ -3,6 +3,7 @@ package com.startup.tasteflowbe.service.impl;
 import com.startup.tasteflowbe.service.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -13,16 +14,24 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
 import jakarta.annotation.PostConstruct;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URL;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class S3ServiceImpl implements S3Service {
+
+    private S3Presigner presigner;
 
     @Value("${cloud.aws.credentials.access-key}")
     private String accessKey;
@@ -45,7 +54,29 @@ public class S3ServiceImpl implements S3Service {
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(accessKey, secretKey)))
                 .build();
+
+        presigner = S3Presigner.builder()
+                .region(Region.of(region))
+                .credentialsProvider(StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create(accessKey, secretKey)))
+                .build();
     }
+
+    @Override
+    public String uploadInvoice(String orderCode, byte[] pdfBytes) {
+        String fileName = "invoices/invoice_" + orderCode + ".pdf";
+
+        PutObjectRequest putRequest = PutObjectRequest.builder()
+                .bucket(bucket)
+                .key(fileName)
+                .contentType("application/pdf")
+                .build();
+
+        s3Client.putObject(putRequest, RequestBody.fromBytes(pdfBytes));
+
+        return String.format("https://%s.s3.%s.amazonaws.com/%s", bucket, region, fileName);
+    }
+
 
     @Override
     public String upload(MultipartFile file) {
@@ -57,7 +88,6 @@ public class S3ServiceImpl implements S3Service {
                     .bucket(bucket)
                     .key(key)
                     .contentType(file.getContentType())
-                    .acl("public-read")
                     .build();
 
             s3Client.putObject(putRequest, RequestBody.fromBytes(file.getBytes()));
@@ -104,5 +134,22 @@ public class S3ServiceImpl implements S3Service {
                         .key(key)
                         .build(),
                 new File(downloadPath).toPath());
+    }
+
+    @Override
+    public String generatePresignedUrl(String key) {
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(bucket)
+                .key(key)
+                .build();
+
+        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                .getObjectRequest(getObjectRequest)
+                .signatureDuration(Duration.ofMinutes(1))
+                .build();
+
+        return presigner.presignGetObject(presignRequest)
+                .url()
+                .toString();
     }
 }

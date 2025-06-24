@@ -1,52 +1,42 @@
 package com.startup.tasteflowbe.utils;
 
-import com.startup.tasteflowbe.dto.PayOSWebhookDTO;
+import org.apache.commons.codec.digest.HmacUtils;
+import org.json.JSONObject;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
-import java.util.TreeMap;
-import java.security.MessageDigest;
+import java.util.*;
 
 public class PayOSWebhookUtil {
-    private static String prepareDataString(PayOSWebhookDTO dto) {
-        PayOSWebhookDTO.WebhookData data = dto.getData();
 
-        StringBuilder dataString = new StringBuilder();
-
-        dataString.append("amount=").append(data.getAmount() != null ? data.getAmount().toString() : "")
-                .append("&description=").append(data.getDescription() != null ? data.getDescription() : "")
-                .append("&orderCode=").append(data.getOrderCode() != null ? data.getOrderCode().toString() : "")
-                .append("&state=").append(data.getState() != null ? data.getState() : "")
-                .append("&transactionId=").append(data.getTransactionId() != null ? data.getTransactionId() : "")
-                .append("&transTime=").append(data.getTransTime() != null ? data.getTransTime() : "");
-
-        return dataString.toString();
-    }
-
-
-
-    public static boolean verifySignature(PayOSWebhookDTO dto, String checksumKey) {
+    public static boolean isValidData(JSONObject dataObject, String transactionSignature, String checksumKey) {
         try {
-            String dataString = prepareDataString(dto);
-            Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
-            SecretKeySpec secretKey = new SecretKeySpec(checksumKey.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-            sha256_HMAC.init(secretKey);
+            Iterator<String> sortedIt = sortedIterator(dataObject.keys(), String::compareTo);
 
-            byte[] hash = sha256_HMAC.doFinal(dataString.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
-                hexString.append(hex);
+            StringBuilder transactionStr = new StringBuilder();
+            while (sortedIt.hasNext()) {
+                String key = sortedIt.next();
+                String value = dataObject.optString(key, "");
+                transactionStr.append(key).append("=").append(value);
+                if (sortedIt.hasNext()) {
+                    transactionStr.append("&");
+                }
             }
 
-            return hexString.toString().equalsIgnoreCase(dto.getSignature());
+            String signature = new HmacUtils("HmacSHA256", checksumKey).hmacHex(transactionStr.toString());
+            return signature.equalsIgnoreCase(transactionSignature);
         } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
+    }
+
+
+    public static Iterator<String> sortedIterator(Iterator<?> it, Comparator<String> comparator) {
+        List<String> list = new ArrayList<String>();
+        while (it.hasNext()) {
+            list.add((String) it.next());
+        }
+
+        Collections.sort(list, comparator);
+        return list.iterator();
     }
 }

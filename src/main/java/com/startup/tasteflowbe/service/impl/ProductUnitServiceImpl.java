@@ -4,6 +4,7 @@ import com.startup.tasteflowbe.model.ProductUnit;
 import com.startup.tasteflowbe.repository.ProductUnitRepository;
 import com.startup.tasteflowbe.service.ProductUnitService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -11,7 +12,8 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-public class ProductUnitServiceImpl implements ProductUnitService {
+public class
+ProductUnitServiceImpl implements ProductUnitService {
 
     private final ProductUnitRepository productUnitRepository;
 
@@ -44,5 +46,11 @@ public class ProductUnitServiceImpl implements ProductUnitService {
     @Override
     public void deleteProductUnit(Long id) {
         productUnitRepository.deleteById(id);
+    }
+
+    public Long getUnitIdByProductUnitId(Long productUnitId) {
+        ProductUnit pu = productUnitRepository.findById(productUnitId)
+                .orElseThrow(() -> new RuntimeException("ProductUnit not found with id " + productUnitId));;
+        return pu.getUnit().getUnitId();
     }
 }

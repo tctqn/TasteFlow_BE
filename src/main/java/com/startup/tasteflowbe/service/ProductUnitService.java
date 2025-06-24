@@ -11,4 +11,5 @@ public interface ProductUnitService {
     ProductUnit createProductUnit(ProductUnit productUnit);
     ProductUnit updateProductUnit(Long id, ProductUnit productUnit);
     void deleteProductUnit(Long id);
+    Long getUnitIdByProductUnitId(Long productUnitId);
 }

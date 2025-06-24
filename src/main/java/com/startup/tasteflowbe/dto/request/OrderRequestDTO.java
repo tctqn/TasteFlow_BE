@@ -1,8 +1,5 @@
 package com.startup.tasteflowbe.dto.request;
 
-import com.startup.tasteflowbe.dto.CartItemDTO;
-import com.startup.tasteflowbe.dto.InvoiceInfoDTO;
-import com.startup.tasteflowbe.enums.OrderStatus;
 import com.startup.tasteflowbe.enums.PaymentMethod;
 import lombok.Data;
 

@@ -5,16 +5,18 @@ import com.startup.tasteflowbe.dto.response.CreatePaymentResponseDTO;
 import com.startup.tasteflowbe.dto.response.OrderResponseDTO;
 import com.startup.tasteflowbe.model.Order;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
 public interface OrderService {
     List<Order> getAllOrders();
+    Order findByOrderCode(Long orderCode);
     Optional<Order> getOrderById(Long id);
     Order createOrder(Order order);
     Order updateOrder(Long id, Order order);
     void deleteOrder(Long id);
-    Order checkoutFromCartItems(Long userId, List<Long> cartItemIds, List<Long> voucherIds, Long shippingAddressId, Long storeId);
+//    Order checkoutFromCartItems(Long userId, List<Long> cartItemIds, List<Long> voucherIds, Long shippingAddressId, Long storeId);
     OrderResponseDTO createOrder(OrderRequestDTO dto);
     CreatePaymentResponseDTO handleOnlinePayment(OrderResponseDTO order);
     void markOrderAsPaid(Long orderCode);

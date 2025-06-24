@@ -20,4 +20,6 @@ public interface InventoryService {
     List<Inventory> findInventoriesByStoreId(Long storeId);
 
     void createStoreInventory(StoreInventoryRequestDTO storeInventoryRequestDTO);
+    int getAvailableStock(Long storeId, Long productUnitId, Long batchId);
+
 }

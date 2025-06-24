@@ -1,53 +1,46 @@
 package com.startup.tasteflowbe.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.startup.tasteflowbe.config.PayOSConfig;
-import com.startup.tasteflowbe.dto.PayOSWebhookDTO;
 import com.startup.tasteflowbe.service.OrderService;
+import com.startup.tasteflowbe.service.ProductService;
 import com.startup.tasteflowbe.utils.PayOSWebhookUtil;
 import lombok.RequiredArgsConstructor;
+import org.json.JSONObject;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import vn.payos.PayOS;
-import vn.payos.type.PaymentLinkData;
 
 @RestController
 @RequestMapping("/api/webhook")
 @RequiredArgsConstructor
 public class WebhookController {
 
-    private final PayOS payOS;
-    private final OrderService orderService;
     private final PayOSConfig payOSConfig;
-    private final ObjectMapper objectMapper;
+    private final OrderService orderService;
 
     @PostMapping
-    public ResponseEntity<String> handleWebhook(@RequestBody PayOSWebhookDTO webhook) {
-        System.out.println("🔔 Webhook: " + webhook);
+    public ResponseEntity<?> handleWebhook(@RequestBody String body) {
         try {
-            // Gọi lại hàm verifySignature chính xác
-            boolean isValid = PayOSWebhookUtil.verifySignature(webhook, payOSConfig.getChecksumKey());
+            JSONObject root = new JSONObject(body);
+            JSONObject data = root.getJSONObject("data");
+            String signature = root.getString("signature");
 
-            if (!isValid) {
-                System.out.println("❌ Signature mismatch");
-                return ResponseEntity.badRequest().body("Invalid signature");
+            if (data.has("description") && "VQRIO123".equals(data.getString("description"))) {
+                System.out.println("Webhook mặc định từ PayOS, bỏ qua.");
+                return ResponseEntity.ok().build();
             }
 
-            Long orderCode = webhook.getData().getOrderCode();
-            PaymentLinkData paymentInfo = payOS.getPaymentLinkInformation(orderCode);
-            String status = paymentInfo.getStatus();
-
-            System.out.println("✅ Webhook received for order code: " + orderCode);
-            System.out.println("✅ Payment status: " + status);
-
-            if ("PAID".equalsIgnoreCase(status)) {
+            boolean valid = PayOSWebhookUtil.isValidData(data, signature, payOSConfig.getChecksumKey());
+            if (valid) {
+                Long orderCode = data.getLong("orderCode") ;
                 orderService.markOrderAsPaid(orderCode);
+            } else {
+                System.out.println("Webhook sai chữ ký!");
             }
 
-            return ResponseEntity.ok("Success");
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.badRequest().body("Webhook processing failed");
         }
+        return ResponseEntity.ok().build();
     }
+
 }

@@ -4,8 +4,8 @@ import com.startup.tasteflowbe.dto.request.OrderRequestDTO;
 import com.startup.tasteflowbe.dto.response.CreatePaymentResponseDTO;
 import com.startup.tasteflowbe.dto.response.OrderResponseDTO;
 import com.startup.tasteflowbe.enums.PaymentMethod;
+import com.startup.tasteflowbe.mapper.OrderMapper;
 import com.startup.tasteflowbe.model.Order;
-import com.startup.tasteflowbe.dto.CheckoutRequest;
 import com.startup.tasteflowbe.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,11 +19,19 @@ import java.util.List;
 public class OrderController {
 
     private final OrderService orderService;
+    private final OrderMapper orderMapper;
 
     @GetMapping
     public ResponseEntity<List<Order>> getAllOrders() {
         return ResponseEntity.ok(orderService.getAllOrders());
     }
+
+    @GetMapping("status/{orderCode}")
+    public ResponseEntity<OrderResponseDTO> getOrderStatus(@PathVariable Long orderCode) {
+        Order order = orderService.findByOrderCode(orderCode);
+        return ResponseEntity.ok(orderMapper.toDto(order));
+    }
+
 
     @GetMapping("/{id}")
     public ResponseEntity<Order> getOrderById(@PathVariable Long id) {
@@ -50,7 +58,6 @@ public class OrderController {
 
     @PostMapping("/checkout")
     public ResponseEntity<?> checkout(@RequestBody OrderRequestDTO requestDTO) {
-        System.out.println("Received checkout request: " + requestDTO);
         OrderResponseDTO orderResponse = orderService.createOrder(requestDTO);
 
         if (requestDTO.getPaymentMethod() == PaymentMethod.ONLINE) {

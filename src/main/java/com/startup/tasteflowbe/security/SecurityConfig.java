@@ -69,8 +69,10 @@ public class SecurityConfig {
                                         "/api/promotions/**",
                                         "/api/vouchers/**",
                                         "/api/payments/**",
+                                        "/api/invoices/**",
                                         "/api/orders/**",
-                                        "/api/webhook/**")
+                                        "/api/webhook/**",
+                                        "/api/inventories/store/stock")
                                 .permitAll()
 
                                 // Đảm bảo test-s3-connection được phép truy cập

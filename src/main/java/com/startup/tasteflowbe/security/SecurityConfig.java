@@ -85,7 +85,7 @@ public class SecurityConfig {
                                 // CUSTOMER routes
                                 .requestMatchers(
                                         "/api/cart-items/**",
-                                        "/api/orders/**",
+                                      /*  "/api/orders/**",*/
                                         "/api/payments/**",
                                         "/api/refunds/**",
                                         "/api/invoices/**",
@@ -102,7 +102,7 @@ public class SecurityConfig {
                                         "/api/categories/**",
                                         "/api/products-units/**",
                                         "/api/units/**",
-                                        "/api/orders/**",
+                                       /* "/api/orders/**",*/
                                         "/api/invoices/**",
                                         "/api/payments/**",
                                         "/api/suppliers/**",

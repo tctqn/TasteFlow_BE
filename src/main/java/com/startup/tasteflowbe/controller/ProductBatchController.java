@@ -150,7 +150,7 @@ public class ProductBatchController {
             Product product = productBatch.getProduct();
             productDto.setProductId(product.getProductId());
             productDto.setName(product.getName());
-            productDto.setPrice(product.getPrice());
+    //        productDto.setPrice(product.getPrice());
             productDto.setSku(product.getSku());
             productDto.setImageUrl(product.getImageUrl());
             dto.setProduct(productDto);

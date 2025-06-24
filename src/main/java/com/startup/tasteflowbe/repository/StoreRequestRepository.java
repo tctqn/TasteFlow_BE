@@ -15,5 +15,6 @@ public interface StoreRequestRepository extends JpaRepository<StoreRequest, Long
     @Query("SELECT sr FROM StoreRequest sr WHERE sr.storeId = :storeId")
     List<StoreRequest> findByStoreId(Long storeId);
 
+    @Query("SELECT sr FROM StoreRequest sr WHERE sr.warehouseId = :warehouseId")
     List<StoreRequest> findByWarehouseId(Long warehouseId);
 }

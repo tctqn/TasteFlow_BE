@@ -7,7 +7,6 @@ import com.startup.tasteflowbe.dto.response.OrderResponseDTO;
 import com.startup.tasteflowbe.enums.OrderStatus;
 import com.startup.tasteflowbe.mapper.OrderMapper;
 import com.startup.tasteflowbe.model.*;
-import com.startup.tasteflowbe.enums.MovementType;
 import com.startup.tasteflowbe.repository.*;
 import com.startup.tasteflowbe.service.InvoiceService;
 import com.startup.tasteflowbe.service.OrderService;
@@ -22,14 +21,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -37,32 +32,26 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
 
-    private final PromotionRepository promotionRepository;
-
-    private final CartItemRepository cartItemRepository;
-
     private final S3Service s3Service;
 
     private final InvoiceRepository invoiceRepository;
 
     private final VoucherRepository voucherRepository;
+
     private final InvoiceService invoiceService;
 
     private final UserRepository userRepository;
 
-    private final ShippingAddressRepository shippingAddressRepository;
-
-    private final StoreRepository storeRepository;
-
-    private final InventoryRepository inventoryRepository;
-
     private final OrderItemRepository orderItemRepository;
+
     private final ProductUnitRepository productUnitRepository;
 
     private final ProductRepository productRepository;
-    private final StockMovementRepository stockMovementRepository;
+
     private final OrderMapper orderMapper;
+
     private final PaymentService paymentService;
+
     @Override
     public List<Order> getAllOrders() {
         return orderRepository.findAll();
@@ -80,6 +69,11 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    public List<Order> getAllStoreOrders(Long id) {
+        return orderRepository.findByStore_StoreId(id);
+    }
+
+    @Override
     public Order createOrder(Order order) {
         return orderRepository.save(order);
     }
@@ -94,6 +88,18 @@ public class OrderServiceImpl implements OrderService {
                     existingOrder.setVoucherDiscount(order.getVoucherDiscount());
                     existingOrder.setShippingAddress(order.getShippingAddress());
                     return orderRepository.save(existingOrder);
+                })
+                .orElseThrow(() -> new RuntimeException("Order not found with id " + id));
+    }
+
+    @Override
+    public OrderResponseDTO updateOrderStatus(Long id, String status, String notes) {
+        return orderRepository.findById(id)
+                .map(od -> {
+                    od.setStatus(OrderStatus.valueOf(status));
+                    od.setNote(notes);
+                    Order savedOrder = orderRepository.save(od);
+                    return orderMapper.toDto(savedOrder);
                 })
                 .orElseThrow(() -> new RuntimeException("Order not found with id " + id));
     }
@@ -243,11 +249,12 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public OrderResponseDTO createOrder(OrderRequestDTO dto){
+    public OrderResponseDTO createOrder(OrderRequestDTO dto) {
         // 1. Lấy thông tin user hiện tại
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = null;
-        if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getPrincipal())) {
+        if (authentication != null && authentication.isAuthenticated()
+                && !"anonymousUser".equals(authentication.getPrincipal())) {
             String username = (String) authentication.getPrincipal();
             user = userRepository.findByUsername(username).orElse(null);
         }
@@ -303,7 +310,7 @@ public class OrderServiceImpl implements OrderService {
                 finalPrice = BigDecimal.ZERO;
             }
 
-            ProductUnit productUnit =  productUnitRepository.findById(itemDTO.getProductUnitId()).get();
+            ProductUnit productUnit = productUnitRepository.findById(itemDTO.getProductUnitId()).get();
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
@@ -367,7 +374,7 @@ public class OrderServiceImpl implements OrderService {
     public CreatePaymentResponseDTO handleOnlinePayment(OrderResponseDTO order) {
         Long amount = order.getTotalPrice().longValue();
         String description = "Thanh toán đơn hàng";
-        return paymentService.createPayment(    Long.parseLong(order.getOrderCode()), amount, description);
+        return paymentService.createPayment(Long.parseLong(order.getOrderCode()), amount, description);
     }
 
     @Override

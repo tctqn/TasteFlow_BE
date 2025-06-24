@@ -27,7 +27,7 @@ public class StoreRequest {
     private Long warehouseId;
 
     @Column(name = "status", nullable = false, length = 50)
-    private String status = "Pending";
+    private String status;
 
     @Column(name = "request_date", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime requestDate;

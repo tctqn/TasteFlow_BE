@@ -12,7 +12,8 @@ public interface StockMovementService {
 
     List<StockMovement> getAllStockMovements();
 
-    void transferToStores(Long warehouseId, Long productId, Long batchId, List<StoreTransferParam> transferList);
+    void transferToStores(Long requestId, Long warehouseId, Long productId, Long batchId,
+            List<StoreTransferParam> transferList);
 
     List<StockMovement> getStockMovementsToStore(Long storeId);
 }

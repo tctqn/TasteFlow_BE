@@ -59,7 +59,7 @@ public class ProductBatchController {
     }
 
     @PostMapping
-    public ResponseEntity<ProductBatch> createProductBatch(@RequestBody ProductBatchDTO productBatchDTO) {
+    public ResponseEntity<ProductBatchResponseDTO> createProductBatch(@RequestBody ProductBatchDTO productBatchDTO) {
         ProductBatch productBatch = new ProductBatch();
         System.out.println("Received ProductBatchDTO: " + productBatchDTO);
         // Truy vấn thực thể từ cơ sở dữ liệu
@@ -88,7 +88,9 @@ public class ProductBatchController {
         productBatch.setImportPrice(BigDecimal.ZERO);
         productBatch.setStatus("PENDING");
 
-        return ResponseEntity.ok(productBatchService.createProductBatch(productBatch));
+        ProductBatch createdBatch = productBatchService.createProductBatch(productBatch);
+        ProductBatchResponseDTO responseDTO = convertToDto(createdBatch);
+        return ResponseEntity.ok(responseDTO);
     }
 
     @PostMapping("/add-batch")
@@ -104,7 +106,7 @@ public class ProductBatchController {
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<ProductBatch> updateProductBatchStatus(@PathVariable Long id,
+    public ResponseEntity<ProductBatchResponseDTO> updateProductBatchStatus(@PathVariable Long id,
             @RequestBody HandleImportProductBatch handleImportProductBatch) {
         String status = handleImportProductBatch.getStatus();
         BigDecimal importPrice = handleImportProductBatch.getImportPrice();
@@ -117,7 +119,9 @@ public class ProductBatchController {
         productBatch.setStatus(status);
         productBatch.setImportPrice(importPrice);
         productBatch.setExpirationDate(expirationDate);
-        return ResponseEntity.ok(productBatchService.updateProductBatch(id, productBatch));
+        ProductBatch updatedBatch = productBatchService.updateProductBatch(id, productBatch);
+        ProductBatchResponseDTO responseDTO = convertToDto(updatedBatch);
+        return ResponseEntity.ok(responseDTO);
     }
 
     @DeleteMapping("/{id}")
@@ -126,13 +130,13 @@ public class ProductBatchController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/warehouse")
-    public ResponseEntity<List<ProductBatch>> getProductBatchByWarehouseId(@RequestHeader Long managerId) {
-        System.out.println("Manager ID: " + managerId);
-        if (managerId == null) {
-            return ResponseEntity.badRequest().body(null);
-        }
-        return ResponseEntity.ok(productBatchService.getProductBatchByWarehouseId(managerId));
+    @GetMapping("/warehouse/{id}")
+    public ResponseEntity<List<ProductBatchResponseDTO>> getProductBatchByWarehouseId(@PathVariable Long id) {
+        List<ProductBatchResponseDTO> dtoList = productBatchService.getProductBatchByWarehouseId(id)
+                .stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(dtoList);
     }
 
     private ProductBatchResponseDTO convertToDto(ProductBatch productBatch) {
@@ -145,6 +149,7 @@ public class ProductBatchController {
         dto.setStatus(productBatch.getStatus());
         dto.setImportPrice(productBatch.getImportPrice());
         dto.setNote(productBatch.getNote());
+        dto.setUnitName(productBatch.getUnit().getName());
         if (productBatch.getProduct() != null) {
             ProductResponseDTO productDto = new ProductResponseDTO();
             Product product = productBatch.getProduct();

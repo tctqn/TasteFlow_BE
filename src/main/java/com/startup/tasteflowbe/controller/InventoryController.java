@@ -7,8 +7,7 @@ import com.startup.tasteflowbe.dto.response.ProductResponseDTO;
 import com.startup.tasteflowbe.model.Inventory;
 import com.startup.tasteflowbe.model.Product;
 import com.startup.tasteflowbe.model.ProductBatch;
-import com.startup.tasteflowbe.model.Store;
-import com.startup.tasteflowbe.model.Warehouse;
+import com.startup.tasteflowbe.repository.ProductBatchRepository;
 import com.startup.tasteflowbe.service.InventoryService;
 import com.startup.tasteflowbe.service.ProductUnitService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +26,7 @@ public class InventoryController {
 
     private final InventoryService inventoryService;
     private final ProductUnitService productUnitService;
+    private final ProductBatchRepository productBatchRepository;
 
     @GetMapping
     public ResponseEntity<List<Inventory>> getAllInventories() {
@@ -42,6 +42,12 @@ public class InventoryController {
 
     @PostMapping
     public ResponseEntity<Inventory> createInventory(@RequestBody Inventory inventory) {
+        ProductBatch productBatch = productBatchRepository.findById(inventory.getBatch().getBatchId()).orElseThrow();
+        productBatch.setStatus("STOCKED");
+        if (productBatch.getSupplier() == null) {
+            throw new IllegalArgumentException("Supplier must not be null for ProductBatch.");
+        }
+        productBatchRepository.save(productBatch);
         return ResponseEntity.ok(inventoryService.createInventory(inventory));
     }
 
@@ -64,6 +70,15 @@ public class InventoryController {
     @GetMapping("/store/{store_id}")
     public ResponseEntity<List<InventoriesResponseDTO>> getInventoryOfStore(@PathVariable Long store_id) {
         List<InventoriesResponseDTO> dtoList = inventoryService.findInventoriesByStoreId(store_id)
+                .stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(dtoList);
+    }
+
+    @GetMapping("/warehouse/{warehouse_id}")
+    public ResponseEntity<List<InventoriesResponseDTO>> getInventoryOfWarehouse(@PathVariable Long warehouse_id) {
+        List<InventoriesResponseDTO> dtoList = inventoryService.findInventoriesByWarehouseId(warehouse_id)
                 .stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
@@ -95,6 +110,8 @@ public class InventoryController {
             batchDTO.setExpirationDate(productBatch.getExpirationDate());
             batchDTO.setImportPrice(productBatch.getImportPrice());
             batchDTO.setQuantity(productBatch.getQuantity());
+            batchDTO.setSupplierId(productBatch.getSupplier());
+            batchDTO.setReceivedDate(productBatch.getReceivedDate());
             dto.setBatchId(batchDTO);
         }
         if (inventory.getProduct() != null) {

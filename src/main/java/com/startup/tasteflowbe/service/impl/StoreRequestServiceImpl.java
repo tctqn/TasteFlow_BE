@@ -64,6 +64,11 @@ public class StoreRequestServiceImpl implements StoreRequestService {
     }
 
     @Override
+    public List<StoreRequest> getStoreRequestByWarehouse(Long warehouseId) {
+        return storeRequestRepository.findByWarehouseId(warehouseId);
+    }
+
+    @Override
     public StoreRequest updateStoreRequest(Long requestId, StoreRequest requestDetails) {
         StoreRequest existingRequest = storeRequestRepository.findById(requestId)
                 .orElseThrow(() -> new EntityNotFoundException("StoreRequest not found with id: " + requestId));

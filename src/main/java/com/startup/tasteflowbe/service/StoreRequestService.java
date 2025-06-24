@@ -21,4 +21,6 @@ public interface StoreRequestService {
 
     List<StoreRequest> getStoreRequestByStore(Long storeId);
 
+    List<StoreRequest> getStoreRequestByWarehouse(Long warehouseId);
+
 }

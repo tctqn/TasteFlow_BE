@@ -1,11 +1,7 @@
 package com.startup.tasteflowbe.service.impl;
 
-import com.startup.tasteflowbe.dto.request.ProductRequestDTO;
 import com.startup.tasteflowbe.dto.request.StoreInventoryRequestDTO;
-import com.startup.tasteflowbe.dto.response.InventoriesResponseDTO;
-import com.startup.tasteflowbe.dto.response.ProductResponseDTO;
 import com.startup.tasteflowbe.model.Inventory;
-import com.startup.tasteflowbe.model.Product;
 import com.startup.tasteflowbe.model.ProductBatch;
 import com.startup.tasteflowbe.model.Store;
 import com.startup.tasteflowbe.model.StoreRequest;
@@ -23,8 +19,6 @@ import java.util.Optional;
 public class InventoryServiceImpl implements InventoryService {
 
     private final InventoryRepository inventoryRepository;
-
-    private final ProductService productService;
 
     private final WarehouseService warehouseService;
 
@@ -106,5 +100,10 @@ public class InventoryServiceImpl implements InventoryService {
     @Override
     public int getAvailableStock(Long storeId, Long productId, Long unitId) {
         return inventoryRepository.findAvailableQuantity(storeId, productId, unitId);
+    }
+
+    @Override
+    public List<Inventory> findInventoriesByWarehouseId(Long warehouseId) {
+        return inventoryRepository.findByWarehouse_WarehouseId(warehouseId);
     }
 }

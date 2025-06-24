@@ -1,6 +1,8 @@
 package com.startup.tasteflowbe.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -10,6 +12,8 @@ import java.math.BigDecimal;
 @Table(name = "order_items")
 @Data
 @NoArgsConstructor
+@Builder
+@AllArgsConstructor
 public class OrderItem {
 
     @Id
@@ -26,6 +30,10 @@ public class OrderItem {
     private Product product;
 
     @ManyToOne
+    @JoinColumn(name = "product_unit_id", nullable = false)
+    private ProductUnit productUnit;
+
+    @ManyToOne
     @JoinColumn(name = "batch_id")
     private ProductBatch batch; // Batch có thể null
 
@@ -37,4 +45,7 @@ public class OrderItem {
 
     @Column(name = "discount", precision = 10, scale = 2)
     private BigDecimal discount = BigDecimal.ZERO; // Mặc định 0
+
+    @Column(name = "quantity_in_base", nullable = false)
+    private Integer quantityInBase;
 }

@@ -64,21 +64,9 @@ public class Order {
     @Column(name = "status", nullable = false)
     private OrderStatus status = OrderStatus.PENDING;
 
-    // Thông tin xuất hóa đơn
+    // Có xuất hóa đơn hay không
     @Column(name = "need_invoice", nullable = false)
     private boolean needInvoice;
-
-    @Column(name = "invoice_company_name")
-    private String invoiceCompanyName;
-
-    @Column(name = "invoice_email")
-    private String invoiceEmail;
-
-    @Column(name = "invoice_tax_code")
-    private String invoiceTaxCode;
-
-    @Column(name = "invoice_company_address")
-    private String invoiceCompanyAddress;
 
     // Thông tin voucher
     @ManyToMany
@@ -103,4 +91,10 @@ public class Order {
     @ManyToOne
     @JoinColumn(name = "store_id")
     private Store store;
+
+    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY)
+    private List<OrderItem> orderItems;
+
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Invoice invoice;
 }

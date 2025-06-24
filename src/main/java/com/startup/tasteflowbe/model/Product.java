@@ -25,10 +25,7 @@ public class Product {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "price", nullable = false, precision = 10, scale = 2)
-    private BigDecimal price;
-
-    @Column(name = "sku", unique = true, nullable = false, length = 50)
+    @Column(name = "sku", nullable = false, length = 50)
     private String sku;
 
     @ManyToOne
@@ -41,12 +38,11 @@ public class Product {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    // Thêm quan hệ ManyToMany ngược lại
     @ManyToMany(mappedBy = "products")
     private List<Promotion> promotions;
 
     @Override
     public String toString() {
-        return "Product{productId=" + productId + ", name='" + name + "', price=" + price + "}";
+        return "Product{productId=" + productId + ", name='" + name + "}";
     }
 }

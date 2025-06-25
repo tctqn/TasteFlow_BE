@@ -51,6 +51,9 @@ public class StoreServiceImpl implements StoreService {
                     store.setManager(userRepository.findByUserId(updatedStore.getManager().getUserId()));
                     store.setStatus(updatedStore.getStatus());
                     store.setBusinessHours(updatedStore.getBusinessHours());
+                    store.setProvince(updatedStore.getProvince());
+                    store.setDistrict(updatedStore.getDistrict());
+                    store.setVillage(updatedStore.getVillage());
                     return storeRepository.save(store);
                 })
                 .orElseThrow(() -> new RuntimeException("Store not found with id " + id));

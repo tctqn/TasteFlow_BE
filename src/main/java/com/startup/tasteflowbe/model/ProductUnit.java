@@ -25,6 +25,15 @@ public class ProductUnit {
     @JoinColumn(name = "unit_id", nullable = false)
     private Unit unit;
 
+    @Column(name = "sku", nullable = false, length = 50)
+    private String sku;
+
+    @Column(name = "image_url", columnDefinition = "TEXT")
+    private String imageUrl;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
     @Column(name = "conversion_rate")
     private Integer conversionRate;
 

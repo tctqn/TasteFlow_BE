@@ -10,4 +10,8 @@ public class ProductUnitDTO {
     private String unitName;
     private Integer conversionRate;
     private BigDecimal price;
+    private String sku;
+    private String imageUrl;
+    private String description;
 }
+

@@ -12,4 +12,5 @@ public interface ProductUnitService {
     ProductUnit updateProductUnit(Long id, ProductUnit productUnit);
     void deleteProductUnit(Long id);
     Long getUnitIdByProductUnitId(Long productUnitId);
+    Optional<Object> findByProduct_ProductIdAndUnit_UnitIdAndIsBaseUnit(Long productProductId, Long unitUnitId, Boolean isBaseUnit);
 }

@@ -13,7 +13,7 @@ public interface OrderItemMapper {
 
     @Mapping(target = "productId", source = "product.productId")
     @Mapping(target = "productName", source = "product.name")
-    @Mapping(target = "productImageUrl", source = "product.imageUrl") // <-- MAPPING IMAGE
+    @Mapping(target = "productImageUrl", source = "productUnit.imageUrl")
     @Mapping(target = "productUnitId", source = "productUnit.productUnitId")
     @Mapping(target = "productUnitName", source = "productUnit.unit.name")
     OrderItemResponseDTO toDto(OrderItem orderItem);

@@ -4,22 +4,13 @@ import com.startup.tasteflowbe.dto.HandleImportProductBatch;
 import com.startup.tasteflowbe.dto.ProductBatchDTO;
 import com.startup.tasteflowbe.dto.response.ProductBatchResponseDTO;
 import com.startup.tasteflowbe.dto.response.ProductResponseDTO;
-import com.startup.tasteflowbe.model.Product;
-import com.startup.tasteflowbe.model.ProductBatch;
+import com.startup.tasteflowbe.model.*;
+import com.startup.tasteflowbe.repository.*;
 import com.startup.tasteflowbe.service.InventoryService;
 import com.startup.tasteflowbe.service.ProductBatchService;
 import com.startup.tasteflowbe.service.StockMovementService;
 
 import aj.org.objectweb.asm.Handle;
-
-import com.startup.tasteflowbe.model.User;
-import com.startup.tasteflowbe.model.Warehouse;
-import com.startup.tasteflowbe.model.Unit;
-import com.startup.tasteflowbe.model.Supplier;
-import com.startup.tasteflowbe.repository.UnitRepository;
-import com.startup.tasteflowbe.repository.ProductRepository;
-import com.startup.tasteflowbe.repository.SupplierRepository;
-import com.startup.tasteflowbe.repository.WarehouseRepository;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -41,6 +32,8 @@ public class ProductBatchController {
     private final SupplierRepository supplierRepository;
     private final WarehouseRepository warehouseRepository;
     private final UnitRepository unitRepository;
+    private final ProductUnitRepository productUnitRepository;
+
 
     @GetMapping
     public ResponseEntity<List<ProductBatchResponseDTO>> getAllProductBatches() {
@@ -150,14 +143,20 @@ public class ProductBatchController {
         dto.setImportPrice(productBatch.getImportPrice());
         dto.setNote(productBatch.getNote());
         dto.setUnitName(productBatch.getUnit().getName());
+        ProductUnit productUnit = (ProductUnit) productUnitRepository
+                .findByProduct_ProductIdAndUnit_UnitIdAndIsBaseUnit(productBatch.getProduct().getProductId(),
+                        productBatch.getUnit().getUnitId(), true)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Product unit not found for product ID: " + productBatch.getProduct().getProductId()
+                                + " and unit ID: " + productBatch.getUnit().getUnitId()));
         if (productBatch.getProduct() != null) {
             ProductResponseDTO productDto = new ProductResponseDTO();
             Product product = productBatch.getProduct();
             productDto.setProductId(product.getProductId());
             productDto.setName(product.getName());
     //        productDto.setPrice(product.getPrice());
-            productDto.setSku(product.getSku());
-            productDto.setImageUrl(product.getImageUrl());
+            productDto.setSku(productUnit.getSku());
+            productDto.setImageUrl(productUnit.getImageUrl());
             dto.setProduct(productDto);
         }
         if (productBatch.getSupplier() != null) {

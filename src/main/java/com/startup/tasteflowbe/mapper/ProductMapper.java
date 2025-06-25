@@ -14,7 +14,6 @@ import java.util.List;
 @Mapper(componentModel = "spring", uses = PromotionMapper.class)
 public interface ProductMapper {
 
-    // ✅ Đã có sẵn từ trước:
     @Mapping(source = "category.name", target = "categoryName")
     @Mapping(source = "promotions", target = "promotions")
     ProductResponseDTO toResponse(Product product);
@@ -34,14 +33,18 @@ public interface ProductMapper {
     ProductDetailDTO productToProductDetailDTO(Product product);
 
     @Mapping(source = "unit.name", target = "unitName")
+    @Mapping(source = "sku", target = "sku")
+    @Mapping(source = "imageUrl", target = "imageUrl")
+    @Mapping(source = "description", target = "description")
     ProductUnitDTO productUnitToProductUnitDTO(ProductUnit unit);
 
     @Mapping(source = "product.productId", target = "productId")
     @Mapping(source = "unit.name", target = "unitName")
     @Mapping(source = "product.name", target = "productName")
-    @Mapping(source = "product.imageUrl", target = "imageUrl")
+    @Mapping(source = "imageUrl", target = "imageUrl") // Lấy từ ProductUnit, không phải Product
     ProductListItemDTO productUnitToProductListItemDTO(ProductUnit unit);
 
     List<ProductUnitDTO> productUnitListToProductUnitDTOList(List<ProductUnit> units);
     List<ProductListItemDTO> productUnitListToProductListItemDTOList(List<ProductUnit> units);
 }
+

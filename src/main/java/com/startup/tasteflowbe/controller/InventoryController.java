@@ -4,10 +4,7 @@ import com.startup.tasteflowbe.dto.request.StoreInventoryRequestDTO;
 import com.startup.tasteflowbe.dto.response.InventoriesResponseDTO;
 import com.startup.tasteflowbe.dto.response.ProductBatchResponseDTO;
 import com.startup.tasteflowbe.dto.response.ProductResponseDTO;
-import com.startup.tasteflowbe.model.Inventory;
-import com.startup.tasteflowbe.model.Product;
-import com.startup.tasteflowbe.model.ProductBatch;
-import com.startup.tasteflowbe.repository.ProductBatchRepository;
+import com.startup.tasteflowbe.model.*;
 import com.startup.tasteflowbe.service.InventoryService;
 import com.startup.tasteflowbe.service.ProductUnitService;
 import lombok.RequiredArgsConstructor;
@@ -117,11 +114,16 @@ public class InventoryController {
         if (inventory.getProduct() != null) {
             ProductResponseDTO productDto = new ProductResponseDTO();
             Product product = inventory.getProduct();
+            ProductUnit productUnit = (ProductUnit) productUnitService.findByProduct_ProductIdAndUnit_UnitIdAndIsBaseUnit(
+                    product.getProductId(),
+                    inventory.getBatch().getUnit().getUnitId(),
+                    true
+            ).orElseThrow(() -> new RuntimeException("Product unit not found for product ID: " + product.getProductId()));
             productDto.setProductId(product.getProductId());
             productDto.setName(product.getName());
-            //productDto.setPrice(product.getPrice());
-            productDto.setSku(product.getSku());
-            productDto.setImageUrl(product.getImageUrl());
+            productDto.setPrice(productUnit.getPrice());
+            productDto.setSku(productUnit.getSku());
+            productDto.setImageUrl(productUnit.getImageUrl());
             productDto.setCategoryName(product.getCategory().getName());
             dto.setProduct(productDto);
         }

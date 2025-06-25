@@ -4,7 +4,6 @@ import com.startup.tasteflowbe.model.ProductUnit;
 import com.startup.tasteflowbe.repository.ProductUnitRepository;
 import com.startup.tasteflowbe.service.ProductUnitService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -52,5 +51,10 @@ ProductUnitServiceImpl implements ProductUnitService {
         ProductUnit pu = productUnitRepository.findById(productUnitId)
                 .orElseThrow(() -> new RuntimeException("ProductUnit not found with id " + productUnitId));;
         return pu.getUnit().getUnitId();
+    }
+
+    @Override
+    public Optional<Object> findByProduct_ProductIdAndUnit_UnitIdAndIsBaseUnit(Long productProductId, Long unitUnitId, Boolean isBaseUnit) {
+        return productUnitRepository.findByProduct_ProductIdAndUnit_UnitIdAndIsBaseUnit(productProductId, unitUnitId, isBaseUnit);
     }
 }

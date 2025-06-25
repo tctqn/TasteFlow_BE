@@ -5,6 +5,7 @@ import com.startup.tasteflowbe.dto.response.InventoriesResponseDTO;
 import com.startup.tasteflowbe.dto.response.ProductBatchResponseDTO;
 import com.startup.tasteflowbe.dto.response.ProductResponseDTO;
 import com.startup.tasteflowbe.model.*;
+import com.startup.tasteflowbe.repository.ProductBatchRepository;
 import com.startup.tasteflowbe.service.InventoryService;
 import com.startup.tasteflowbe.service.ProductUnitService;
 import lombok.RequiredArgsConstructor;

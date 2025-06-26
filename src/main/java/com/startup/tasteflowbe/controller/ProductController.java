@@ -27,5 +27,9 @@ public class ProductController {
     public ResponseEntity<ProductDetailDTO> getProductDetail(@PathVariable Long id) {
         return ResponseEntity.ok(productService.getProductDetail(id));
     }
-}
 
+    @GetMapping("/count-by-category/{categoryId}")
+    public ResponseEntity<Integer> countProductsByCategory(@PathVariable("categoryId") Long categoryId) {
+        return ResponseEntity.ok(productService.countByCategoryId(categoryId));
+    }
+}

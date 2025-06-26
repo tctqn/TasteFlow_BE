@@ -20,4 +20,5 @@ public interface ProductService {
     // ✅ Phần Multi-Unit Inventory support
     List<ProductListItemDTO> getAllProductForList();  // dùng cho FE list card
     ProductDetailDTO getProductDetail(Long productId); // dùng cho FE detail
+    Integer countByCategoryId(Long categoryId);
 }

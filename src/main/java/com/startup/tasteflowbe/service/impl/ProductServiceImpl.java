@@ -108,4 +108,9 @@ public class ProductServiceImpl implements ProductService {
 
         return dto;
     }
+
+    @Override
+    public Integer countByCategoryId(Long categoryId) {
+        return productRepository.countByCategory_CategoryId(categoryId);
+    }
 }

@@ -48,15 +48,24 @@ public class UserServiceImpl implements UserService {
     public User updateUser(Long id, User updatedUser) {
         return userRepository.findById(id)
                 .map(user -> {
-                    user.setUsername(updatedUser.getUsername());
+                    // If role is changed, only set role and return
+                    if (!user.getRole().equals(updatedUser.getRole())) {
+                        user.setRole(updatedUser.getRole());
+                        return userRepository.save(user);
+                    }
+                    // Check for duplicate username (if changed)
+                    if (!user.getUsername().equals(updatedUser.getUsername()) && userRepository.existsByUsername(updatedUser.getUsername())) {
+                        throw new IllegalArgumentException("Username already exists");
+                    }
+                    // Check for duplicate email (if changed)
+                    if (!user.getEmail().equals(updatedUser.getEmail()) && userRepository.existsByEmail(updatedUser.getEmail())) {
+                        throw new IllegalArgumentException("Email already exists");
+                    }
                     user.setEmail(updatedUser.getEmail());
-                    user.setPasswordHash(updatedUser.getPasswordHash());
-                    user.setRole(updatedUser.getRole());
                     user.setFirstName(updatedUser.getFirstName());
                     user.setLastName(updatedUser.getLastName());
                     user.setPhone(updatedUser.getPhone());
                     user.setAddress(updatedUser.getAddress());
-                    user.setPoints(updatedUser.getPoints());
                     return userRepository.save(user);
                 })
                 .orElseThrow(() -> new RuntimeException("User not found with id " + id));

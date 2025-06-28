@@ -1,5 +1,6 @@
 package com.startup.tasteflowbe.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -41,5 +42,7 @@ public class Promotion {
             joinColumns = @JoinColumn(name = "promotion_id"),
             inverseJoinColumns = @JoinColumn(name = "product_id")
     )
+    @JsonManagedReference
     private List<Product> products;
+
 }

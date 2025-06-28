@@ -21,6 +21,7 @@ public class VoucherMapper {
                 .description(dto.getDescription())
                 .distributionType(dto.getDistributionType())
                 .freeShipping(dto.getFreeShipping())
+                .isStackable(dto.getStackable() != null ? dto.getStackable() : false)
                 .discountType(dto.getDiscountType())
                 .discountAmount(dto.getDiscountAmount())
                 .discountPercent(dto.getDiscountPercent())

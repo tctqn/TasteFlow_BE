@@ -14,7 +14,7 @@ public interface VoucherService {
     List<Voucher> getAllVouchers();
     Optional<Voucher> getVoucherById(Long id);
     Voucher createVoucher(CreateVoucherRequest request);
-    Voucher updateVoucher(Long id, Voucher voucher);
+    Voucher updateVoucher(Long id, CreateVoucherRequest voucher);
     void deleteVoucher(Long id);
     List<VoucherResponseDTO> getAvailableVouchers(User user, BigDecimal totalPrice);
 }

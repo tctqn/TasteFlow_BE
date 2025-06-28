@@ -1,5 +1,7 @@
 package com.startup.tasteflowbe.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.startup.tasteflowbe.enums.DiscountType;
 import com.startup.tasteflowbe.enums.DistributionType;
 import jakarta.validation.constraints.*;
@@ -36,12 +38,15 @@ public class CreateVoucherRequest {
     private BigDecimal discountPercent;
 
     @NotNull
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime startDate;
 
     @NotNull
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime endDate;
 
-    private boolean stackable;
+    @JsonProperty("stackable")
+    private Boolean stackable;
 
     @NotNull
     private Integer quantity;

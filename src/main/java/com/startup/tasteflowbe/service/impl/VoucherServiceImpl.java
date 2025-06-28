@@ -57,7 +57,7 @@ public class VoucherServiceImpl implements VoucherService {
     }
 
     @Override
-    public Voucher updateVoucher(Long id, Voucher voucher) {
+    public Voucher updateVoucher(Long id, CreateVoucherRequest voucher) {
         return voucherRepository.findById(id)
                 .map(existingVoucher -> {
                     existingVoucher.setCode(voucher.getCode());

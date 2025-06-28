@@ -1,5 +1,7 @@
 package com.startup.tasteflowbe.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -30,7 +32,9 @@ public class Product {
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @ManyToMany(mappedBy = "products")
+    @JsonBackReference
     private List<Promotion> promotions;
+
 
     @Override
     public String toString() {

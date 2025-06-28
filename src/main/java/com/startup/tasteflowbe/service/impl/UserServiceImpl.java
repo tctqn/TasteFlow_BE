@@ -4,16 +4,19 @@ import com.startup.tasteflowbe.model.User;
 import com.startup.tasteflowbe.repository.UserRepository;
 import com.startup.tasteflowbe.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public List<User> getAllUsers() {
@@ -27,6 +30,17 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User createUser(User user) {
+        // Check for duplicate username
+        if (userRepository.existsByUsername(user.getUsername())) {
+            throw new IllegalArgumentException("Username already exists");
+        }
+        // Check for duplicate email
+        if (userRepository.existsByEmail(user.getEmail())) {
+            throw new IllegalArgumentException("Email already exists");
+        }
+        user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
+        user.setCreatedAt(LocalDateTime.now());
+        user.setEnabled(true);
         return userRepository.save(user);
     }
 

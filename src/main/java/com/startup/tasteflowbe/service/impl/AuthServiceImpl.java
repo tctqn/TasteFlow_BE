@@ -1,5 +1,8 @@
 package com.startup.tasteflowbe.service.impl;
 
+import com.startup.tasteflowbe.dto.response.AuthResponseDTO;
+import com.startup.tasteflowbe.dto.response.UserDTO;
+import com.startup.tasteflowbe.mapper.UserMapper;
 import com.startup.tasteflowbe.model.User;
 import com.startup.tasteflowbe.dto.LoginRequest;
 import com.startup.tasteflowbe.dto.RegisterRequest;
@@ -22,16 +25,27 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;  // Để mã hóa mật khẩu
     private final JwtUtil jwtUtil;  // Để tạo JWT token
     private final JavaMailSender mailSender;
+    private final UserMapper userMapper;  // Mapper để chuyển đổi giữa User và UserDTO
 
     @Override
-    public String login(LoginRequest loginRequest) {
+    public AuthResponseDTO login(LoginRequest loginRequest) {
         User user = userRepository.findByUsername(loginRequest.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPasswordHash())) {
             throw new RuntimeException("Invalid credentials");
         }
-        return jwtUtil.generateToken(user);  // Generate JWT token after successful login
+
+        String token = jwtUtil.generateToken(user);
+        UserDTO userDTO = userMapper.toDTO(user);
+
+        return AuthResponseDTO.builder()
+                .token(token)
+                .user(userDTO)
+                .build();
     }
+
+
 
     @Override
     public String register(RegisterRequest registerRequest) {

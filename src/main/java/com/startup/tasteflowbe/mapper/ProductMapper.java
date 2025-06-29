@@ -41,7 +41,8 @@ public interface ProductMapper {
     @Mapping(source = "product.productId", target = "productId")
     @Mapping(source = "unit.name", target = "unitName")
     @Mapping(source = "product.name", target = "productName")
-    @Mapping(source = "imageUrl", target = "imageUrl") // Lấy từ ProductUnit, không phải Product
+    @Mapping(source = "imageUrl", target = "imageUrl")
+    @Mapping(source = "product.category.name", target = "categoryName")
     ProductListItemDTO productUnitToProductListItemDTO(ProductUnit unit);
 
     List<ProductUnitDTO> productUnitListToProductUnitDTOList(List<ProductUnit> units);

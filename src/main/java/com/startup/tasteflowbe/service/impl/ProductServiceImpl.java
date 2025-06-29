@@ -12,7 +12,9 @@ import com.startup.tasteflowbe.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -81,13 +83,20 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<ProductListItemDTO> getAllProductForList() {
         List<ProductUnit> allUnits = productUnitRepository.findAll();
+        Map<Long, ProductBatch> productToLatestBatch = new HashMap<>();
+
         return allUnits.stream().map(unit -> {
             ProductListItemDTO dto = productMapper.productUnitToProductListItemDTO(unit);
 
-            Optional<ProductBatch> batchOpt = productBatchRepository
-                    .findTopByProductAndUnitOrderByReceivedDateDesc(unit.getProduct(), unit.getUnit());
+            Long productId = unit.getProduct().getProductId();
 
-            batchOpt.ifPresent(batch -> dto.setSupplierName(batch.getSupplier().getName()));
+            ProductBatch batch = productToLatestBatch.computeIfAbsent(productId, pid ->
+                    productBatchRepository.findTopByProductOrderByReceivedDateDesc(unit.getProduct()).orElse(null)
+            );
+
+            if (batch != null) {
+                dto.setSupplierName(batch.getSupplier().getName());
+            }
 
             return dto;
         }).collect(Collectors.toList());

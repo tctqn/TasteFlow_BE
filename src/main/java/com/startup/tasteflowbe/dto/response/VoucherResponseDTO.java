@@ -17,6 +17,14 @@ public class VoucherResponseDTO {
     private BigDecimal discountPercent;
     private BigDecimal minOrderAmount;
     private boolean isStackable;
+    private Boolean freeShipping;
+    private String description;
+    private String distributionType;
+    private String startDate;
+    private String endDate;
+    private Integer maxPerUser;
+    private Integer quantity;
+    private Integer claimedCount;
     private boolean claimed;
     private boolean used;
     private boolean valid;

@@ -137,20 +137,8 @@ public class VoucherServiceImpl implements VoucherService {
 
 
         return publicVouchers.stream()
-                .map(v -> VoucherResponseDTO.builder()
-                        .voucherId(v.getVoucherId())
-                        .code(v.getCode())
-                        .title(v.getTitle())
-                        .discountAmount(v.getDiscountAmount())
-                        .discountPercent(v.getDiscountPercent())
-                        .minOrderAmount(v.getMinOrderAmount())
-                        .isStackable(v.isStackable())
-                        .claimed(false)
-                        .used(false)
-                        .valid(totalPrice.compareTo(Optional.ofNullable(v.getMinOrderAmount()).orElse(BigDecimal.ZERO)) >= 0)
-                        .discountType(v.getDiscountType().name())
-                        .build())
-                .toList();
+                .map(VoucherMapper::toResponseDTO)
+                .collect(Collectors.toList());
     }
 
 

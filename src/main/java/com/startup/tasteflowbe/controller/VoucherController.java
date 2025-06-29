@@ -44,7 +44,8 @@ public class VoucherController {
     public ResponseEntity<List<VoucherResponseDTO>> getAvailableVouchers(@RequestParam BigDecimal totalPrice) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null || !authentication.isAuthenticated() || authentication.getPrincipal().equals("anonymousUser")) {
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication.getPrincipal().equals("anonymousUser")) {
             // Anonymous user → chỉ trả voucher PUBLIC
             return ResponseEntity.ok(voucherService.getPublicVouchers(totalPrice));
         }

@@ -1,6 +1,7 @@
 package com.startup.tasteflowbe.service;
 
 import com.startup.tasteflowbe.dto.request.StoreInventoryRequestDTO;
+import com.startup.tasteflowbe.dto.response.ProductInventoryDTO;
 import com.startup.tasteflowbe.model.Inventory;
 
 import java.util.List;
@@ -10,6 +11,7 @@ public interface InventoryService {
     List<Inventory> getAllInventories();
 
     Optional<Inventory> getInventoryById(Long id);
+    List<ProductInventoryDTO> getInventoryAllUnitByStore(Long storeId);
 
     Inventory createInventory(Inventory inventory);
 

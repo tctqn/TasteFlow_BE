@@ -71,6 +71,7 @@ public class SecurityConfig {
                                         "/api/payments/**",
                                         "/api/invoices/**",
                                         "/api/categories/**",
+                                        "/api/inventories/store/**",
                                         "/api/orders/**",
                                         "/api/webhook/**",
                                         "/api/inventories/store/stock")

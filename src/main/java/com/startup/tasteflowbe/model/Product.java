@@ -35,6 +35,9 @@ public class Product {
     @JsonBackReference
     private List<Promotion> promotions;
 
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<ProductUnit> productUnits;
 
     @Override
     public String toString() {

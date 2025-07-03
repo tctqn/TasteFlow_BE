@@ -22,10 +22,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;  // Để mã hóa mật khẩu
-    private final JwtUtil jwtUtil;  // Để tạo JWT token
+    private final PasswordEncoder passwordEncoder; // Để mã hóa mật khẩu
+    private final JwtUtil jwtUtil; // Để tạo JWT token
     private final JavaMailSender mailSender;
-    private final UserMapper userMapper;  // Mapper để chuyển đổi giữa User và UserDTO
+    private final UserMapper userMapper; // Mapper để chuyển đổi giữa User và UserDTO
 
     @Override
     public AuthResponseDTO login(LoginRequest loginRequest) {
@@ -45,8 +45,6 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
-
-
     @Override
     public String register(RegisterRequest registerRequest) {
         if (userRepository.existsByUsername(registerRequest.getUsername())) {
@@ -62,7 +60,7 @@ public class AuthServiceImpl implements AuthService {
         user.setPasswordHash(passwordEncoder.encode(registerRequest.getPassword()));
         user.setFirstName(registerRequest.getFirstName());
         user.setLastName(registerRequest.getLastName());
-        user.setRole(Role.CUSTOMER);  // Set default role, assuming you have an enum Role
+        user.setRole(Role.CUSTOMER); // Set default role, assuming you have an enum Role
         user.setPhone(registerRequest.getPhone());
         user.setAddress(registerRequest.getAddress());
         user.setEnabled(false);
@@ -70,7 +68,7 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
 
         sendVerificationEmail(user);
-        return jwtUtil.generateToken(user);  // You could return the JWT token for the newly registered user
+        return jwtUtil.generateToken(user); // You could return the JWT token for the newly registered user
     }
 
     @Override
@@ -97,8 +95,7 @@ public class AuthServiceImpl implements AuthService {
                         "Bạn đã yêu cầu đặt lại mật khẩu. Nhấn vào liên kết sau để tiếp tục:\n%s\n\n" +
                         "Nếu không phải bạn, vui lòng bỏ qua email này.\n\n" +
                         "Trân trọng,\nTasteFlow",
-                user.getUsername(), link
-        );
+                user.getUsername(), link);
 
         SimpleMailMessage mail = new SimpleMailMessage();
         mail.setTo(user.getEmail());
@@ -116,8 +113,6 @@ public class AuthServiceImpl implements AuthService {
         user.setVerificationToken(null); // clear token
         userRepository.save(user);
     }
-
-
 
     private void sendVerificationEmail(User user) {
         String link = "http://localhost:8081/verify-email?token=" + user.getVerificationToken();

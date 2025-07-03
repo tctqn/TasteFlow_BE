@@ -168,15 +168,15 @@ VALUES (1, 1, 2, NOW()),
 -- === PRODUCT_BATCHES ===
 INSERT INTO product_batches (product_id, supplier_id, warehouse_id, unit_id, quantity, manufacture_date,
                              expiration_date, received_date, note, status, import_price)
-VALUES (1, 1, 1, 1, 100, '2025-01-01', '2026-01-01', '2025-05-31 10:00:00', 'Lô hàng sữa tươi nhập từ nhà cung cấp A',
+VALUES (1, 1, 1, 3, 100, '2025-01-01', '2026-01-01', '2025-05-31 10:00:00', 'Lô hàng sữa tươi nhập từ nhà cung cấp A',
         'ACTIVE', 15000.00),
-       (2, 2, 2, 2, 200, '2024-12-15', '2025-12-15', '2025-05-31 10:05:00', 'Lô hàng nước giải khát', 'ACTIVE',
+       (2, 2, 2, 3, 200, '2024-12-15', '2025-12-15', '2025-05-31 10:05:00', 'Lô hàng nước giải khát', 'ACTIVE',
         10000.00),
-       (3, 3, 3, 3, 150, '2025-02-01', '2026-02-01', '2025-05-31 10:10:00', 'Lô bánh snack các loại', 'ACTIVE',
+       (3, 3, 3, 5, 150, '2025-02-01', '2026-02-01', '2025-05-31 10:10:00', 'Lô bánh snack các loại', 'ACTIVE',
         8000.00),
        (4, 4, 4, 4, 120, '2025-03-10', '2026-03-10', '2025-05-31 10:15:00', 'Lô mì ăn liền từ nhà cung cấp D', 'ACTIVE',
         12000.00),
-       (5, 5, 5, 5, 300, '2025-04-01', '2026-04-01', '2025-05-31 10:20:00', 'Lô hàng gia vị và nước chấm', 'ACTIVE',
+       (5, 5, 5, 3, 300, '2025-04-01', '2026-04-01', '2025-05-31 10:20:00', 'Lô hàng gia vị và nước chấm', 'ACTIVE',
         9000.00);
 
 -- === INVENTORIES ===

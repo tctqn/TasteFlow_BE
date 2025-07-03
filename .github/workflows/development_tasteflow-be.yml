@@ -27,18 +27,14 @@ jobs:
           echo "DB_URL=${{ secrets.DB_URL }}" >> .env
           echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
           echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
           echo "JWT_EXPIRATION_MS=${{ secrets.JWT_EXPIRATION_MS }}" >> .env
-
           echo "EMAIL_USERNAME=${{ secrets.EMAIL_USERNAME }}" >> .env
           echo "EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}" >> .env
-
           echo "AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }}" >> .env
           echo "AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }}" >> .env
           echo "AWS_BUCKET_NAME=${{ secrets.AWS_BUCKET_NAME }}" >> .env
           echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> .env
-
           echo "PAYOS_CLIENT_ID=${{ secrets.PAYOS_CLIENT_ID }}" >> .env
           echo "PAYOS_API_KEY=${{ secrets.PAYOS_API_KEY }}" >> .env
           echo "PAYOS_CHECKSUM_KEY=${{ secrets.PAYOS_CHECKSUM_KEY }}" >> .env
@@ -50,10 +46,8 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_KEY }}
-          source: |
-            target/*.jar
-            .env
-          target: /home/ubuntu/spring-app/
+          source: "target/*.jar,.env"
+          target: "/home/ubuntu/spring-app/"
 
       - name: SSH and restart app on EC2
         uses: appleboy/ssh-action@v1.0.0

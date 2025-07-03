@@ -74,20 +74,14 @@ public class SecurityConfig {
                                         "/api/inventories/store/**",
                                         "/api/orders/**",
                                         "/api/webhook/**",
-                                        "/api/inventories/store/stock")
+                                        "/api/inventories/store/stock",
+                                        "/api/admin/products/**")
                                 .permitAll()
 
-                                // Đảm bảo test-s3-connection được phép truy cập
-                                .requestMatchers("/test-s3-connection",
-                                        "/test-bucket-connection",
-                                        "/list-bucket-objects",
-                                        "/upload-file",
-                                        "/download-file").permitAll()
 
                                 // CUSTOMER routes
                                 .requestMatchers(
                                         "/api/cart-items/**",
-                                      /*  "/api/orders/**",*/
                                         "/api/payments/**",
                                         "/api/refunds/**",
                                         "/api/invoices/**",

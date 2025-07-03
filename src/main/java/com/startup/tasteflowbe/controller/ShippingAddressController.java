@@ -1,5 +1,6 @@
 package com.startup.tasteflowbe.controller;
 
+import com.startup.tasteflowbe.dto.request.ShippingAddressRequestDTO;
 import com.startup.tasteflowbe.model.ShippingAddress;
 import com.startup.tasteflowbe.service.ShippingAddressService;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +29,8 @@ public class ShippingAddressController {
     }
 
     @PostMapping
-    public ResponseEntity<ShippingAddress> createShippingAddress(@RequestBody ShippingAddress shippingAddress) {
-        return ResponseEntity.ok(shippingAddressService.createShippingAddress(shippingAddress));
+    public ResponseEntity<ShippingAddress> createShippingAddress(@RequestBody ShippingAddressRequestDTO shippingAddressRequestDTO) {
+        return ResponseEntity.ok(shippingAddressService.createShippingAddress(shippingAddressRequestDTO));
     }
 
     @PutMapping("/{id}")

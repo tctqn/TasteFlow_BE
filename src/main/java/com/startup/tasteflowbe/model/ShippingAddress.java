@@ -19,14 +19,23 @@ public class ShippingAddress {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "recipient_name", length = 100)
+    @Column(name = "recipient_name", length = 100, nullable = false)
     private String recipientName;
 
-    @Column(name = "phone", length = 20)
+    @Column(name = "phone", length = 20, nullable = false)
     private String phone;
 
-    @Column(name = "address_line", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "address_line", columnDefinition = "TEXT", nullable = false)
     private String addressLine;
+
+    @Column(name = "province", length = 100, nullable = false)
+    private String province;
+
+    @Column(name = "district", length = 100, nullable = false)
+    private String district;
+
+    @Column(name = "ward", length = 100, nullable = false)
+    private String ward;
 
     @Column(name = "is_default", nullable = false)
     private Boolean isDefault = false;

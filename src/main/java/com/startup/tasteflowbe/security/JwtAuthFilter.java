@@ -28,26 +28,43 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String path = request.getRequestURI();
-        if (path.startsWith("/api/auth")) {
+
+        System.out.println("JwtAuthFilter intercepted path: " + request.getRequestURI());
+        System.out.println("Authorization header: " + request.getHeader("Authorization"));
+        System.out.println("Cookie: " + request.getHeader("Cookie"));
+
+
+        // ✅ BỎ QUA tất cả các route PUBLIC
+        if (path.startsWith("/api/auth") ||
+                path.startsWith("/api/products") ||
+                path.startsWith("/api/stores") ||
+                path.startsWith("/api/promotions") ||
+                path.startsWith("/api/vouchers") ||
+                path.startsWith("/api/orders") ||
+                path.startsWith("/api/webhook")) {
             filterChain.doFilter(request, response);
             return;
         }
 
+        // Xử lý JWT nếu có
         final String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String jwt = authHeader.substring(7);
         try {
+            String jwt = authHeader.substring(7);
             Claims claims = jwtUtil.extractAllClaims(jwt);
             String username = claims.getSubject();
             String role = (String) claims.get("role");
 
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(username, null, AuthorityUtils.createAuthorityList("ROLE_" + role));
+                        new UsernamePasswordAuthenticationToken(
+                                username,
+                                null,
+                                AuthorityUtils.createAuthorityList("ROLE_" + role));
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
@@ -58,4 +75,5 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request, response);
     }
+
 }

@@ -1,6 +1,7 @@
 package com.startup.tasteflowbe.controller;
 
-import com.startup.tasteflowbe.model.Product;
+import com.startup.tasteflowbe.dto.response.ProductDetailDTO;
+import com.startup.tasteflowbe.dto.response.ProductListItemDTO;
 import com.startup.tasteflowbe.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,30 +17,17 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    public ResponseEntity<List<Product>> getAllProducts() {
-        return ResponseEntity.ok(productService.getAllProducts());
+    public ResponseEntity<List<ProductListItemDTO>> getAllProductsForList() {
+        return ResponseEntity.ok(productService.getAllProductForList());
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
-        return productService.getProductById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    @GetMapping("/{id}/detail")
+    public ResponseEntity<ProductDetailDTO> getProductDetail(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.getProductDetail(id));
     }
 
-    @PostMapping
-    public ResponseEntity<Product> createProduct(@RequestBody Product product) {
-        return ResponseEntity.ok(productService.createProduct(product));
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product product) {
-        return ResponseEntity.ok(productService.updateProduct(id, product));
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
-        productService.deleteProduct(id);
-        return ResponseEntity.noContent().build();
+    @GetMapping("/count-by-category/{categoryId}")
+    public ResponseEntity<Integer> countProductsByCategory(@PathVariable("categoryId") Long categoryId) {
+        return ResponseEntity.ok(productService.countByCategoryId(categoryId));
     }
 }

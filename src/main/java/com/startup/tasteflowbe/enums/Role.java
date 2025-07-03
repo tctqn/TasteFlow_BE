@@ -2,8 +2,8 @@ package com.startup.tasteflowbe.enums;
 
 public enum Role {
     CUSTOMER,
-    SHOP_STAFF,
+    STORE_STAFF,
     ADMIN,
     WAREHOUSE_MANAGER,
-    SHOP_MANAGER,
+    STORE_MANAGER,
 }

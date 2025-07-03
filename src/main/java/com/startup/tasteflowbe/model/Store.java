@@ -1,5 +1,7 @@
 package com.startup.tasteflowbe.model;
 
+import com.startup.tasteflowbe.enums.Region;
+import com.startup.tasteflowbe.enums.StoreStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -9,7 +11,6 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 public class Store {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "store_id")
@@ -26,4 +27,40 @@ public class Store {
 
     @Column(name = "business_hours", length = 100)
     private String businessHours;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "region", nullable = false, columnDefinition = "TEXT")
+    private Region region;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 50)
+    private StoreStatus status;
+
+    @OneToOne
+    @JoinColumn(name = "manager_id", referencedColumnName = "user_id", unique = true)
+    private User manager;
+
+    @Override
+    public String toString() {
+        return "Store{" +
+                "storeId=" + storeId +
+                ", name='" + name + '\'' +
+                ", address='" + address + '\'' +
+                ", contactInfo='" + contactInfo + '\'' +
+                ", businessHours='" + businessHours + '\'' +
+                ", region=" + region +
+                ", status=" + status +
+                ", manager=" + (manager != null ? manager.getUserId() : null) +
+                '}';
+    }
+
+
+    @Column(name = "province", length = 100)
+    private String province;
+
+    @Column(name = "district", length = 100)
+    private String district;
+
+    @Column(name = "village", length = 100)
+    private String village;
 }

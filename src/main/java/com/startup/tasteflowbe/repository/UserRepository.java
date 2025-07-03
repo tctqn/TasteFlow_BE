@@ -13,9 +13,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsername(String username);
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
-    Optional<User> findByVerificationToken(String token);
-    Optional<User> findByEmail(String email);
     @Query("SELECT u FROM User u WHERE u.role = com.startup.tasteflowbe.enums.Role.WAREHOUSE_MANAGER AND u.warehouse IS NULL")
     List<User> findAvailableWarehouseManagers();
+    @Query("SELECT u FROM User u WHERE u.role = com.startup.tasteflowbe.enums.Role.STORE_MANAGER AND u.store IS NULL")
+    List<User> findAvailableStoreManagers();
+    User findByUserId(Long userId);
+    Optional<User> findByVerificationToken(String token);
+    Optional<User> findByEmail(String email);
+
 
 }

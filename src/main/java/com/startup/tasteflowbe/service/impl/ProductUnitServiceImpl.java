@@ -11,7 +11,8 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-public class ProductUnitServiceImpl implements ProductUnitService {
+public class
+ProductUnitServiceImpl implements ProductUnitService {
 
     private final ProductUnitRepository productUnitRepository;
 
@@ -44,5 +45,16 @@ public class ProductUnitServiceImpl implements ProductUnitService {
     @Override
     public void deleteProductUnit(Long id) {
         productUnitRepository.deleteById(id);
+    }
+
+    public Long getUnitIdByProductUnitId(Long productUnitId) {
+        ProductUnit pu = productUnitRepository.findById(productUnitId)
+                .orElseThrow(() -> new RuntimeException("ProductUnit not found with id " + productUnitId));;
+        return pu.getUnit().getUnitId();
+    }
+
+    @Override
+    public Optional<Object> findByProduct_ProductIdAndUnit_UnitIdAndIsBaseUnit(Long productProductId, Long unitUnitId, Boolean isBaseUnit) {
+        return productUnitRepository.findByProduct_ProductIdAndUnit_UnitIdAndIsBaseUnit(productProductId, unitUnitId, isBaseUnit);
     }
 }

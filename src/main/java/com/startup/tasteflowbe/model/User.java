@@ -50,13 +50,18 @@ public class User {
     @Column(name = "points")
     private Integer points = 0;
 
+    @OneToOne(mappedBy = "manager")
+    @JsonIgnore
+    private Warehouse warehouse;
+
+    @OneToOne(mappedBy = "manager")
+    @JsonIgnore
+    private Store store;
+
+
     @Column(nullable = false)
     private boolean enabled = false;
 
     private String verificationToken;
-
-    @OneToOne(mappedBy = "manager")
-    @JsonIgnore
-    private Warehouse warehouse;
 
 }

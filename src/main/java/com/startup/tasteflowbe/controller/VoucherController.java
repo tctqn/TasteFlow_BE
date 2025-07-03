@@ -1,15 +1,22 @@
 package com.startup.tasteflowbe.controller;
 
-import com.startup.tasteflowbe.dto.CreateVoucherRequest;
+import com.startup.tasteflowbe.dto.response.VoucherResponseDTO;
+import com.startup.tasteflowbe.dto.request.CreateVoucherRequest;
+import com.startup.tasteflowbe.enums.DiscountType;
+import com.startup.tasteflowbe.enums.DistributionType;
+import com.startup.tasteflowbe.model.User;
 import com.startup.tasteflowbe.model.Voucher;
+import com.startup.tasteflowbe.repository.UserRepository;
 import com.startup.tasteflowbe.service.VoucherService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -19,6 +26,7 @@ import java.util.List;
 public class VoucherController {
 
     private final VoucherService voucherService;
+    private final UserRepository userRepository;
 
     @GetMapping
     public ResponseEntity<List<Voucher>> getAllVouchers() {
@@ -32,26 +40,29 @@ public class VoucherController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Voucher> createVoucher(@ModelAttribute CreateVoucherRequest request) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    @GetMapping("/available")
+    public ResponseEntity<List<VoucherResponseDTO>> getAvailableVouchers(@RequestParam BigDecimal totalPrice) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        Voucher voucher = Voucher.builder()
-                .code(request.getCode())
-                .discountAmount(new BigDecimal(request.getDiscountAmount()))
-                .discountType(request.getDiscountType())
-                .startDate(LocalDate.parse(request.getStartDate(), formatter).atStartOfDay())
-                .endDate(LocalDate.parse(request.getEndDate(), formatter).atStartOfDay())
-                .quantity(request.getQuantity())
-                .claimedCount(0)
-                .build();
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication.getPrincipal().equals("anonymousUser")) {
+            // Anonymous user → chỉ trả voucher PUBLIC
+            return ResponseEntity.ok(voucherService.getPublicVouchers(totalPrice));
+        }
 
-        return ResponseEntity.ok(voucherService.createVoucher(voucher));
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username).orElseThrow();
+
+        return ResponseEntity.ok(voucherService.getAvailableVouchers(user, totalPrice));
     }
 
+    @PostMapping
+    public ResponseEntity<Voucher> createVoucher(@RequestBody CreateVoucherRequest request) {
+        return ResponseEntity.ok(voucherService.createVoucher(request));
+    }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Voucher> updateVoucher(@PathVariable Long id, @RequestBody Voucher voucher) {
+    public ResponseEntity<Voucher> updateVoucher(@PathVariable Long id, @RequestBody CreateVoucherRequest voucher) {
         return ResponseEntity.ok(voucherService.updateVoucher(id, voucher));
     }
 

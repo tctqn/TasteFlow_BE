@@ -13,6 +13,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
@@ -28,73 +31,98 @@ public class SecurityConfig {
 
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
-                CorsConfiguration configuration = new CorsConfiguration();
-                configuration.addAllowedOrigin("http://localhost:8081"); // Allow your frontend origin
-                configuration.addAllowedMethod("*"); // Allow all HTTP methods (GET, POST, etc.)
-                configuration.addAllowedHeader("*"); // Allow all headers
-                configuration.setAllowCredentials(true); // Allow credentials (e.g., cookies)
-
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-                source.registerCorsConfiguration("/**", configuration);
+
+                // ✅ Cho frontend (chỉ cho phép domain thật)
+                CorsConfiguration frontendConfig = new CorsConfiguration();
+                frontendConfig.addAllowedOrigin("http://localhost:8081"); // Allow your frontend origin
+                frontendConfig.addAllowedMethod("*"); // Allow all HTTP methods (GET, POST, etc.)
+                frontendConfig.addAllowedHeader("*"); // Allow all headers
+                frontendConfig.setAllowCredentials(true);
+                source.registerCorsConfiguration("/**", frontendConfig);
+
+                // ✅ Cho webhook (mở all origin vì từ PayOS call)
+                CorsConfiguration webhookConfig = new CorsConfiguration();
+                webhookConfig.addAllowedOriginPattern("*");
+                webhookConfig.addAllowedMethod("*");
+                webhookConfig.addAllowedHeader("*");
+                webhookConfig.setAllowCredentials(false);
+                source.registerCorsConfiguration("/api/webhook/**", webhookConfig);
+
                 return source;
         }
+
 
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 http
-                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                                .csrf(csrf -> csrf.disable())
-                                .sessionManagement(session -> session
-                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                                .authorizeHttpRequests(auth -> auth
-                                                // Public access
-                                                .requestMatchers("/api/auth/**").permitAll()
-                                                .requestMatchers(
-                                                                "/api/products/**",
-                                                                "/api/stores/**",
-                                                                "/api/promotions/**",
-                                                                "/api/vouchers/**")
-                                                .permitAll()
+                        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                        .csrf(csrf -> csrf.disable())
+                        .sessionManagement(session -> session
+                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                        .authorizeHttpRequests(auth -> auth
+                                // Public access
+                                .requestMatchers("/api/auth/**").permitAll()
+                                .requestMatchers(
+                                        "/api/products/**",
+                                        "/api/stores/**",
+                                        "/api/promotions/**",
+                                        "/api/vouchers/**",
+                                        "/api/payments/**",
+                                        "/api/invoices/**",
+                                        "/api/categories/**",
+                                        "/api/inventories/store/**",
+                                        "/api/orders/**",
+                                        "/api/webhook/**",
+                                        "/api/inventories/store/stock")
+                                .permitAll()
 
-                                                // CUSTOMER routes
-                                                .requestMatchers(
-                                                                "/api/cart-items/**",
-                                                                "/api/orders/**",
-                                                                "/api/payments/**",
-                                                                "/api/refunds/**",
-                                                                "/api/invoices/**",
-                                                                "/api/delivery-trackings/**",
-                                                                "/api/shipping-addresses/**")
-                                                .hasRole("CUSTOMER")
+                                // Đảm bảo test-s3-connection được phép truy cập
+                                .requestMatchers("/test-s3-connection",
+                                        "/test-bucket-connection",
+                                        "/list-bucket-objects",
+                                        "/upload-file",
+                                        "/download-file").permitAll()
 
-                                                // STAFF + ADMIN routes
-                                                .requestMatchers(
-                                                                "/api/inventories/**",
-                                                                "/api/product-batches/**",
-                                                                "/api/stock-movements/**",
-                                                                "/api/order-items/**",
-                                                                "/api/categories/**",
-                                                                "/api/products-units/**",
-                                                                "/api/units/**",
-                                                                "/api/orders/**",
-                                                                "/api/invoices/**",
-                                                                "/api/payments/**",
-                                                                "/api/suppliers/**",
-                                                                "/api/refunds/**",
-                                                                "/api/warehouses/**",
-                                                                "/api/delivery-trackings/**")
-                                                .hasAnyRole("WAREHOUSE_MANAGER", "ADMIN", "SHOP_MANAGER", "SHOP_STAFF")
+                                // CUSTOMER routes
+                                .requestMatchers(
+                                        "/api/cart-items/**",
+                                      /*  "/api/orders/**",*/
+                                        "/api/payments/**",
+                                        "/api/refunds/**",
+                                        "/api/invoices/**",
+                                        "/api/delivery-trackings/**",
+                                        "/api/shipping-addresses/**")
+                                .hasRole("CUSTOMER")
 
-                                                // ADMIN-only routes
-                                                .requestMatchers(
-                                                                "/api/users/**")
-                                                .hasRole("ADMIN")
+                                // STAFF + ADMIN routes
+                                .requestMatchers(
+                                        "/api/inventories/**",
+                                        "/api/product-batches/**",
+                                        "/api/stock-movements/**",
+                                        "/api/order-items/**",
+                                        "/api/categories/**",
+                                        "/api/products-units/**",
+                                        "/api/units/**",
+                                       /* "/api/orders/**",*/
+                                        "/api/invoices/**",
+                                        "/api/payments/**",
+                                        "/api/suppliers/**",
+                                        "/api/refunds/**",
+                                        "/api/warehouses/**",
+                                        "/api/delivery-trackings/**")
+                                .hasAnyRole("WAREHOUSE_MANAGER", "ADMIN", "STORE_MANAGER", "STORE_STAFF")
 
-                                                // All other requests must be authenticated
-                                                .anyRequest().authenticated())
-                                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                                .formLogin(form -> form.disable())
-                                .httpBasic(httpBasic -> httpBasic.disable());
+                                // ADMIN-only routes
+                                .requestMatchers("/api/users/**")
+                                .hasRole("ADMIN")
+
+                                // All other requests must be authenticated
+                                .anyRequest().authenticated())
+                        .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                        .formLogin(form -> form.disable())
+                        .httpBasic(httpBasic -> httpBasic.disable());
                 return http.build();
         }
+
 }

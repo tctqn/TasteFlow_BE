@@ -22,7 +22,7 @@ public class ImageStorageServiceImpl implements ImageStorageService {
 
     @Override
     public ImageStorage uploadImage(MultipartFile file, String relatedTable, Long recordId) throws IOException {
-        String imageUrl = s3Service.upload(file);
+        String imageUrl = s3Service.uploadImage(file);
         ImageStorage image = ImageStorage.builder()
                 .imageUrl(imageUrl)
                 .referenceTable(relatedTable)

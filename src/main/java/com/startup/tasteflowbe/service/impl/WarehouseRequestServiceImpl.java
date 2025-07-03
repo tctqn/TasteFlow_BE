@@ -1,0 +1,234 @@
+package com.startup.tasteflowbe.service.impl;
+
+import com.startup.tasteflowbe.dto.request.BulkApprovalRequestDTO;
+import com.startup.tasteflowbe.dto.request.CreateWarehouseRequestDTO;
+import com.startup.tasteflowbe.dto.request.ItemApprovalDTO;
+import com.startup.tasteflowbe.model.Product;
+import com.startup.tasteflowbe.model.ProductBatch;
+import com.startup.tasteflowbe.model.ProductUnit;
+import com.startup.tasteflowbe.model.WarehouseRequest;
+import com.startup.tasteflowbe.model.WarehouseRequestItem;
+import com.startup.tasteflowbe.repository.ProductBatchRepository;
+import com.startup.tasteflowbe.repository.ProductUnitRepository;
+import com.startup.tasteflowbe.repository.SupplierRepository;
+import com.startup.tasteflowbe.repository.WarehouseRepository;
+import com.startup.tasteflowbe.repository.WarehouseRequestItemRepository;
+import com.startup.tasteflowbe.repository.WarehouseRequestRepository;
+import com.startup.tasteflowbe.service.WarehouseRequestService;
+
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class WarehouseRequestServiceImpl implements WarehouseRequestService {
+
+    private final WarehouseRequestRepository requestRepository;
+    private final WarehouseRequestItemRepository itemRepository;
+    private final ProductUnitRepository productUnitRepository;
+    private final WarehouseRepository warehouseRepository;
+    private final SupplierRepository supplierRepository;
+    private final ProductBatchRepository productBatchRepository;
+
+    @Override
+    @Transactional
+    public WarehouseRequest createWarehouseRequest(CreateWarehouseRequestDTO dto) {
+        WarehouseRequest request = new WarehouseRequest();
+        request.setWarehouseId(dto.getWarehouseId());
+        request.setCreatedBy(dto.getCreatedBy());
+        request.setNotes(dto.getNotes());
+        request.setStatus("PENDING");
+
+        List<WarehouseRequestItem> items = dto.getItems().stream().map(itemDto -> {
+            WarehouseRequestItem item = new WarehouseRequestItem();
+            item.setProductUnitId(itemDto.getProductUnitId());
+            item.setQuantity(itemDto.getQuantity());
+            item.setNote(itemDto.getNote());
+            item.setStatus("PENDING");
+            item.setWarehouseRequest(request);
+            return item;
+        }).collect(Collectors.toList());
+
+        request.setItems(items);
+
+        return requestRepository.save(request);
+    }
+
+    @Override
+    public Optional<WarehouseRequest> findRequestById(Integer id) {
+        return requestRepository.findById(id);
+    }
+
+    @Override
+    public List<WarehouseRequest> findAllRequests() {
+        return requestRepository.findAll();
+    }
+
+    @Override
+    @Transactional
+    public boolean deleteRequest(Integer id) {
+        if (requestRepository.existsById(id)) {
+            requestRepository.deleteById(id);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    @Transactional
+    public WarehouseRequest updateRequestStatus(Integer requestId, BulkApprovalRequestDTO dto) {
+        WarehouseRequest request = requestRepository.findById(requestId)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy phiếu yêu cầu với ID: " + requestId));
+
+        if (!"PENDING".equals(request.getStatus())) {
+            throw new IllegalStateException("Chỉ có thể duyệt/từ chối phiếu yêu cầu ở trạng thái PENDING.");
+        }
+
+        request.setStatus(dto.getStatus());
+
+        for (BulkApprovalRequestDTO.ApprovalItemInfo itemInfo : dto.getItems()) {
+            if ("APPROVED".equals(dto.getStatus())) {
+                WarehouseRequestItem item = request.getItems().stream()
+                        .filter(dbItem -> dbItem.getRequestItemId().equals(itemInfo.getItemId()))
+                        .findFirst()
+                        .orElseThrow(() -> new EntityNotFoundException("Item không tồn tại: " + itemInfo.getItemId()));
+
+                if (itemInfo.getApprovedQuantity() == null || itemInfo.getApprovedQuantity() <= 0) {
+                    throw new IllegalArgumentException("Số lượng duyệt phải lớn hơn 0.");
+                } else if (itemInfo.getApprovedQuantity() > item.getQuantity()) {
+                    throw new IllegalArgumentException("Số lượng duyệt không thể lớn hơn số lượng yêu cầu.");
+                } else if (itemInfo.getApprovedQuantity() < item.getQuantity()) {
+                    item.setStatus("PARTIALLY_APPROVED");
+                } else if (itemInfo.getApprovedQuantity() == item.getFulfilledQuantity()) {
+                    item.setStatus("APPROVED");
+                }
+                item.setFulfilledQuantity(itemInfo.getApprovedQuantity());
+
+                ProductBatch productBatch = new ProductBatch();
+
+                ProductUnit productUnit = productUnitRepository.findById(item.getProductUnitId().longValue())
+                        .orElseThrow(() -> new EntityNotFoundException(
+                                "Không tìm thấy ProductUnit: " + item.getProductUnitId()));
+
+                productBatch.setProduct(productUnit.getProduct());
+                productBatch.setUnit(productUnit.getUnit());
+                productBatch.setQuantity(item.getFulfilledQuantity());
+                productBatch.setWarehouse(request.getWarehouse());
+                productBatch.setSupplier(itemInfo.getSupplierId() != null
+                        ? supplierRepository.findById(itemInfo.getSupplierId().longValue()).orElse(null)
+                        : null);
+                productBatch.setExpirationDate(itemInfo.getExpiresAt());
+                productBatch.setRequestItem(item);
+                productBatch.setStatus("SHIPPED");
+                productBatch.setImportPrice(
+                        productUnit.getPrice().multiply(BigDecimal.valueOf(item.getFulfilledQuantity())));
+                productBatch.setManufactureDate(LocalDate.now());
+
+                System.out.println("Creating ProductBatch: " + productBatch.getStatus() + " for Product: "
+                        + productBatch.getProduct().getName() + " with Quantity: " + productBatch.getQuantity());
+                productBatchRepository.save(productBatch);
+            }
+        }
+
+        updateParentRequestStatus(request);
+
+        return requestRepository.save(request);
+    }
+
+    @Override
+    @Transactional
+    public WarehouseRequestItem processRequestItem(Integer itemId, ItemApprovalDTO approvalDTO) {
+
+        if ("REJECTED".equals(approvalDTO.getStatus())) {
+            WarehouseRequestItem item = itemRepository.findById(itemId)
+                    .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy item với ID: " + itemId));
+            System.out.println("Rejecting item with ID: " + itemId);
+            item.setStatus("REJECTED");
+            item.setFulfilledQuantity(0);
+            WarehouseRequestItem savedItem = itemRepository.save(item);
+            updateParentRequestStatus(savedItem.getWarehouseRequest());
+            return savedItem;
+        }
+        WarehouseRequestItem item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy item với ID: " + itemId));
+
+        if (!"PENDING".equals(item.getStatus()) && !"PARTIALLY_FULFILLED".equals(item.getStatus())) {
+            throw new IllegalStateException("Chỉ có thể xử lý item ở trạng thái PENDING hoặc PARTIALLY_FULFILLED.");
+        }
+
+        if ("APPROVED".equals(approvalDTO.getStatus())) {
+            if (approvalDTO.getApprovedQuantity() == null || approvalDTO.getApprovedQuantity() <= 0) {
+                throw new IllegalArgumentException("Số lượng duyệt phải lớn hơn 0.");
+            } else if (approvalDTO.getApprovedQuantity() > item.getQuantity()) {
+                throw new IllegalArgumentException("Số lượng duyệt không thể lớn hơn số lượng yêu cầu.");
+            } else if (approvalDTO.getApprovedQuantity() < item.getQuantity()) {
+                item.setStatus("PARTIALLY_FULFILLED");
+            } else if (approvalDTO.getApprovedQuantity() == item.getFulfilledQuantity()) {
+                item.setStatus("APPROVED");
+            }
+            item.setFulfilledQuantity(approvalDTO.getApprovedQuantity());
+        } else {
+            item.setFulfilledQuantity(0);
+        }
+
+        WarehouseRequestItem savedItem = itemRepository.save(item);
+
+        updateParentRequestStatus(savedItem.getWarehouseRequest());
+
+        ProductBatch productBatch = new ProductBatch();
+
+        ProductUnit productUnit = productUnitRepository.findById(item.getProductUnitId().longValue())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Không tìm thấy ProductUnit: " + item.getProductUnitId()));
+
+        productBatch.setProduct(productUnit.getProduct());
+        productBatch.setUnit(productUnit.getUnit());
+        productBatch.setQuantity(item.getFulfilledQuantity());
+        productBatch.setWarehouse(savedItem.getWarehouseRequest().getWarehouse());
+        productBatch.setSupplier(approvalDTO.getSupplierId() != null
+                ? supplierRepository.findById(approvalDTO.getSupplierId().longValue()).orElse(null)
+                : null);
+        productBatch.setExpirationDate(approvalDTO.getExpiresAt());
+        productBatch.setRequestItem(item);
+        productBatch.setStatus("SHIPPED");
+        productBatch.setImportPrice(
+                productUnit.getPrice().multiply(BigDecimal.valueOf(item.getFulfilledQuantity())));
+        productBatch.setManufactureDate(LocalDate.now());
+
+        System.out.println("Creating ProductBatch: " + productBatch.getStatus() + " for Product: "
+                + productBatch.getProduct().getName() + " with Quantity: " + productBatch.getQuantity());
+        productBatchRepository.save(productBatch);
+
+        return savedItem;
+    }
+
+    private void updateParentRequestStatus(WarehouseRequest request) {
+        long totalItems = request.getItems().size();
+        long approvedCount = request.getItems().stream().filter(i -> "APPROVED".equals(i.getStatus())).count();
+        long rejectedCount = request.getItems().stream().filter(i -> "REJECTED".equals(i.getStatus())).count();
+        long partiallyApprovedCount = request.getItems().stream()
+                .filter(i -> "PARTIALLY_FULFILLED".equals(i.getStatus())).count();
+
+        if (approvedCount == totalItems) {
+            request.setStatus("APPROVED");
+        } else if (rejectedCount == totalItems) {
+            request.setStatus("REJECTED");
+        } else if (approvedCount > 0 || rejectedCount > 0) {
+            request.setStatus("PARTIALLY_APPROVED");
+        } else if (partiallyApprovedCount > 0) {
+            request.setStatus("PARTIALLY_APPROVED");
+        } else {
+            request.setStatus("PROCESSING");
+        }
+
+        requestRepository.save(request);
+    }
+}

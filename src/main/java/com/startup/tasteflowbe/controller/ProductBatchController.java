@@ -34,7 +34,6 @@ public class ProductBatchController {
     private final UnitRepository unitRepository;
     private final ProductUnitRepository productUnitRepository;
 
-
     @GetMapping
     public ResponseEntity<List<ProductBatchResponseDTO>> getAllProductBatches() {
         List<ProductBatchResponseDTO> dtoList = productBatchService.getAllProductBatches()
@@ -154,7 +153,7 @@ public class ProductBatchController {
             Product product = productBatch.getProduct();
             productDto.setProductId(product.getProductId());
             productDto.setName(product.getName());
-    //        productDto.setPrice(product.getPrice());
+            // productDto.setPrice(product.getPrice());
             productDto.setSku(productUnit.getSku());
             productDto.setImageUrl(productUnit.getImageUrl());
             dto.setProduct(productDto);

@@ -12,5 +12,8 @@ import java.util.Optional;
 @Repository
 public interface ProductBatchRepository extends JpaRepository<ProductBatch, Long> {
     List<ProductBatch> findByWarehouseWarehouseId(Long idCuaWarehouse);
+
     Optional<ProductBatch> findTopByProductOrderByReceivedDateDesc(Product product);
+
+    Optional<ProductBatch> findByRequestItem_RequestItemId(Integer requestItemId);
 }

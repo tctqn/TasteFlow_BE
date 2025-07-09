@@ -1,6 +1,7 @@
 package com.startup.tasteflowbe.repository;
 
 import com.startup.tasteflowbe.model.Inventory;
+import com.startup.tasteflowbe.model.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -39,4 +40,8 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
 
     @Query("SELECT i FROM Inventory i WHERE i.warehouse.warehouseId = :warehouseId")
     List<Inventory> findByWarehouse_WarehouseId(Long warehouseId);
+
+    // Lấy danh sách sản phẩm duy nhất trong kho hàng theo warehouseId
+    @Query("SELECT DISTINCT i.product FROM Inventory i WHERE i.warehouse.warehouseId = :warehouseId")
+    List<Product> findDistinctProductsByWarehouseId(@Param("warehouseId") Long warehouseId);
 }

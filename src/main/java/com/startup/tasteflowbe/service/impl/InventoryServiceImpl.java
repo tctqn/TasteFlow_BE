@@ -3,6 +3,7 @@ package com.startup.tasteflowbe.service.impl;
 import com.startup.tasteflowbe.dto.request.StoreInventoryRequestDTO;
 import com.startup.tasteflowbe.dto.response.ProductInventoryDTO;
 import com.startup.tasteflowbe.dto.response.ProductUnitStockDTO;
+import com.startup.tasteflowbe.dto.response.WarehouseProductDTO;
 import com.startup.tasteflowbe.model.*;
 import com.startup.tasteflowbe.repository.InventoryRepository;
 import com.startup.tasteflowbe.repository.ProductRepository;
@@ -146,5 +147,56 @@ public class InventoryServiceImpl implements InventoryService {
     @Override
     public List<Inventory> findInventoriesByWarehouseId(Long warehouseId) {
         return inventoryRepository.findByWarehouse_WarehouseId(warehouseId);
+    }
+
+    @Override
+    public List<WarehouseProductDTO> getWarehouseProductsByWarehouseId(Long warehouseId) {
+        List<Product> products = inventoryRepository.findDistinctProductsByWarehouseId(warehouseId);
+        List<WarehouseProductDTO> result = new ArrayList<>();
+        for (Product product : products) {
+            List<Inventory> inventories = inventoryRepository.findByWarehouse_WarehouseId(warehouseId)
+                .stream().filter(inv -> inv.getProduct().getProductId().equals(product.getProductId())).toList();
+            if (inventories.isEmpty()) continue;
+            // SKU và đơn vị cơ bản
+            ProductUnit baseUnit = product.getProductUnits().stream()
+                .filter(ProductUnit::getIsBaseUnit)
+                .findFirst()
+                .orElse(product.getProductUnits().get(0));
+            String sku = baseUnit.getSku();
+            String unitName = baseUnit.getUnit().getName();
+            Double salePrice = baseUnit.getPrice() != null ? baseUnit.getPrice().doubleValue() : null;
+            // Tổng số lượng tồn
+            int totalQuantity = inventories.stream().mapToInt(Inventory::getQuantity).sum();
+            // Số lô đang tồn
+            int totalBatches = (int) inventories.stream().map(Inventory::getBatch).distinct().count();
+            // Giá nhập các batch
+            List<Double> importPrices = inventories.stream()
+                .map(inv -> inv.getBatch().getImportPrice())
+                .filter(java.util.Objects::nonNull)
+                .map(java.math.BigDecimal::doubleValue)
+                .toList();
+            Double minImportPrice = importPrices.stream().min(Double::compareTo).orElse(null);
+            Double maxImportPrice = importPrices.stream().max(Double::compareTo).orElse(null);
+            Double avgImportPrice = importPrices.isEmpty() ? null : importPrices.stream().mapToDouble(Double::doubleValue).average().orElse(0);
+            // Ngưỡng cảnh báo nhập hàng lại
+            Integer reorderLevel = inventories.get(0).getReorderLevel();
+            // Trạng thái hàng hóa (ví dụ: BÌNH THƯỜNG, SẮP HẾT, QUÁ TỒN...)
+            String status = totalQuantity <= reorderLevel ? "SẮP HẾT" : "BÌNH THƯỜNG";
+            WarehouseProductDTO dto = WarehouseProductDTO.builder()
+                .sku(sku)
+                .productName(product.getName())
+                .unitName(unitName)
+                .salePrice(salePrice)
+                .totalQuantity(totalQuantity)
+                .totalBatches(totalBatches)
+                .minImportPrice(minImportPrice)
+                .maxImportPrice(maxImportPrice)
+                .avgImportPrice(avgImportPrice)
+                .reorderLevel(reorderLevel)
+                .status(status)
+                .build();
+            result.add(dto);
+        }
+        return result;
     }
 }

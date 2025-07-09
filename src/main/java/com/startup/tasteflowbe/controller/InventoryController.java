@@ -1,10 +1,7 @@
 package com.startup.tasteflowbe.controller;
 
 import com.startup.tasteflowbe.dto.request.StoreInventoryRequestDTO;
-import com.startup.tasteflowbe.dto.response.InventoriesResponseDTO;
-import com.startup.tasteflowbe.dto.response.ProductBatchResponseDTO;
-import com.startup.tasteflowbe.dto.response.ProductInventoryDTO;
-import com.startup.tasteflowbe.dto.response.ProductResponseDTO;
+import com.startup.tasteflowbe.dto.response.*;
 import com.startup.tasteflowbe.model.*;
 import com.startup.tasteflowbe.repository.ProductBatchRepository;
 import com.startup.tasteflowbe.service.InventoryService;
@@ -87,6 +84,11 @@ public class InventoryController {
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(dtoList);
+    }
+
+    @GetMapping("/warehouse/{warehouseId}/products")
+    public List<WarehouseProductDTO> getWarehouseProducts(@PathVariable Long warehouseId) {
+        return inventoryService.getWarehouseProductsByWarehouseId(warehouseId);
     }
 
     private InventoriesResponseDTO convertToDto(Inventory inventory) {

@@ -2,92 +2,158 @@
 <html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <meta charset="UTF-8" />
+    <title th:text="'Hóa đơn ' + ${orderId}">Hóa đơn</title>
     <style>
         body {
             font-family: 'DejaVu Sans', sans-serif;
-            font-size: 14px;
-            color: #333333;
-            padding: 30px;
+            margin: 20px;
+            line-height: 1.5;
+            color: #333;
         }
-
-        h1 {
+        .header {
             text-align: center;
-            font-size: 24px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+        }
+        .company-name {
+            font-size: 28px;
             font-weight: bold;
-            margin-bottom: 20px;
+            color: #2563eb;
+            margin-bottom: 5px;
         }
-
-        .company-info, .invoice-summary {
-            margin-bottom: 20px;
+        .company-subtitle {
+            font-size: 16px;
+            color: #666;
         }
-
-        .company-info p, .invoice-summary p {
-            margin: 4px 0;
+        .invoice-title {
+            font-size: 24px;
+            margin: 30px 0 20px 0;
+            text-align: center;
+            text-transform: uppercase;
+            font-weight: bold;
         }
-
-        table {
+        .order-info {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+        .order-info div {
+            flex: 1;
+        }
+        .customer-info {
+            margin: 30px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #2563eb;
+        }
+        .customer-info h3 {
+            margin-top: 0;
+            color: #2563eb;
+        }
+        .table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 15px;
+            margin: 30px 0;
         }
-
-        th, td {
-            border: 1px solid #cccccc;
-            padding: 8px;
+        .table th, .table td {
+            border: 1px solid #ddd;
+            padding: 12px 8px;
             text-align: left;
         }
-
-        th {
-            background-color: #f2f2f2;
-        }
-
-        tfoot td {
+        .table th {
+            background-color: #f5f5f5;
             font-weight: bold;
+            text-transform: uppercase;
+            font-size: 14px;
         }
-
-        .total {
-            text-align: right;
-            margin-top: 15px;
+        .table td {
             font-size: 16px;
+        }
+        .table .number {
+            text-align: right;
+        }
+        .total-section {
+            margin-top: 30px;
+            text-align: right;
+        }
+        .total-final {
+            font-size: 24px;
             font-weight: bold;
+            color: #2563eb;
+            border-top: 2px solid #333;
+            padding-top: 15px;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+        .footer .thank-you {
+            font-size: 18px;
+            color: #2563eb;
+            font-weight: bold;
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
+    <div class="header">
+        <div class="company-name">TasteFlow</div>
+        <div class="company-subtitle">Hệ thống quản lý chuỗi cửa hàng</div>
+    </div>
 
-<h1>HÓA ĐƠN GIÁ TRỊ GIA TĂNG</h1>
+    <div class="invoice-title">Hóa đơn bán hàng</div>
 
-<div class="company-info">
-    <p><strong>Tên công ty:</strong> <span th:text="${companyName}">TASTEFLOW</span></p>
-    <p><strong>Mã số thuế:</strong> <span th:text="${taxCode}">MAN74493</span></p>
-    <p><strong>Email nhận hóa đơn:</strong> <span th:text="${email}">example@gmail.com</span></p>
-    <p><strong>Địa chỉ:</strong> <span th:text="${address}">Đà Nẵng</span></p>
-</div>
+    <div class="order-info">
+        <div>
+            <strong>Mã đơn hàng:</strong> <span th:text="${orderId}">#12345</span><br />
+            <strong>Ngày tạo:</strong> <span th:text="${createdAt}">2024-06-26</span>
+        </div>
+        <div >
+            <strong>Nhân viên phục vụ:</strong> <span th:text="${staff}">Nguyễn Văn A</span>
+        </div>
+    </div>
 
-<table>
-    <thead>
-    <tr>
-        <th>Sản phẩm</th>
-        <th>Đơn vị</th>
-        <th>Số lượng</th>
-        <th>Giá</th>
-        <th>Thành tiền</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="item : ${items}">
-        <td th:text="${item.product.name}">Sản phẩm A</td>
-        <td th:text="${item.productUnit.unit.name}">Hộp</td>
-        <td th:text="${item.quantity}">2</td>
-        <td th:text="${#numbers.formatDecimal(item.price / item.quantity, 1, 'COMMA', 0, 'POINT')} + '₫'">20.000₫</td>
-        <td th:text="${#numbers.formatDecimal(item.price, 1, 'COMMA', 0, 'POINT')} + '₫'">40.000₫</td>
-    </tr>
-    </tbody>
-</table>
+    <div class="customer-info">
+        <h3>Thông tin khách hàng</h3>
+        <div><strong>Tên khách hàng:</strong> <span th:text="${companyName}">Nguyễn Văn B</span></div>
+        <div><strong>Số điện thoại:</strong> <span th:text="${phone}">0123456789</span></div>
+        <div><strong>Email:</strong> <span th:text="${email}">abc@gmail.com</span></div>
+    </div>
 
-<div class="total">
-    Tổng cộng: <span th:text="${#numbers.formatDecimal(totalPrice, 1, 'COMMA', 0, 'POINT')} + '₫'">185.800₫</span>
-</div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th style="width: 40%;">Sản phẩm</th>
+                <th style="width: 15%;" class="number">Số lượng</th>
+                <th style="width: 20%;" class="number">Đơn giá</th>
+                <th style="width: 25%;" class="number">Thành tiền</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="item : ${items}">
+                <td th:text="${item.product.name}">Sản phẩm A</td>
+                <td class="number" th:text="${item.quantity}">2</td>
+                <td class="number" th:text="${#numbers.formatDecimal(item.price / item.quantity, 1, 'COMMA', 0, 'POINT')} + '₫'">20.000₫</td>
+                <td class="number" th:text="${#numbers.formatDecimal(item.price, 1, 'COMMA', 0, 'POINT')} + '₫'">40.000₫</td>
+            </tr>
+        </tbody>
+    </table>
 
+    <div class="total-section">
+        <div class="total-final">
+            Tổng cộng: <span th:text="${#numbers.formatDecimal(totalPrice, 1, 'COMMA', 0, 'POINT')} + '₫'">185.800₫</span>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="thank-you">Cảm ơn quý khách đã sử dụng dịch vụ!</div>
+        <div>TasteFlow - Quản lý chuỗi cửa hàng thông minh</div>
+        <div>Hotline: 1900-xxxx | Email: support@tasteflow.com</div>
+    </div>
 </body>
 </html>

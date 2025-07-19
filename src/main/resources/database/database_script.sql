@@ -432,3 +432,43 @@ CREATE TABLE image_storage
     reference_id    INT          NOT NULL,
     reference_table VARCHAR(100) NOT NULL
 );
+
+-- === 30. Warehouse Request ===
+CREATE TABLE warehouse_requests (
+request_id SERIAL PRIMARY KEY,
+warehouse_id INT NOT NULL,
+created_by INT NOT NULL,
+request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+status VARCHAR(50) NOT NULL CHECK (
+status IN (
+'PENDING', 'APPROVED', 'PARTIALLY_APPROVED', 'REJECTED',
+'PROCESSING', 'PARTIALLY_FULFILLED', 'FULFILLED', 'FAILED', 'CANCELLED'
+)
+),
+notes TEXT,
+FOREIGN KEY (warehouse_id) REFERENCES warehouses(warehouse_id),
+FOREIGN KEY (created_by) REFERENCES users(user_id)
+);
+
+-- === 31. Warehouse Request Items ===
+CREATE TABLE warehouse_request_items (
+request_item_id SERIAL PRIMARY KEY,
+request_id INT NOT NULL,
+product_unit_id INT NOT NULL,
+quantity INT NOT NULL,
+status VARCHAR(50) NOT NULL DEFAULT 'PENDING' CHECK (
+status IN (
+'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED',
+'PARTIALLY_FULFILLED', 'FULFILLED', 'FAILED'
+)
+),
+fulfilled_quantity INT DEFAULT 0,
+note TEXT,
+FOREIGN KEY (request_id) REFERENCES warehouse_requests(request_id),
+FOREIGN KEY (product_unit_id) REFERENCES product_units(product_unit_id)
+);
+
+-- === 29. Order Items ===
+ALTER TABLE product_batches
+ADD COLUMN request_item_id INT,
+ADD FOREIGN KEY (request_item_id) REFERENCES warehouse_request_items(request_item_id);

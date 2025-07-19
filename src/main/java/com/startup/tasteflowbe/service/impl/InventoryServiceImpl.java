@@ -1,14 +1,19 @@
 package com.startup.tasteflowbe.service.impl;
 
+import com.startup.tasteflowbe.dto.request.InventoryRequestDTO;
 import com.startup.tasteflowbe.dto.request.StoreInventoryRequestDTO;
 import com.startup.tasteflowbe.dto.response.ProductInventoryDTO;
 import com.startup.tasteflowbe.dto.response.ProductUnitStockDTO;
 import com.startup.tasteflowbe.dto.response.WarehouseProductDTO;
 import com.startup.tasteflowbe.model.*;
 import com.startup.tasteflowbe.repository.InventoryRepository;
+import com.startup.tasteflowbe.repository.ProductBatchRepository;
 import com.startup.tasteflowbe.repository.ProductRepository;
 import com.startup.tasteflowbe.repository.ProductUnitRepository;
+import com.startup.tasteflowbe.repository.WarehouseRepository;
 import com.startup.tasteflowbe.service.*;
+
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -33,6 +38,8 @@ public class InventoryServiceImpl implements InventoryService {
     private final StoreService storeService;
     private final ProductRepository productRepository;
     private final ProductUnitRepository productUnitRepository;
+    private final ProductBatchRepository productBatchRepository;
+    private final WarehouseRepository warehouseRepository;
 
     @Override
     public List<Inventory> getAllInventories() {
@@ -45,8 +52,38 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
-    public Inventory createInventory(Inventory inventory) {
-        return inventoryRepository.save(inventory);
+    @Transactional
+    public Inventory createInventory(InventoryRequestDTO inventoryRequestDTO) {
+        // 1. Lấy các entity liên quan từ DB bằng ID trong DTO
+        ProductBatch productBatch = productBatchRepository.findById(inventoryRequestDTO.getBatchId())
+                .orElseThrow(() -> new RuntimeException(
+                        "ProductBatch not found with id " + inventoryRequestDTO.getBatchId()));
+
+        Warehouse warehouse = warehouseRepository.findById(inventoryRequestDTO.getWarehouseId())
+                .orElseThrow(() -> new RuntimeException(
+                        "Warehouse not found with id " + inventoryRequestDTO.getWarehouseId()));
+
+        Product product = productRepository.findById(inventoryRequestDTO.getProductId())
+                .orElseThrow(
+                        () -> new RuntimeException("Product not found with id " + inventoryRequestDTO.getProductId()));
+
+        // 2. Thực hiện logic nghiệp vụ
+        productBatch.setStatus("STOCKED");
+        if (productBatch.getSupplier() == null) {
+            throw new IllegalArgumentException("Supplier must not be null for ProductBatch.");
+        }
+        productBatchRepository.save(productBatch);
+
+        // 3. Tạo entity Inventory mới và set giá trị
+        Inventory newInventory = new Inventory();
+        newInventory.setWarehouse(warehouse);
+        newInventory.setProduct(product);
+        newInventory.setBatch(productBatch);
+        newInventory.setQuantity(inventoryRequestDTO.getQuantity());
+        newInventory.setReorderLevel(inventoryRequestDTO.getReorderLevel());
+
+        // 4. Lưu và trả về entity mới
+        return inventoryRepository.save(newInventory);
     }
 
     @Override
@@ -102,6 +139,7 @@ public class InventoryServiceImpl implements InventoryService {
     public List<Inventory> findInventoriesByStoreId(Long storeId) {
         return inventoryRepository.findByStore_StoreId(storeId);
     }
+
     @Override
     public List<ProductInventoryDTO> getInventoryAllUnitByStore(Long storeId) {
         List<Inventory> inventories = inventoryRepository.findByStore_StoreId(storeId);
@@ -109,8 +147,7 @@ public class InventoryServiceImpl implements InventoryService {
         Map<Long, Integer> productBaseQuantityMap = inventories.stream()
                 .collect(Collectors.groupingBy(
                         inv -> inv.getProduct().getProductId(),
-                        Collectors.summingInt(Inventory::getQuantity)
-                ));
+                        Collectors.summingInt(Inventory::getQuantity)));
 
         List<ProductInventoryDTO> result = new ArrayList<>();
 
@@ -119,7 +156,8 @@ public class InventoryServiceImpl implements InventoryService {
             int baseQty = entry.getValue();
 
             Product product = productRepository.findById(productId).orElse(null);
-            if (product == null) continue;
+            if (product == null)
+                continue;
 
             List<ProductUnit> units = productUnitRepository.findByProduct_ProductId(productId).get();
 
@@ -128,8 +166,7 @@ public class InventoryServiceImpl implements InventoryService {
                 return new ProductUnitStockDTO(
                         unit.getUnit().getName(),
                         unit.getConversionRate(),
-                        available
-                );
+                        available);
             }).toList();
 
             result.add(new ProductInventoryDTO(productId, product.getName(), unitStocks));
@@ -137,7 +174,6 @@ public class InventoryServiceImpl implements InventoryService {
 
         return result;
     }
-
 
     @Override
     public int getAvailableStock(Long storeId, Long productId, Long unitId) {

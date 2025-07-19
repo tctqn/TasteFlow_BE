@@ -1,5 +1,6 @@
 package com.startup.tasteflowbe.controller;
 
+import com.startup.tasteflowbe.dto.request.InventoryRequestDTO;
 import com.startup.tasteflowbe.dto.request.StoreInventoryRequestDTO;
 import com.startup.tasteflowbe.dto.response.*;
 import com.startup.tasteflowbe.model.*;
@@ -37,14 +38,10 @@ public class InventoryController {
     }
 
     @PostMapping
-    public ResponseEntity<Inventory> createInventory(@RequestBody Inventory inventory) {
-        ProductBatch productBatch = productBatchRepository.findById(inventory.getBatch().getBatchId()).orElseThrow();
-        productBatch.setStatus("STOCKED");
-        if (productBatch.getSupplier() == null) {
-            throw new IllegalArgumentException("Supplier must not be null for ProductBatch.");
-        }
-        productBatchRepository.save(productBatch);
-        return ResponseEntity.ok(inventoryService.createInventory(inventory));
+    public ResponseEntity<Inventory> createInventory(@RequestBody InventoryRequestDTO inventoryRequestDTO) {
+        // Toàn bộ logic được chuyển vào Service, Controller chỉ nhận DTO và gọi Service
+        Inventory newInventory = inventoryService.createInventory(inventoryRequestDTO);
+        return ResponseEntity.ok(newInventory);
     }
 
     @PostMapping("/store-import")
@@ -74,7 +71,7 @@ public class InventoryController {
 
     @GetMapping("/store/available/{store_id}")
     public ResponseEntity<List<ProductInventoryDTO>> getInventoryAllUnitOfStore(@PathVariable Long store_id) {
-        return ResponseEntity.ok( inventoryService.getInventoryAllUnitByStore(store_id));
+        return ResponseEntity.ok(inventoryService.getInventoryAllUnitByStore(store_id));
     }
 
     @GetMapping("/warehouse/{warehouse_id}")
@@ -123,11 +120,13 @@ public class InventoryController {
         if (inventory.getProduct() != null) {
             ProductResponseDTO productDto = new ProductResponseDTO();
             Product product = inventory.getProduct();
-            ProductUnit productUnit = (ProductUnit) productUnitService.findByProduct_ProductIdAndUnit_UnitIdAndIsBaseUnit(
-                    product.getProductId(),
-                    inventory.getBatch().getUnit().getUnitId(),
-                    true
-            ).orElseThrow(() -> new RuntimeException("Product unit not found for product ID: " + product.getProductId()));
+            ProductUnit productUnit = (ProductUnit) productUnitService
+                    .findByProduct_ProductIdAndUnit_UnitIdAndIsBaseUnit(
+                            product.getProductId(),
+                            inventory.getBatch().getUnit().getUnitId(),
+                            true)
+                    .orElseThrow(() -> new RuntimeException(
+                            "Product unit not found for product ID: " + product.getProductId()));
             productDto.setProductId(product.getProductId());
             productDto.setName(product.getName());
             productDto.setPrice(productUnit.getPrice());
@@ -144,8 +143,7 @@ public class InventoryController {
     public ResponseEntity<?> getAvailableStock(
             @RequestParam Long storeId,
             @RequestParam Long productId,
-            @RequestParam Long productUnitId
-    ) {
+            @RequestParam Long productUnitId) {
         // Lấy unitId từ productUnitId
         Long unitId = productUnitService.getUnitIdByProductUnitId(productUnitId);
 

@@ -2,6 +2,7 @@ package com.startup.tasteflowbe.service.impl;
 
 import com.startup.tasteflowbe.model.*;
 import com.startup.tasteflowbe.dto.StoreTransferParam;
+import com.startup.tasteflowbe.dto.request.StockMovementRequestDTO;
 import com.startup.tasteflowbe.enums.MovementType;
 import com.startup.tasteflowbe.repository.*;
 import com.startup.tasteflowbe.service.StockMovementService;
@@ -32,8 +33,36 @@ public class StockMovementServiceImpl implements StockMovementService {
     private final StoreRequestRepository storeRequestRepository;
 
     @Override
-    public StockMovement createStockMovement(StockMovement stockMovement) {
-        return stockMovementRepository.save(stockMovement);
+    public StockMovement createStockMovement(StockMovementRequestDTO dto) {
+        // Lấy các entity liên quan từ DB bằng ID
+        Product product = productRepository.findById(dto.getProductId())
+                .orElseThrow(() -> new RuntimeException("Product not found: " + dto.getProductId()));
+
+        // Các trường khác có thể null, nên cần kiểm tra trước khi lấy
+        Warehouse warehouse = null;
+        if (dto.getWarehouseId() != null) {
+            warehouse = warehouseRepository.findById(dto.getWarehouseId())
+                    .orElseThrow(() -> new RuntimeException("Warehouse not found: " + dto.getWarehouseId()));
+        }
+
+        ProductBatch batch = null;
+        if (dto.getBatchId() != null) {
+            batch = productBatchRepository.findById(dto.getBatchId())
+                    .orElseThrow(() -> new RuntimeException("Batch not found: " + dto.getBatchId()));
+        }
+
+        // Tạo đối tượng StockMovement mới
+        StockMovement movement = new StockMovement();
+        movement.setProduct(product);
+        movement.setWarehouse(warehouse);
+        movement.setBatch(batch);
+        movement.setMovementType(dto.getMovementType());
+        movement.setQuantity(dto.getQuantity());
+        movement.setNote(dto.getNote());
+        movement.setMovementDate(java.time.LocalDateTime.now()); // Set ngày giờ hiện tại
+
+        // Lưu và trả về
+        return stockMovementRepository.save(movement);
     }
 
     @Override

@@ -161,4 +161,9 @@ public class InventoryController {
         List<BatchDetailDTO> batchDetails = inventoryService.getBatchDetailsByProductAndWarehouseOrStore(productId, warehouseId, storeId);
         return ResponseEntity.ok(batchDetails);
     }
+
+    @GetMapping("/store/{storeId}/products")
+    public List<StoreProductDTO> getStoreProducts(@PathVariable Long storeId) {
+        return inventoryService.getStoreProductsByStoreId(storeId);
+    }
 }

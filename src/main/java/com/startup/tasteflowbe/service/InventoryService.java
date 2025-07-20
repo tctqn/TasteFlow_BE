@@ -4,6 +4,7 @@ import com.startup.tasteflowbe.dto.request.InventoryRequestDTO;
 import com.startup.tasteflowbe.dto.request.StoreInventoryRequestDTO;
 import com.startup.tasteflowbe.dto.response.BatchDetailDTO;
 import com.startup.tasteflowbe.dto.response.ProductInventoryDTO;
+import com.startup.tasteflowbe.dto.response.StoreProductDTO;
 import com.startup.tasteflowbe.dto.response.WarehouseProductDTO;
 import com.startup.tasteflowbe.model.Inventory;
 
@@ -36,4 +37,7 @@ public interface InventoryService {
 
     // Lấy chi tiết các batch của 1 product theo warehouseId hoặc storeId
     List<BatchDetailDTO> getBatchDetailsByProductAndWarehouseOrStore(Long productId, Long warehouseId, Long storeId);
+
+    // Lấy danh sách sản phẩm duy nhất trong cửa hàng theo storeId (StoreProductDTO)
+    List<StoreProductDTO> getStoreProductsByStoreId(Long storeId);
 }

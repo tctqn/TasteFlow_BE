@@ -2,10 +2,7 @@ package com.startup.tasteflowbe.service.impl;
 
 import com.startup.tasteflowbe.dto.request.InventoryRequestDTO;
 import com.startup.tasteflowbe.dto.request.StoreInventoryRequestDTO;
-import com.startup.tasteflowbe.dto.response.BatchDetailDTO;
-import com.startup.tasteflowbe.dto.response.ProductInventoryDTO;
-import com.startup.tasteflowbe.dto.response.ProductUnitStockDTO;
-import com.startup.tasteflowbe.dto.response.WarehouseProductDTO;
+import com.startup.tasteflowbe.dto.response.*;
 import com.startup.tasteflowbe.model.*;
 import com.startup.tasteflowbe.repository.InventoryRepository;
 import com.startup.tasteflowbe.repository.ProductBatchRepository;
@@ -267,5 +264,45 @@ public class InventoryServiceImpl implements InventoryService {
             batchDetails.add(dto);
         }
         return batchDetails;
+    }
+
+    @Override
+    public List<StoreProductDTO> getStoreProductsByStoreId(Long storeId) {
+        List<Product> products = inventoryRepository.findDistinctProductsByStoreId(storeId);
+        List<StoreProductDTO> result = new ArrayList<>();
+        for (Product product : products) {
+            List<Inventory> inventories = inventoryRepository.findByStore_StoreId(storeId)
+                .stream().filter(inv -> inv.getProduct().getProductId().equals(product.getProductId())).toList();
+            if (inventories.isEmpty()) continue;
+            // SKU và đơn vị cơ bản
+            ProductUnit baseUnit = product.getProductUnits().stream()
+                .filter(ProductUnit::getIsBaseUnit)
+                .findFirst()
+                .orElse(product.getProductUnits().get(0));
+            String sku = baseUnit.getSku();
+            String unitName = baseUnit.getUnit().getName();
+            Double salePrice = baseUnit.getPrice() != null ? baseUnit.getPrice().doubleValue() : null;
+            // Tổng số lượng tồn
+            int totalQuantity = inventories.stream().mapToInt(Inventory::getQuantity).sum();
+            // Số lô đang tồn
+            int totalBatches = (int) inventories.stream().map(Inventory::getBatch).distinct().count();
+            // Ngưỡng cảnh báo nhập hàng lại
+            Integer reorderLevel = inventories.get(0).getReorderLevel();
+            // Trạng thái hàng hóa
+            String status = totalQuantity <= reorderLevel ? "SẮP HẾT" : "BÌNH THƯỜNG";
+            StoreProductDTO dto = StoreProductDTO.builder()
+                .productId(product.getProductId())
+                .sku(sku)
+                .productName(product.getName())
+                .unitName(unitName)
+                .salePrice(salePrice)
+                .totalQuantity(totalQuantity)
+                .totalBatches(totalBatches)
+                .reorderLevel(reorderLevel)
+                .status(status)
+                .build();
+            result.add(dto);
+        }
+        return result;
     }
 }

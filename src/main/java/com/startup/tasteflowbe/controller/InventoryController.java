@@ -153,4 +153,12 @@ public class InventoryController {
         return ResponseEntity.ok(Map.of("availableQuantity", availableQuantity));
     }
 
+    @GetMapping("/batch-details")
+    public ResponseEntity<List<BatchDetailDTO>> getBatchDetailsByProductAndWarehouseOrStore(
+            @RequestParam Long productId,
+            @RequestParam(required = false) Long warehouseId,
+            @RequestParam(required = false) Long storeId) {
+        List<BatchDetailDTO> batchDetails = inventoryService.getBatchDetailsByProductAndWarehouseOrStore(productId, warehouseId, storeId);
+        return ResponseEntity.ok(batchDetails);
+    }
 }

@@ -10,6 +10,7 @@ import lombok.Builder;
 @NoArgsConstructor
 @Builder
 public class WarehouseProductDTO {
+    private Long productId; // Mã sản phẩm
     private String sku; // Mã sản phẩm duy nhất
     private String productName; // Tên sản phẩm
     private String unitName; // Đơn vị cơ bản quản lý tồn kho
@@ -21,6 +22,4 @@ public class WarehouseProductDTO {
     private Double salePrice; // Giá bán
     private Integer reorderLevel; // Ngưỡng cảnh báo nhập hàng lại
     private String status; // Trạng thái hàng hóa
-
 }
-

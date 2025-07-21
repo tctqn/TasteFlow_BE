@@ -11,9 +11,9 @@ import java.util.List;
 
 @Repository
 public interface PromotionRepository extends JpaRepository<Promotion, Long> {
-    @Query("SELECT p FROM Promotion p JOIN p.products prod " +
-            "WHERE prod.productId = :productId " +
-            "AND :now BETWEEN p.startDate AND p.endDate")
-    List<Promotion> findActivePromotionsByProductId(@Param("productId") Long productId,
-                                                    @Param("now") LocalDateTime now);
+    @Query("SELECT p FROM Promotion p JOIN p.applicableProducts ap JOIN p.applicableStores s " +
+            "WHERE ap.productId = :productId AND s.storeId = :storeId " +
+            "AND p.startDate <= CURRENT_TIMESTAMP AND p.endDate >= CURRENT_TIMESTAMP")
+    List<Promotion> findValidPromotionsForProductAtStore(@Param("productId") Long productId,
+                                                         @Param("storeId") Long storeId);
 }

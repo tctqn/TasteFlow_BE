@@ -1,11 +1,13 @@
 package com.startup.tasteflowbe.controller;
 
 import com.startup.tasteflowbe.dto.request.ProductRequestDTO;
+import com.startup.tasteflowbe.dto.response.ProductListItemDTO;
 import com.startup.tasteflowbe.dto.response.ProductResponseDTO;
 import com.startup.tasteflowbe.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -17,8 +19,8 @@ public class AdminProductController {
     private final ProductService productService;
 
     @GetMapping
-    public ResponseEntity<List<ProductResponseDTO>> getAllProducts() {
-        return ResponseEntity.ok(productService.getAllProducts());
+    public ResponseEntity<List<ProductListItemDTO>> getAllProductsForList() {
+        return ResponseEntity.ok(productService.getAllProductForList());
     }
 
     @GetMapping("/{id}")
@@ -32,6 +34,17 @@ public class AdminProductController {
     public ResponseEntity<ProductResponseDTO> createProduct(@RequestBody ProductRequestDTO requestDTO) {
         ProductResponseDTO created = productService.createProduct(requestDTO);
         return ResponseEntity.ok(created);
+    }
+
+    @PostMapping("/upload")
+    public ResponseEntity<String> uploadProductExcel(@RequestParam("file") MultipartFile file) {
+        try {
+            productService.readProductsFromExcel(file);
+
+            return ResponseEntity.ok("Uploaded and processed successfully");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Failed: " + e.getMessage());
+        }
     }
 
     @PutMapping("/{id}")

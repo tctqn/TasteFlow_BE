@@ -39,6 +39,9 @@ public class Product {
     @JsonManagedReference
     private List<ProductUnit> productUnits;
 
+    @Column(name = "isDraft")
+    private Boolean isDraft;
+
     @Override
     public String toString() {
         return "Product{productId=" + productId + ", name='" + name + "}";

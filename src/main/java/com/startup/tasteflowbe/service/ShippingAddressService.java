@@ -13,4 +13,5 @@ public interface ShippingAddressService {
     ShippingAddress createShippingAddress(ShippingAddressRequestDTO shippingAddressRequestDTO);
     ShippingAddress updateShippingAddress(Long id, ShippingAddress shippingAddress);
     void deleteShippingAddress(Long id);
+    ShippingAddress setDefaultShippingAddress(Long id);
 }

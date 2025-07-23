@@ -36,7 +36,7 @@ public class ProductBatch {
     private Unit unit;
 
     @OneToOne
-    @JoinColumn(name = "request_item_id", nullable = false)
+    @JoinColumn(name = "request_item_id")
     private WarehouseRequestItem requestItem;
 
     @Column(name = "quantity", nullable = false)

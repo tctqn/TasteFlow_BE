@@ -4,6 +4,7 @@ import com.startup.tasteflowbe.model.ProductBatch;
 import com.startup.tasteflowbe.model.StockMovement;
 import com.startup.tasteflowbe.model.StoreRequest;
 import com.startup.tasteflowbe.dto.StoreTransferParam;
+import com.startup.tasteflowbe.dto.request.StockMovementRequestDTO;
 import com.startup.tasteflowbe.dto.response.ProductBatchResponseDTO;
 import com.startup.tasteflowbe.dto.response.StockMovementResponseDTO;
 import com.startup.tasteflowbe.service.StockMovementService;
@@ -23,8 +24,10 @@ public class StockMovementController {
     private final StockMovementService stockMovementService;
 
     @PostMapping
-    public StockMovement createStockMovement(@RequestBody StockMovement stockMovement) {
-        return stockMovementService.createStockMovement(stockMovement);
+    public ResponseEntity<StockMovement> createStockMovement(
+            @RequestBody StockMovementRequestDTO stockMovementRequestDTO) {
+        StockMovement createdMovement = stockMovementService.createStockMovement(stockMovementRequestDTO);
+        return ResponseEntity.ok(createdMovement);
     }
 
     @GetMapping("/{id}")

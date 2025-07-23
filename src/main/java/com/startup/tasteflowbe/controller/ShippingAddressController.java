@@ -28,6 +28,11 @@ public class ShippingAddressController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<ShippingAddress>> getShippingAddressesByUserId(@PathVariable Long userId) {
+        return ResponseEntity.ok(shippingAddressService.getShippingAddressesByUserId(userId));
+    }
+
     @PostMapping
     public ResponseEntity<ShippingAddress> createShippingAddress(@RequestBody ShippingAddressRequestDTO shippingAddressRequestDTO) {
         return ResponseEntity.ok(shippingAddressService.createShippingAddress(shippingAddressRequestDTO));
@@ -36,6 +41,12 @@ public class ShippingAddressController {
     @PutMapping("/{id}")
     public ResponseEntity<ShippingAddress> updateShippingAddress(@PathVariable Long id, @RequestBody ShippingAddress shippingAddress) {
         return ResponseEntity.ok(shippingAddressService.updateShippingAddress(id, shippingAddress));
+    }
+
+    @PutMapping("/{id}/default")
+    public ResponseEntity<ShippingAddress> setDefaultShippingAddress(@PathVariable Long id) {
+        ShippingAddress updated = shippingAddressService.setDefaultShippingAddress(id);
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")

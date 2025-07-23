@@ -70,11 +70,7 @@ public class ProductServiceImpl implements ProductService {
 
         Category category = dto.getCategory();
 
-        List<Promotion> promotions = promotionRepository.findAllById(
-                dto.getPromotionIds() != null ? dto.getPromotionIds() : Collections.emptyList());
-
         product.setCategory(category);
-        product.setPromotions(promotions);
 
         // Lưu product để có ID sinh ra từ DB
         productRepository.saveAndFlush(product); // Lúc này product.getProductId() đã có
@@ -211,10 +207,8 @@ public class ProductServiceImpl implements ProductService {
                 .map(existing -> {
                     productMapper.updateEntityFromDTO(dto, existing);
                     Category category = dto.getCategory();
-                    List<Promotion> promotions = promotionRepository.findAllById(dto.getPromotionIds());
 
                     existing.setCategory(category);
-                    existing.setPromotions(promotions);
 
                     return productMapper.toResponse(productRepository.save(existing));
                 })

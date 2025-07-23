@@ -15,7 +15,6 @@ import java.util.List;
 public interface ProductMapper {
 
     @Mapping(source = "category.name", target = "categoryName")
-    @Mapping(source = "promotions", target = "promotions")
     @Mapping(target = "imageUrl", expression = "java(getBaseUnitImageUrl(product))")
     @Mapping(target = "description", expression = "java(getBaseUnitDescription(product))")
     @Mapping(target = "price", expression = "java(getBaseUnitPrice(product))")
@@ -25,13 +24,11 @@ public interface ProductMapper {
     @Mapping(target = "productId", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "category", ignore = true)
-    @Mapping(target = "promotions", ignore = true)
     Product toEntity(ProductRequestDTO dto);
 
     @Mapping(target = "productId", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "category", ignore = true)
-    @Mapping(target = "promotions", ignore = true)
     void updateEntityFromDTO(ProductRequestDTO dto, @MappingTarget Product entity);
 
     ProductDetailDTO productToProductDetailDTO(Product product);

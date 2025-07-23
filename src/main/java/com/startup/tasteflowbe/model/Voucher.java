@@ -72,7 +72,6 @@ public class Voucher {
     @Column(nullable = false)
     private boolean isStackable;
 
-    // Giảm 10% khi mua sản phẩm A hoặc B
     @Builder.Default
     @ManyToMany
     @JoinTable(
@@ -82,7 +81,6 @@ public class Voucher {
     )
     private Set<Product> applicableProducts = new HashSet<>();
 
-    // Giảm 30K khi mua hàng trong danh mục Sữa Tươi
     @Builder.Default
     @ManyToMany
     @JoinTable(

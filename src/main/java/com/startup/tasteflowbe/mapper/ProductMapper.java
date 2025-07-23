@@ -42,6 +42,7 @@ public interface ProductMapper {
     @Mapping(source = "product.productId", target = "productId")
     @Mapping(source = "unit.name", target = "unitName")
     @Mapping(source = "product.name", target = "productName")
+    @Mapping(source = "product.isDraft", target = "isDraft")
     @Mapping(source = "imageUrl", target = "imageUrl")
     @Mapping(source = "product.category.name", target = "categoryName")
     ProductListItemDTO productUnitToProductListItemDTO(ProductUnit unit);

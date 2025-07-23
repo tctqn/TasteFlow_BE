@@ -15,4 +15,5 @@ public class ProductListItemDTO {
     private String supplierName;
     private String sku;
     private String categoryName;
+    private Boolean isDraft;
 }

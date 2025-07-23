@@ -18,4 +18,5 @@ public class ProductRequestDTO {
     private BigDecimal price;
     private String imageUrl;
     private List<Long> promotionIds;
+    private Boolean isDraft; 
 }

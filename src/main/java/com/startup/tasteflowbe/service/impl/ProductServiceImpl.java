@@ -67,6 +67,12 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductResponseDTO createProduct(ProductRequestDTO dto) {
         Product product = productMapper.toEntity(dto);
+        
+        if (dto.getIsDraft() != null && dto.getIsDraft()) {
+            product.setIsDraft(true);
+        } else {
+            product.setIsDraft(false);
+        }
 
         Category category = dto.getCategory();
 
@@ -99,6 +105,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public void readProductsFromExcel(MultipartFile file) throws IOException, java.io.IOException {
+        System.out.println("Reading products from Excel file: " + file.getOriginalFilename());
         Workbook workbook = new XSSFWorkbook(file.getInputStream());
         Sheet sheet = workbook.getSheetAt(0);
 
@@ -117,6 +124,7 @@ public class ProductServiceImpl implements ProductService {
                                 ? String.valueOf((long) nameCell.getNumericCellValue())
                                 : "";
                 product.setName(name);
+                System.out.println("Processing product: " + name);
 
                 // Cột 1: ID category
                 Cell categoryCell = row.getCell(1);
@@ -127,31 +135,21 @@ public class ProductServiceImpl implements ProductService {
                 Category category = categoryRepository.findById(categoryId)
                         .orElseThrow(() -> new RuntimeException("Category not found with id " + categoryId));
                 product.setCategory(category);
-                product.setPromotions(Collections.emptyList());
-
-                // Cột 2: isDraft
-                Cell draftCell = row.getCell(2);
-                Boolean isDraft = (draftCell != null && draftCell.getCellType() == CellType.BOOLEAN)
-                        ? draftCell.getBooleanCellValue()
-                        : draftCell != null && draftCell.getCellType() == CellType.STRING
-                                ? Boolean.parseBoolean(draftCell.getStringCellValue())
-                                : false;
-                product.setIsDraft(isDraft);
 
                 productRepository.saveAndFlush(product);
 
                 ProductUnit productUnit = new ProductUnit();
                 productUnit.setProduct(product);
 
-                // Cột 3: Price
-                Cell priceCell = row.getCell(3);
+                // Cột 2: Price
+                Cell priceCell = row.getCell(2);
                 double price = (priceCell != null && priceCell.getCellType() == CellType.NUMERIC)
                         ? priceCell.getNumericCellValue()
                         : Double.parseDouble(priceCell.getStringCellValue());
                 productUnit.setPrice(BigDecimal.valueOf(price));
 
-                // Cột 4: Unit ID
-                Cell unitCell = row.getCell(4);
+                // Cột 3: Unit ID
+                Cell unitCell = row.getCell(3);
                 if (unitCell == null || unitCell.getCellType() != CellType.NUMERIC) {
                     throw new IllegalArgumentException("Unit ID must be numeric at row " + row.getRowNum());
                 }
@@ -160,8 +158,8 @@ public class ProductServiceImpl implements ProductService {
                         .orElseThrow(() -> new RuntimeException("Unit not found with id " + unitId));
                 productUnit.setUnit(unit);
 
-                // Cột 5: SKU
-                Cell skuCell = row.getCell(5);
+                // Cột 4: SKU
+                Cell skuCell = row.getCell(4);
                 String sku = (skuCell != null)
                         ? (skuCell.getCellType() == CellType.STRING
                                 ? skuCell.getStringCellValue()
@@ -169,8 +167,8 @@ public class ProductServiceImpl implements ProductService {
                         : "";
                 productUnit.setSku(sku);
 
-                // Cột 6: Image URL
-                Cell imageCell = row.getCell(6);
+                // Cột 5: Image URL
+                Cell imageCell = row.getCell(5);
                 String imageUrl = (imageCell != null)
                         ? (imageCell.getCellType() == CellType.STRING
                                 ? imageCell.getStringCellValue()
@@ -178,8 +176,8 @@ public class ProductServiceImpl implements ProductService {
                         : "";
                 productUnit.setImageUrl(imageUrl);
 
-                // Cột 7: Mô tả
-                Cell descCell = row.getCell(7);
+                // Cột 6: Mô tả
+                Cell descCell = row.getCell(6);
                 String description = (descCell != null)
                         ? (descCell.getCellType() == CellType.STRING
                                 ? descCell.getStringCellValue()

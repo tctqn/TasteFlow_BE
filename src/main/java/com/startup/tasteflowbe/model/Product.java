@@ -32,6 +32,10 @@ public class Product {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @ManyToMany(mappedBy = "products")
+    @JsonBackReference
+    private List<Promotion> promotions;
+
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<ProductUnit> productUnits;

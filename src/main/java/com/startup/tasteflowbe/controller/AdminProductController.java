@@ -1,8 +1,10 @@
 package com.startup.tasteflowbe.controller;
 
 import com.startup.tasteflowbe.dto.request.ProductRequestDTO;
+import com.startup.tasteflowbe.dto.response.ProductDetailDTO;
 import com.startup.tasteflowbe.dto.response.ProductListItemDTO;
 import com.startup.tasteflowbe.dto.response.ProductResponseDTO;
+import com.startup.tasteflowbe.dto.response.ProductUnitDTO;
 import com.startup.tasteflowbe.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -50,9 +52,16 @@ public class AdminProductController {
     @PutMapping("/{id}")
     public ResponseEntity<ProductResponseDTO> updateProduct(
             @PathVariable Long id,
-            @RequestBody ProductRequestDTO requestDTO) {
+            @RequestBody ProductDetailDTO requestDTO) {
         ProductResponseDTO updated = productService.updateProduct(id, requestDTO);
         return ResponseEntity.ok(updated);
+    }
+
+    @PutMapping("/{id}/productUnit")
+    public ResponseEntity<ProductUnitDTO> updateProductUnit(
+            @PathVariable Long id,
+            @RequestBody ProductUnitDTO requestDTO) {
+        return ResponseEntity.ok(productService.updateProductUnit(id, requestDTO));
     }
 
     @DeleteMapping("/{id}")

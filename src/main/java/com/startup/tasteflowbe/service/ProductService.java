@@ -4,7 +4,9 @@ import com.startup.tasteflowbe.dto.response.ProductDetailDTO;
 import com.startup.tasteflowbe.dto.response.ProductListItemDTO;
 import com.startup.tasteflowbe.dto.request.ProductRequestDTO;
 import com.startup.tasteflowbe.dto.response.ProductResponseDTO;
+import com.startup.tasteflowbe.dto.response.ProductUnitDTO;
 import com.startup.tasteflowbe.model.Product;
+import com.startup.tasteflowbe.model.ProductUnit;
 
 import io.jsonwebtoken.io.IOException;
 
@@ -26,7 +28,9 @@ public interface ProductService {
 
     void readProductsFromExcel(MultipartFile file) throws IOException, java.io.IOException;
 
-    ProductResponseDTO updateProduct(Long id, ProductRequestDTO dto);
+    ProductResponseDTO updateProduct(Long id, ProductDetailDTO dto);
+
+    ProductUnitDTO updateProductUnit(Long id, ProductUnitDTO dto);
 
     void deleteProduct(Long id);
 

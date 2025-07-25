@@ -67,7 +67,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductResponseDTO createProduct(ProductRequestDTO dto) {
         Product product = productMapper.toEntity(dto);
-        
+
         if (dto.getIsDraft() != null && dto.getIsDraft()) {
             product.setIsDraft(true);
         } else {
@@ -200,7 +200,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ProductResponseDTO updateProduct(Long id, ProductRequestDTO dto) {
+    public ProductResponseDTO updateProduct(Long id, ProductDetailDTO dto) {
         return productRepository.findById(id)
                 .map(existing -> {
                     productMapper.updateEntityFromDTO(dto, existing);
@@ -214,8 +214,18 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    public ProductUnitDTO updateProductUnit(Long id, ProductUnitDTO dto) {
+        ProductUnit productUnit = productUnitRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("ProductUnit not found with id " + id));
+        productMapper.updateProductUnitEntityFromDTO(dto, productUnit);
+        productUnitRepository.save(productUnit);
+
+        return productMapper.productUnitToProductUnitDTO(productUnit);
+    }
+
+    @Override
     public void deleteProduct(Long id) {
-        productRepository.deleteById(id);
+        productUnitRepository.deleteById(id);
     }
 
     @Override
@@ -223,7 +233,7 @@ public class ProductServiceImpl implements ProductService {
         List<ProductUnit> allUnits = productUnitRepository.findAll();
         Map<Long, ProductBatch> productToLatestBatch = new HashMap<>();
 
-        return allUnits.stream().map(unit -> {
+        return allUnits.stream().filter(unit -> unit.getIsBaseUnit()).map(unit -> {
             ProductListItemDTO dto = productMapper.productUnitToProductListItemDTO(unit);
 
             Long productId = unit.getProduct().getProductId();

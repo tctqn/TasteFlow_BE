@@ -51,6 +51,12 @@ public class Order {
     @Column(name = "total_price", nullable = false, precision = 10, scale = 2)
     private BigDecimal totalPrice;
 
+    @Column(name = "shipping_fee", nullable = false, precision = 10, scale = 2)
+    private BigDecimal shippingFee = BigDecimal.ZERO;
+
+    @Column(name = "final_price", nullable = false, precision = 10, scale = 2)
+    private BigDecimal finalPrice;
+
     @Column(name = "ref_code")
     private String refCode;
 

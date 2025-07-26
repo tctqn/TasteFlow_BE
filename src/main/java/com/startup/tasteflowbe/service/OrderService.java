@@ -31,4 +31,5 @@ public interface OrderService {
     List<Order> getAllStoreOrders(Long storeId);
 
     OrderResponseDTO updateOrderStatus(Long id, String status, String notes);
+    List<OrderResponseDTO> getAllOrdersByUserId(Long userId);
 }

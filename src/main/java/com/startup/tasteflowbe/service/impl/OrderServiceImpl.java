@@ -4,14 +4,12 @@ import com.startup.tasteflowbe.dto.request.CartItemDTO;
 import com.startup.tasteflowbe.dto.request.OrderRequestDTO;
 import com.startup.tasteflowbe.dto.response.CreatePaymentResponseDTO;
 import com.startup.tasteflowbe.dto.response.OrderResponseDTO;
+import com.startup.tasteflowbe.enums.DiscountType;
 import com.startup.tasteflowbe.enums.OrderStatus;
 import com.startup.tasteflowbe.mapper.OrderMapper;
 import com.startup.tasteflowbe.model.*;
 import com.startup.tasteflowbe.repository.*;
-import com.startup.tasteflowbe.service.InvoiceService;
-import com.startup.tasteflowbe.service.OrderService;
-import com.startup.tasteflowbe.service.PaymentService;
-import com.startup.tasteflowbe.service.S3Service;
+import com.startup.tasteflowbe.service.*;
 import com.startup.tasteflowbe.utils.OrderCodeGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -22,9 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -51,6 +47,7 @@ public class OrderServiceImpl implements OrderService {
     private final OrderMapper orderMapper;
 
     private final PaymentService paymentService;
+    private final StoreService storeService;
 
     @Override
     public List<Order> getAllOrders() {
@@ -103,6 +100,16 @@ public class OrderServiceImpl implements OrderService {
                 })
                 .orElseThrow(() -> new RuntimeException("Order not found with id " + id));
     }
+
+    @Override
+    public List<OrderResponseDTO> getAllOrdersByUserId(Long userId) {
+        return Optional.ofNullable(orderRepository.findOrdersByUser_UserId(userId))
+                .orElse(List.of())
+                .stream()
+                .map(orderMapper::toDto)
+                .toList();
+    }
+
 
     @Override
     public void deleteOrder(Long id) {
@@ -250,95 +257,98 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public OrderResponseDTO createOrder(OrderRequestDTO dto) {
-        // 1. Lấy thông tin user hiện tại
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        // 1. Xác định User từ dto hoặc từ authentication
         User user = null;
-        if (authentication != null && authentication.isAuthenticated()
-                && !"anonymousUser".equals(authentication.getPrincipal())) {
-            String username = (String) authentication.getPrincipal();
-            user = userRepository.findByUsername(username).orElse(null);
+        if (dto.getUserId() != null) {
+            user = userRepository.findById(Long.parseLong(dto.getUserId()))
+                    .orElseThrow(() -> new RuntimeException("User not found with ID " + dto.getUserId()));
         }
 
-        // 2. Tạo Order entity
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+            String username = (String) auth.getPrincipal();
+            user = userRepository.findByUsername(username).orElse(user);
+        }
+
+        // 2. Tạo đối tượng Order
         Order order = orderMapper.toEntity(dto);
         order.setUser(user);
         order.setOrderDate(LocalDateTime.now());
         order.setOrderCode(OrderCodeGenerator.generateOrderCode());
 
-        // 4. Tính tổng tiền và giảm giá từ voucher
+        Store store = storeService.getStoreById(dto.getStoreId())
+                .orElseThrow(() -> new RuntimeException("Store not found with ID " + dto.getStoreId()));
+        order.setStore(store);
+
+
+        // 3. Chuẩn bị dữ liệu voucher
+        Map<Long, Voucher> voucherMap = new HashMap<>();
+        if (dto.getVoucherIds() != null) {
+            for (Long voucherId : dto.getVoucherIds()) {
+                Voucher voucher = voucherRepository.findById(voucherId)
+                        .orElseThrow(() -> new RuntimeException("Voucher không tồn tại: " + voucherId));
+                voucherMap.put(voucherId, voucher);
+            }
+        }
+
+        // 4. Xử lý từng cart item => tạo OrderItem + tính giảm giá
         List<OrderItem> orderItems = new ArrayList<>();
         BigDecimal totalPrice = BigDecimal.ZERO;
 
         for (CartItemDTO itemDTO : dto.getCartItems()) {
             Product product = productRepository.findById(itemDTO.getProductId())
                     .orElseThrow(() -> new RuntimeException("Product not found"));
+            ProductUnit productUnit = productUnitRepository.findById(itemDTO.getProductUnitId()).orElseThrow();
 
             BigDecimal originalPrice = itemDTO.getPrice();
-            BigDecimal finalPrice = originalPrice;
-            BigDecimal discount = BigDecimal.ZERO;
+            BigDecimal bestDiscount = BigDecimal.ZERO;
 
-            // Áp dụng giảm giá từ voucher nếu có
-            if (dto.getVoucherIds() != null) {
-                for (Long voucherId : dto.getVoucherIds()) {
-                    Voucher voucher = voucherRepository.findById(voucherId)
-                            .orElseThrow(() -> new RuntimeException("Voucher không tồn tại: " + voucherId));
+            for (Voucher voucher : voucherMap.values()) {
+                if (voucher.getStartDate().isAfter(LocalDateTime.now()) || voucher.getEndDate().isBefore(LocalDateTime.now())) {
+                    continue;
+                }
 
-                    if (voucher.getStartDate().isAfter(LocalDateTime.now()) || voucher.getEndDate().isBefore(LocalDateTime.now())) {
-                        continue; // bỏ qua nếu voucher không hợp lệ thời gian
-                    }
+                boolean isApplicable = voucher.getApplicableProducts().contains(product)
+                        || voucher.getApplicableCategories().contains(product.getCategory());
 
-                    // Nếu voucher áp dụng cho sản phẩm hiện tại
-                    if (voucher.getApplicableProducts().contains(product)
-                            || voucher.getApplicableCategories().contains(product.getCategory())) {
-                        if (voucher.getDiscountType().name().equals("PERCENT")) {
-                            BigDecimal percent = voucher.getDiscountPercent() != null ? voucher.getDiscountPercent() : BigDecimal.ZERO;
-                            BigDecimal currentDiscount = originalPrice.multiply(percent).divide(BigDecimal.valueOf(100));
-                            if (currentDiscount.compareTo(discount) > 0) {
-                                discount = currentDiscount;
-                            }
-                        } else if (voucher.getDiscountType().name().equals("AMOUNT")) {
-                            if (voucher.getDiscountAmount().compareTo(discount) > 0) {
-                                discount = voucher.getDiscountAmount();
-                            }
-                        }
-                    }
+                if (!isApplicable) continue;
+
+                if (voucher.getDiscountType() == DiscountType.PERCENT && voucher.getDiscountPercent() != null) {
+                    BigDecimal discount = originalPrice.multiply(voucher.getDiscountPercent()).divide(BigDecimal.valueOf(100));
+                    if (discount.compareTo(bestDiscount) > 0) bestDiscount = discount;
+                } else if (voucher.getDiscountType() == DiscountType.AMOUNT && voucher.getDiscountAmount() != null) {
+                    if (voucher.getDiscountAmount().compareTo(bestDiscount) > 0) bestDiscount = voucher.getDiscountAmount();
                 }
             }
 
-            finalPrice = originalPrice.subtract(discount);
-            if (finalPrice.compareTo(BigDecimal.ZERO) < 0) {
-                finalPrice = BigDecimal.ZERO;
-            }
+            BigDecimal finalPrice = originalPrice.subtract(bestDiscount).max(BigDecimal.ZERO);
+            BigDecimal totalItemPrice = finalPrice.multiply(BigDecimal.valueOf(itemDTO.getQuantity()));
+            BigDecimal totalDiscount = bestDiscount.multiply(BigDecimal.valueOf(itemDTO.getQuantity()));
 
-            ProductUnit productUnit = productUnitRepository.findById(itemDTO.getProductUnitId()).get();
+            OrderItem item = new OrderItem();
+            item.setOrder(order);
+            item.setProduct(product);
+            item.setProductUnit(productUnit);
+            item.setQuantity(itemDTO.getQuantity());
+            item.setQuantityInBase(itemDTO.getQuantity());
+            item.setPrice(totalItemPrice);
+            item.setDiscount(totalDiscount);
 
-            OrderItem orderItem = new OrderItem();
-            orderItem.setOrder(order);
-            orderItem.setProduct(product);
-            orderItem.setQuantity(itemDTO.getQuantity());
-            orderItem.setPrice(finalPrice.multiply(BigDecimal.valueOf(itemDTO.getQuantity())));
-            orderItem.setDiscount(discount.multiply(BigDecimal.valueOf(itemDTO.getQuantity())));
-            orderItem.setQuantityInBase(itemDTO.getQuantity());
-            orderItem.setProductUnit(productUnit);
-
-            orderItems.add(orderItem);
-            totalPrice = totalPrice.add(orderItem.getPrice());
+            orderItems.add(item);
+            totalPrice = totalPrice.add(totalItemPrice);
         }
 
+        // 5. Lưu order và orderItems
         order.setOrderItems(orderItems);
-
-        // 5. Gán lại tổng giá và voucher vào Order
         order.setTotalPrice(totalPrice);
-        if (dto.getVoucherIds() != null && !dto.getVoucherIds().isEmpty()) {
-            order.setVouchers(voucherRepository.findByVoucherIdIn(dto.getVoucherIds()));
+        if (!voucherMap.isEmpty()) {
+            order.setVouchers(new ArrayList<>(voucherMap.values()));
         }
 
         order = orderRepository.save(order);
-
-
-        // 6. Lưu orderItems
         orderItemRepository.saveAll(orderItems);
 
+        // 6. Nếu cần hóa đơn
         if (dto.isNeedInvoice() && dto.getInvoiceInfo() != null) {
             Invoice invoice = new Invoice();
             invoice.setOrder(order);
@@ -346,29 +356,24 @@ public class OrderServiceImpl implements OrderService {
             invoice.setInvoiceEmail(dto.getInvoiceInfo().getEmail());
             invoice.setInvoiceTaxCode(dto.getInvoiceInfo().getTaxCode());
             invoice.setInvoiceCompanyAddress(dto.getInvoiceInfo().getCompanyAddress());
-            invoice.setTotalAmount(dto.getTotalPrice());
+            invoice.setTotalAmount(order.getTotalPrice());
 
-            // 7.1 Generate PDF
-            byte[] pdfBytes = null; // gọi service render PDF
             try {
-                pdfBytes = invoiceService.generateInvoicePdf(order, invoice);
+                byte[] pdfBytes = invoiceService.generateInvoicePdf(order, invoice);
+                String invoiceUrl = s3Service.uploadInvoice(order.getOrderCode(), pdfBytes);
+                invoice.setInvoiceUrl(invoiceUrl);
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new RuntimeException("Lỗi khi tạo hoặc upload PDF hóa đơn", e);
             }
 
-            // 7.2 Upload PDF lên S3 và lấy link
-            String invoiceUrl = s3Service.uploadInvoice(order.getOrderCode(), pdfBytes);
-
-            // 7.3 Lưu link vào Invoice
-            invoice.setInvoiceUrl(invoiceUrl);
             order.setInvoice(invoice);
-            // 7.4 Lưu Invoice
             invoiceRepository.save(invoice);
         }
-        orderRepository.save(order);
 
+        orderRepository.save(order); // Cập nhật invoice nếu có
         return orderMapper.toDto(order);
     }
+
 
     @Override
     public CreatePaymentResponseDTO handleOnlinePayment(OrderResponseDTO order) {

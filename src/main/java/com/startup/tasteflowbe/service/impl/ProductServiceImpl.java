@@ -9,9 +9,22 @@ import com.startup.tasteflowbe.mapper.ProductMapper;
 import com.startup.tasteflowbe.model.*;
 import com.startup.tasteflowbe.repository.*;
 import com.startup.tasteflowbe.service.ProductService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
+import io.jsonwebtoken.io.IOException;
+import lombok.RequiredArgsConstructor;
+
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,14 +40,13 @@ public class ProductServiceImpl implements ProductService {
     private final PromotionRepository promotionRepository;
     private final ProductUnitRepository productUnitRepository;
     private final ProductBatchRepository productBatchRepository;
+    private final UnitRepository unitRepository;
     private final ProductMapper productMapper;
 
     // ✅ Phần CRUD Admin cũ giữ nguyên
     @Override
-    public List<ProductResponseDTO> getAllProducts() {
-        return productRepository.findAll().stream()
-                .map(productMapper::toResponse)
-                .toList();
+    public List<Product> getAllProducts() {
+        return productRepository.findAll();
     }
 
     @Override
@@ -44,25 +56,155 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ProductResponseDTO createProduct(ProductRequestDTO dto) {
-        Product product = productMapper.toEntity(dto);
+    public void saveAll(List<ProductRequestDTO> dtos) {
+        List<Product> products = dtos.stream()
+                .map(productMapper::toEntity)
+                .collect(Collectors.toList());
 
-        Category category = categoryRepository.findById(dto.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("Category not found with id " + dto.getCategoryId()));
-
-
-        product.setCategory(category);
-
-        return productMapper.toResponse(productRepository.save(product));
+        productRepository.saveAll(products);
     }
 
     @Override
-    public ProductResponseDTO updateProduct(Long id, ProductRequestDTO dto) {
+    public ProductResponseDTO createProduct(ProductRequestDTO dto) {
+        Product product = productMapper.toEntity(dto);
+
+        if (dto.getIsDraft() != null && dto.getIsDraft()) {
+            product.setIsDraft(true);
+        } else {
+            product.setIsDraft(false);
+        }
+
+        Category category = dto.getCategory();
+
+        product.setCategory(category);
+
+        // Lưu product để có ID sinh ra từ DB
+        productRepository.saveAndFlush(product); // Lúc này product.getProductId() đã có
+
+        // Tạo ProductUnit
+        ProductUnit productUnit = new ProductUnit();
+        productUnit.setProduct(product);
+        productUnit.setPrice(dto.getPrice());
+        productUnit.setUnit(dto.getUnit());
+        productUnit.setSku(dto.getSku());
+        productUnit.setImageUrl(dto.getImageUrl());
+        productUnit.setDescription(dto.getDescription());
+        productUnit.setConversionRate(1);
+        productUnit.setIsBaseUnit(true);
+
+        // Gán ProductUnit vào danh sách
+        List<ProductUnit> units = new ArrayList<>();
+        units.add(productUnit);
+        product.setProductUnits(units);
+
+        // Lưu ProductUnit
+        productUnitRepository.save(productUnit);
+
+        return productMapper.toResponse(product);
+    }
+
+    @Override
+    public void readProductsFromExcel(MultipartFile file) throws IOException, java.io.IOException {
+        System.out.println("Reading products from Excel file: " + file.getOriginalFilename());
+        Workbook workbook = new XSSFWorkbook(file.getInputStream());
+        Sheet sheet = workbook.getSheetAt(0);
+
+        for (Row row : sheet) {
+            if (row.getRowNum() == 0)
+                continue; // Bỏ dòng tiêu đề
+
+            try {
+                Product product = new Product();
+
+                // Cột 0: Tên sản phẩm
+                Cell nameCell = row.getCell(0);
+                String name = (nameCell != null && nameCell.getCellType() == CellType.STRING)
+                        ? nameCell.getStringCellValue()
+                        : nameCell != null && nameCell.getCellType() == CellType.NUMERIC
+                                ? String.valueOf((long) nameCell.getNumericCellValue())
+                                : "";
+                product.setName(name);
+                System.out.println("Processing product: " + name);
+
+                // Cột 1: ID category
+                Cell categoryCell = row.getCell(1);
+                if (categoryCell == null || categoryCell.getCellType() != CellType.NUMERIC) {
+                    throw new IllegalArgumentException("Category ID must be numeric at row " + row.getRowNum());
+                }
+                long categoryId = (long) categoryCell.getNumericCellValue();
+                Category category = categoryRepository.findById(categoryId)
+                        .orElseThrow(() -> new RuntimeException("Category not found with id " + categoryId));
+                product.setCategory(category);
+
+                productRepository.saveAndFlush(product);
+
+                ProductUnit productUnit = new ProductUnit();
+                productUnit.setProduct(product);
+
+                // Cột 2: Price
+                Cell priceCell = row.getCell(2);
+                double price = (priceCell != null && priceCell.getCellType() == CellType.NUMERIC)
+                        ? priceCell.getNumericCellValue()
+                        : Double.parseDouble(priceCell.getStringCellValue());
+                productUnit.setPrice(BigDecimal.valueOf(price));
+
+                // Cột 3: Unit ID
+                Cell unitCell = row.getCell(3);
+                if (unitCell == null || unitCell.getCellType() != CellType.NUMERIC) {
+                    throw new IllegalArgumentException("Unit ID must be numeric at row " + row.getRowNum());
+                }
+                long unitId = (long) unitCell.getNumericCellValue();
+                Unit unit = unitRepository.findById(unitId)
+                        .orElseThrow(() -> new RuntimeException("Unit not found with id " + unitId));
+                productUnit.setUnit(unit);
+
+                // Cột 4: SKU
+                Cell skuCell = row.getCell(4);
+                String sku = (skuCell != null)
+                        ? (skuCell.getCellType() == CellType.STRING
+                                ? skuCell.getStringCellValue()
+                                : String.valueOf((long) skuCell.getNumericCellValue()))
+                        : "";
+                productUnit.setSku(sku);
+
+                // Cột 5: Image URL
+                Cell imageCell = row.getCell(5);
+                String imageUrl = (imageCell != null)
+                        ? (imageCell.getCellType() == CellType.STRING
+                                ? imageCell.getStringCellValue()
+                                : String.valueOf(imageCell.getNumericCellValue()))
+                        : "";
+                productUnit.setImageUrl(imageUrl);
+
+                // Cột 6: Mô tả
+                Cell descCell = row.getCell(6);
+                String description = (descCell != null)
+                        ? (descCell.getCellType() == CellType.STRING
+                                ? descCell.getStringCellValue()
+                                : String.valueOf(descCell.getNumericCellValue()))
+                        : "";
+                productUnit.setDescription(description);
+
+                productUnit.setConversionRate(1);
+                productUnit.setIsBaseUnit(true);
+
+                product.setProductUnits(Collections.singletonList(productUnit));
+
+                productUnitRepository.save(productUnit);
+            } catch (Exception e) {
+                throw new RuntimeException("Error at row " + row.getRowNum() + ": " + e.getMessage(), e);
+            }
+        }
+
+        workbook.close();
+    }
+
+    @Override
+    public ProductResponseDTO updateProduct(Long id, ProductDetailDTO dto) {
         return productRepository.findById(id)
                 .map(existing -> {
                     productMapper.updateEntityFromDTO(dto, existing);
-                    Category category = categoryRepository.findById(dto.getCategoryId())
-                            .orElseThrow(() -> new RuntimeException("Category not found"));
+                    Category category = dto.getCategory();
 
                     existing.setCategory(category);
 
@@ -72,8 +214,18 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    public ProductUnitDTO updateProductUnit(Long id, ProductUnitDTO dto) {
+        ProductUnit productUnit = productUnitRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("ProductUnit not found with id " + id));
+        productMapper.updateProductUnitEntityFromDTO(dto, productUnit);
+        productUnitRepository.save(productUnit);
+
+        return productMapper.productUnitToProductUnitDTO(productUnit);
+    }
+
+    @Override
     public void deleteProduct(Long id) {
-        productRepository.deleteById(id);
+        productUnitRepository.deleteById(id);
     }
 
     @Override
@@ -81,14 +233,13 @@ public class ProductServiceImpl implements ProductService {
         List<ProductUnit> allUnits = productUnitRepository.findAll();
         Map<Long, ProductBatch> productToLatestBatch = new HashMap<>();
 
-        return allUnits.stream().map(unit -> {
+        return allUnits.stream().filter(unit -> unit.getIsBaseUnit()).map(unit -> {
             ProductListItemDTO dto = productMapper.productUnitToProductListItemDTO(unit);
 
             Long productId = unit.getProduct().getProductId();
 
-            ProductBatch batch = productToLatestBatch.computeIfAbsent(productId, pid ->
-                    productBatchRepository.findTopByProductOrderByReceivedDateDesc(unit.getProduct()).orElse(null)
-            );
+            ProductBatch batch = productToLatestBatch.computeIfAbsent(productId, pid -> productBatchRepository
+                    .findTopByProductOrderByReceivedDateDesc(unit.getProduct()).orElse(null));
 
             if (batch != null) {
                 dto.setSupplierName(batch.getSupplier().getName());
@@ -97,7 +248,6 @@ public class ProductServiceImpl implements ProductService {
             return dto;
         }).collect(Collectors.toList());
     }
-
 
     @Override
     public ProductDetailDTO getProductDetail(Long productId) {

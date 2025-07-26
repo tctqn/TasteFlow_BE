@@ -15,6 +15,7 @@ public class OrderRequestDTO {
     private BigDecimal totalPrice;
 
     // Thông tin người nhận
+    private String userId;
     private String fullName;
     private String phone;
     private String address;
@@ -32,7 +33,7 @@ public class OrderRequestDTO {
     private boolean needInvoice;
     private InvoiceInfoDTO invoiceInfo;
 
-    // Các thông tin liên quan đến hệ thống
+    // Các thông tin liên `quan đến hệ thống
     private Long storeId;
     private Long shippingAddressId;
     private List<Long> voucherIds;

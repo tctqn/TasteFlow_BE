@@ -1,13 +1,17 @@
 package com.startup.tasteflowbe.service.impl;
 
+import com.startup.tasteflowbe.dto.request.InventoryRequestDTO;
 import com.startup.tasteflowbe.dto.request.StoreInventoryRequestDTO;
-import com.startup.tasteflowbe.dto.response.ProductInventoryDTO;
-import com.startup.tasteflowbe.dto.response.ProductUnitStockDTO;
+import com.startup.tasteflowbe.dto.response.*;
 import com.startup.tasteflowbe.model.*;
 import com.startup.tasteflowbe.repository.InventoryRepository;
+import com.startup.tasteflowbe.repository.ProductBatchRepository;
 import com.startup.tasteflowbe.repository.ProductRepository;
 import com.startup.tasteflowbe.repository.ProductUnitRepository;
+import com.startup.tasteflowbe.repository.WarehouseRepository;
 import com.startup.tasteflowbe.service.*;
+
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +36,8 @@ public class InventoryServiceImpl implements InventoryService {
     private final StoreService storeService;
     private final ProductRepository productRepository;
     private final ProductUnitRepository productUnitRepository;
+    private final ProductBatchRepository productBatchRepository;
+    private final WarehouseRepository warehouseRepository;
 
     @Override
     public List<Inventory> getAllInventories() {
@@ -44,8 +50,38 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
-    public Inventory createInventory(Inventory inventory) {
-        return inventoryRepository.save(inventory);
+    @Transactional
+    public Inventory createInventory(InventoryRequestDTO inventoryRequestDTO) {
+        // 1. Lấy các entity liên quan từ DB bằng ID trong DTO
+        ProductBatch productBatch = productBatchRepository.findById(inventoryRequestDTO.getBatchId())
+                .orElseThrow(() -> new RuntimeException(
+                        "ProductBatch not found with id " + inventoryRequestDTO.getBatchId()));
+
+        Warehouse warehouse = warehouseRepository.findById(inventoryRequestDTO.getWarehouseId())
+                .orElseThrow(() -> new RuntimeException(
+                        "Warehouse not found with id " + inventoryRequestDTO.getWarehouseId()));
+
+        Product product = productRepository.findById(inventoryRequestDTO.getProductId())
+                .orElseThrow(
+                        () -> new RuntimeException("Product not found with id " + inventoryRequestDTO.getProductId()));
+
+        // 2. Thực hiện logic nghiệp vụ
+        productBatch.setStatus("STOCKED");
+        if (productBatch.getSupplier() == null) {
+            throw new IllegalArgumentException("Supplier must not be null for ProductBatch.");
+        }
+        productBatchRepository.save(productBatch);
+
+        // 3. Tạo entity Inventory mới và set giá trị
+        Inventory newInventory = new Inventory();
+        newInventory.setWarehouse(warehouse);
+        newInventory.setProduct(product);
+        newInventory.setBatch(productBatch);
+        newInventory.setQuantity(inventoryRequestDTO.getQuantity());
+        newInventory.setReorderLevel(inventoryRequestDTO.getReorderLevel());
+
+        // 4. Lưu và trả về entity mới
+        return inventoryRepository.save(newInventory);
     }
 
     @Override
@@ -101,6 +137,7 @@ public class InventoryServiceImpl implements InventoryService {
     public List<Inventory> findInventoriesByStoreId(Long storeId) {
         return inventoryRepository.findByStore_StoreId(storeId);
     }
+
     @Override
     public List<ProductInventoryDTO> getInventoryAllUnitByStore(Long storeId) {
         List<Inventory> inventories = inventoryRepository.findByStore_StoreId(storeId);
@@ -108,8 +145,7 @@ public class InventoryServiceImpl implements InventoryService {
         Map<Long, Integer> productBaseQuantityMap = inventories.stream()
                 .collect(Collectors.groupingBy(
                         inv -> inv.getProduct().getProductId(),
-                        Collectors.summingInt(Inventory::getQuantity)
-                ));
+                        Collectors.summingInt(Inventory::getQuantity)));
 
         List<ProductInventoryDTO> result = new ArrayList<>();
 
@@ -118,7 +154,8 @@ public class InventoryServiceImpl implements InventoryService {
             int baseQty = entry.getValue();
 
             Product product = productRepository.findById(productId).orElse(null);
-            if (product == null) continue;
+            if (product == null)
+                continue;
 
             List<ProductUnit> units = productUnitRepository.findByProduct_ProductId(productId).get();
 
@@ -127,8 +164,7 @@ public class InventoryServiceImpl implements InventoryService {
                 return new ProductUnitStockDTO(
                         unit.getUnit().getName(),
                         unit.getConversionRate(),
-                        available
-                );
+                        available);
             }).toList();
 
             result.add(new ProductInventoryDTO(productId, product.getName(), unitStocks));
@@ -136,7 +172,6 @@ public class InventoryServiceImpl implements InventoryService {
 
         return result;
     }
-
 
     @Override
     public int getAvailableStock(Long storeId, Long productId, Long unitId) {
@@ -146,5 +181,128 @@ public class InventoryServiceImpl implements InventoryService {
     @Override
     public List<Inventory> findInventoriesByWarehouseId(Long warehouseId) {
         return inventoryRepository.findByWarehouse_WarehouseId(warehouseId);
+    }
+
+    @Override
+    public List<WarehouseProductDTO> getWarehouseProductsByWarehouseId(Long warehouseId) {
+        List<Product> products = inventoryRepository.findDistinctProductsByWarehouseId(warehouseId);
+        List<WarehouseProductDTO> result = new ArrayList<>();
+        for (Product product : products) {
+            List<Inventory> inventories = inventoryRepository.findByWarehouse_WarehouseId(warehouseId)
+                    .stream().filter(inv -> inv.getProduct().getProductId().equals(product.getProductId())).toList();
+            if (inventories.isEmpty()) continue;
+            // SKU và đơn vị cơ bản
+            ProductUnit baseUnit = product.getProductUnits().stream()
+                    .filter(ProductUnit::getIsBaseUnit)
+                    .findFirst()
+                    .orElse(product.getProductUnits().get(0));
+            String sku = baseUnit.getSku();
+            String unitName = baseUnit.getUnit().getName();
+            Double salePrice = baseUnit.getPrice() != null ? baseUnit.getPrice().doubleValue() : null;
+            // Tổng số lượng tồn
+            int totalQuantity = inventories.stream().mapToInt(Inventory::getQuantity).sum();
+            // Số lô đang tồn
+            int totalBatches = (int) inventories.stream().map(Inventory::getBatch).distinct().count();
+            // Giá nhập các batch
+            List<Double> importPrices = inventories.stream()
+                    .map(inv -> inv.getBatch().getImportPrice())
+                    .filter(java.util.Objects::nonNull)
+                    .map(java.math.BigDecimal::doubleValue)
+                    .toList();
+            Double minImportPrice = importPrices.stream().min(Double::compareTo).orElse(null);
+            Double maxImportPrice = importPrices.stream().max(Double::compareTo).orElse(null);
+            Double avgImportPrice = importPrices.isEmpty() ? null : importPrices.stream().mapToDouble(Double::doubleValue).average().orElse(0);
+            // Ngưỡng cảnh báo nhập hàng lại
+            Integer reorderLevel = inventories.get(0).getReorderLevel();
+            // Trạng thái hàng hóa (ví dụ: BÌNH THƯỜNG, SẮP HẾT, QUÁ TỒN...)
+            String status = totalQuantity <= reorderLevel ? "SẮP HẾT" : "BÌNH THƯỜNG";
+            WarehouseProductDTO dto = WarehouseProductDTO.builder()
+                    .sku(sku)
+                    .productId(product.getProductId())
+                    .productName(product.getName())
+                    .unitName(unitName)
+                    .salePrice(salePrice)
+                    .totalQuantity(totalQuantity)
+                    .totalBatches(totalBatches)
+                    .minImportPrice(minImportPrice)
+                    .maxImportPrice(maxImportPrice)
+                    .avgImportPrice(avgImportPrice)
+                    .reorderLevel(reorderLevel)
+                    .status(status)
+                    .build();
+            result.add(dto);
+        }
+        return result;
+    }
+
+    @Override
+    public List<BatchDetailDTO> getBatchDetailsByProductAndWarehouseOrStore(Long productId, Long warehouseId, Long storeId) {
+        List<Inventory> inventories = inventoryRepository.findByProductAndWarehouseOrStore(productId, warehouseId, storeId);
+        List<BatchDetailDTO> batchDetails = new ArrayList<>();
+        for (Inventory inv : inventories) {
+            BatchDetailDTO dto = new BatchDetailDTO();
+            dto.setBatchId(inv.getBatch().getBatchId());
+            dto.setProductName(inv.getProduct().getName());
+            dto.setQuantity(inv.getQuantity());
+            dto.setReceivedDate(inv.getBatch().getReceivedDate());
+            dto.setManufactureDate(inv.getBatch().getManufactureDate());
+            dto.setExpirationDate(inv.getBatch().getExpirationDate());
+            dto.setStatus(inv.getBatch().getStatus());
+            dto.setNote(inv.getBatch().getNote());
+            dto.setSupplierName(inv.getBatch().getSupplier() != null ? inv.getBatch().getSupplier().getName() : null);
+            // Lấy đơn vị cơ bản của sản phẩm
+            Product product = inv.getProduct();
+            String baseUnitName = null;
+            if (product != null && product.getProductUnits() != null && !product.getProductUnits().isEmpty()) {
+                baseUnitName = product.getProductUnits().stream()
+                        .filter(ProductUnit::getIsBaseUnit)
+                        .findFirst()
+                        .orElse(product.getProductUnits().get(0))
+                        .getUnit().getName();
+            }
+            dto.setUnitName(baseUnitName);
+            batchDetails.add(dto);
+        }
+        return batchDetails;
+    }
+
+    @Override
+    public List<StoreProductDTO> getStoreProductsByStoreId(Long storeId) {
+        List<Product> products = inventoryRepository.findDistinctProductsByStoreId(storeId);
+        List<StoreProductDTO> result = new ArrayList<>();
+        for (Product product : products) {
+            List<Inventory> inventories = inventoryRepository.findByStore_StoreId(storeId)
+                .stream().filter(inv -> inv.getProduct().getProductId().equals(product.getProductId())).toList();
+            if (inventories.isEmpty()) continue;
+            // SKU và đơn vị cơ bản
+            ProductUnit baseUnit = product.getProductUnits().stream()
+                .filter(ProductUnit::getIsBaseUnit)
+                .findFirst()
+                .orElse(product.getProductUnits().get(0));
+            String sku = baseUnit.getSku();
+            String unitName = baseUnit.getUnit().getName();
+            Double salePrice = baseUnit.getPrice() != null ? baseUnit.getPrice().doubleValue() : null;
+            // Tổng số lượng tồn
+            int totalQuantity = inventories.stream().mapToInt(Inventory::getQuantity).sum();
+            // Số lô đang tồn
+            int totalBatches = (int) inventories.stream().map(Inventory::getBatch).distinct().count();
+            // Ngưỡng cảnh báo nhập hàng lại
+            Integer reorderLevel = inventories.get(0).getReorderLevel();
+            // Trạng thái hàng hóa
+            String status = totalQuantity <= reorderLevel ? "SẮP HẾT" : "BÌNH THƯỜNG";
+            StoreProductDTO dto = StoreProductDTO.builder()
+                .productId(product.getProductId())
+                .sku(sku)
+                .productName(product.getName())
+                .unitName(unitName)
+                .salePrice(salePrice)
+                .totalQuantity(totalQuantity)
+                .totalBatches(totalBatches)
+                .reorderLevel(reorderLevel)
+                .status(status)
+                .build();
+            result.add(dto);
+        }
+        return result;
     }
 }

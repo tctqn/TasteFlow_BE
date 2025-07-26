@@ -13,11 +13,15 @@ import org.xhtmlrenderer.pdf.ITextRenderer;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 public class InvoiceServiceImpl implements InvoiceService {
+
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     @Autowired
     private InvoiceRepository invoiceRepository;
@@ -39,7 +43,11 @@ public class InvoiceServiceImpl implements InvoiceService {
     @Override
     public byte[] generateInvoicePdf(Order order, Invoice invoice) throws IOException {
         Context context = new Context();
+        context.setVariable("orderId", order.getOrderCode());
+        context.setVariable("staff", "Truong Cong Trinh");
+        context.setVariable("createdAt", DATE_TIME_FORMATTER.format(invoice.getIssuedAt()));
         context.setVariable("companyName", invoice.getInvoiceCompanyName());
+        context.setVariable("phone", invoice.getOrder().getPhone());
         context.setVariable("taxCode", invoice.getInvoiceTaxCode());
         context.setVariable("email", invoice.getInvoiceEmail());
         context.setVariable("address", invoice.getInvoiceCompanyAddress());

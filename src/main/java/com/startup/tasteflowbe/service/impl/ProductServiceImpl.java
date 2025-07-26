@@ -50,10 +50,8 @@ public class ProductServiceImpl implements ProductService {
         Category category = categoryRepository.findById(dto.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Category not found with id " + dto.getCategoryId()));
 
-        List<Promotion> promotions = promotionRepository.findAllById(dto.getPromotionIds());
 
         product.setCategory(category);
-        product.setPromotions(promotions);
 
         return productMapper.toResponse(productRepository.save(product));
     }
@@ -65,10 +63,8 @@ public class ProductServiceImpl implements ProductService {
                     productMapper.updateEntityFromDTO(dto, existing);
                     Category category = categoryRepository.findById(dto.getCategoryId())
                             .orElseThrow(() -> new RuntimeException("Category not found"));
-                    List<Promotion> promotions = promotionRepository.findAllById(dto.getPromotionIds());
 
                     existing.setCategory(category);
-                    existing.setPromotions(promotions);
 
                     return productMapper.toResponse(productRepository.save(existing));
                 })

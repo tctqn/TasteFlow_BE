@@ -3,7 +3,6 @@ package com.startup.tasteflowbe.service.impl;
 import com.startup.tasteflowbe.service.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -17,15 +16,10 @@ import jakarta.annotation.PostConstruct;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
-import java.io.File;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URL;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Date;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -77,11 +71,10 @@ public class S3ServiceImpl implements S3Service {
         return String.format("https://%s.s3.%s.amazonaws.com/%s", bucket, region, fileName);
     }
 
-
     @Override
-    public String upload(MultipartFile file) {
+    public String uploadImage(MultipartFile file) {
         try {
-            String key = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+            String key = "images/" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
                     + "_" + file.getOriginalFilename();
 
             PutObjectRequest putRequest = PutObjectRequest.builder()
@@ -96,44 +89,6 @@ public class S3ServiceImpl implements S3Service {
         } catch (IOException e) {
             throw new RuntimeException("Failed to upload to S3", e);
         }
-    }
-
-    @Override
-    public void testConnection() {
-        s3Client.listBuckets();
-    }
-
-    @Override
-    public void testConnectionToBucket(String bucketName) {
-        HeadBucketRequest request = HeadBucketRequest.builder().bucket(bucketName).build();
-        s3Client.headBucket(request);
-    }
-
-    @Override
-    public void listObjectsInBucket(String bucketName) {
-        ListObjectsV2Request request = ListObjectsV2Request.builder().bucket(bucketName).build();
-        ListObjectsV2Response result = s3Client.listObjectsV2(request);
-        for (S3Object obj : result.contents()) {
-            System.out.println("Found object: " + obj.key());
-        }
-    }
-
-    @Override
-    public void uploadFile(String bucketName, String key, String filePath) {
-        s3Client.putObject(PutObjectRequest.builder()
-                        .bucket(bucketName)
-                        .key(key)
-                        .build(),
-                RequestBody.fromFile(new File(filePath)));
-    }
-
-    @Override
-    public void downloadFile(String bucketName, String key, String downloadPath) {
-        s3Client.getObject(GetObjectRequest.builder()
-                        .bucket(bucketName)
-                        .key(key)
-                        .build(),
-                new File(downloadPath).toPath());
     }
 
     @Override

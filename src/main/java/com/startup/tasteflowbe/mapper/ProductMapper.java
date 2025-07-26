@@ -15,19 +15,20 @@ import java.util.List;
 public interface ProductMapper {
 
     @Mapping(source = "category.name", target = "categoryName")
-    @Mapping(source = "promotions", target = "promotions")
+    @Mapping(target = "imageUrl", expression = "java(getBaseUnitImageUrl(product))")
+    @Mapping(target = "description", expression = "java(getBaseUnitDescription(product))")
+    @Mapping(target = "price", expression = "java(getBaseUnitPrice(product))")
+    @Mapping(target = "sku", expression = "java(getBaseUnitSku(product))")
     ProductResponseDTO toResponse(Product product);
 
     @Mapping(target = "productId", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "category", ignore = true)
-    @Mapping(target = "promotions", ignore = true)
     Product toEntity(ProductRequestDTO dto);
 
     @Mapping(target = "productId", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "category", ignore = true)
-    @Mapping(target = "promotions", ignore = true)
     void updateEntityFromDTO(ProductRequestDTO dto, @MappingTarget Product entity);
 
     ProductDetailDTO productToProductDetailDTO(Product product);
@@ -46,6 +47,47 @@ public interface ProductMapper {
     ProductListItemDTO productUnitToProductListItemDTO(ProductUnit unit);
 
     List<ProductUnitDTO> productUnitListToProductUnitDTOList(List<ProductUnit> units);
-    List<ProductListItemDTO> productUnitListToProductListItemDTOList(List<ProductUnit> units);
-}
 
+    List<ProductListItemDTO> productUnitListToProductListItemDTOList(List<ProductUnit> units);
+
+    // Helper methods for mapping fields from base unit
+    default String getBaseUnitImageUrl(Product product) {
+        if (product == null || product.getProductUnits() == null)
+            return null;
+        return product.getProductUnits().stream()
+                .filter(ProductUnit::getIsBaseUnit)
+                .findFirst()
+                .map(ProductUnit::getImageUrl)
+                .orElse(null);
+    }
+
+    default String getBaseUnitDescription(Product product) {
+        if (product == null || product.getProductUnits() == null)
+            return null;
+        return product.getProductUnits().stream()
+                .filter(ProductUnit::getIsBaseUnit)
+                .findFirst()
+                .map(ProductUnit::getDescription)
+                .orElse(null);
+    }
+
+    default java.math.BigDecimal getBaseUnitPrice(Product product) {
+        if (product == null || product.getProductUnits() == null)
+            return null;
+        return product.getProductUnits().stream()
+                .filter(ProductUnit::getIsBaseUnit)
+                .findFirst()
+                .map(ProductUnit::getPrice)
+                .orElse(null);
+    }
+
+    default String getBaseUnitSku(Product product) {
+        if (product == null || product.getProductUnits() == null)
+            return null;
+        return product.getProductUnits().stream()
+                .filter(ProductUnit::getIsBaseUnit)
+                .findFirst()
+                .map(ProductUnit::getSku)
+                .orElse(null);
+    }
+}

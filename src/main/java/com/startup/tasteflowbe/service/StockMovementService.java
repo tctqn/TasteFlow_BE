@@ -2,11 +2,12 @@ package com.startup.tasteflowbe.service;
 
 import com.startup.tasteflowbe.model.StockMovement;
 import com.startup.tasteflowbe.dto.StoreTransferParam;
+import com.startup.tasteflowbe.dto.request.StockMovementRequestDTO;
 
 import java.util.List;
 
 public interface StockMovementService {
-    StockMovement createStockMovement(StockMovement stockMovement);
+    StockMovement createStockMovement(StockMovementRequestDTO stockMovementRequestDTO);
 
     StockMovement getStockMovementById(Long movementId);
 

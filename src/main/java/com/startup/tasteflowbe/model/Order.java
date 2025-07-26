@@ -1,5 +1,8 @@
 package com.startup.tasteflowbe.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreType;
 import com.startup.tasteflowbe.enums.OrderStatus;
 import com.startup.tasteflowbe.enums.PaymentMethod;
 import jakarta.persistence.*;
@@ -27,6 +30,7 @@ public class Order {
     // Thông tin user
     @ManyToOne
     @JoinColumn(name = "user_id")
+    @JsonIgnore
     private User user;
 
     // Thông tin người nhận
@@ -70,11 +74,7 @@ public class Order {
 
     // Thông tin voucher
     @ManyToMany
-    @JoinTable(
-            name = "order_vouchers",
-            joinColumns = @JoinColumn(name = "order_id"),
-            inverseJoinColumns = @JoinColumn(name = "voucher_id")
-    )
+    @JoinTable(name = "order_vouchers", joinColumns = @JoinColumn(name = "order_id"), inverseJoinColumns = @JoinColumn(name = "voucher_id"))
     private List<Voucher> vouchers;
 
     @Column(name = "voucher_discount", precision = 10, scale = 2)
@@ -86,6 +86,7 @@ public class Order {
 
     @ManyToOne
     @JoinColumn(name = "shipping_address_id")
+    @JsonIgnore
     private ShippingAddress shippingAddress;
 
     @ManyToOne
@@ -96,5 +97,6 @@ public class Order {
     private List<OrderItem> orderItems;
 
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private Invoice invoice;
 }

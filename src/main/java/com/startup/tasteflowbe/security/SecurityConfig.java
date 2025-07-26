@@ -36,7 +36,7 @@ public class SecurityConfig {
                 // ✅ Cho frontend (chỉ cho phép domain thật)
                 CorsConfiguration frontendConfig = new CorsConfiguration();
                 frontendConfig.addAllowedOrigin("http://localhost:8081"); // Allow your frontend origin
-                frontendConfig.addAllowedOrigin("https://tasteflow.vercel.app");
+                frontendConfig.addAllowedOrigin("https://tasteflow-ui.vercel.app");
                 frontendConfig.addAllowedMethod("*"); // Allow all HTTP methods (GET, POST, etc.)
                 frontendConfig.addAllowedHeader("*"); // Allow all headers
                 frontendConfig.setAllowCredentials(true);

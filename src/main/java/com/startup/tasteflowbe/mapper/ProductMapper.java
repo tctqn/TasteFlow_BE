@@ -27,13 +27,15 @@ public interface ProductMapper {
     Product toEntity(ProductRequestDTO dto);
 
     @Mapping(target = "productId", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "category", ignore = true)
-    void updateEntityFromDTO(ProductRequestDTO dto, @MappingTarget Product entity);
+    void updateEntityFromDTO(ProductDetailDTO dto, @MappingTarget Product entity);
+
+    void updateProductUnitEntityFromDTO(ProductUnitDTO dto, @MappingTarget ProductUnit entity);
 
     ProductDetailDTO productToProductDetailDTO(Product product);
 
     @Mapping(source = "unit.name", target = "unitName")
+    @Mapping(source = "product.productId", target = "productId")
     @Mapping(source = "sku", target = "sku")
     @Mapping(source = "imageUrl", target = "imageUrl")
     @Mapping(source = "description", target = "description")
@@ -42,6 +44,7 @@ public interface ProductMapper {
     @Mapping(source = "product.productId", target = "productId")
     @Mapping(source = "unit.name", target = "unitName")
     @Mapping(source = "product.name", target = "productName")
+    @Mapping(source = "product.isDraft", target = "isDraft")
     @Mapping(source = "imageUrl", target = "imageUrl")
     @Mapping(source = "product.category.name", target = "categoryName")
     ProductListItemDTO productUnitToProductListItemDTO(ProductUnit unit);

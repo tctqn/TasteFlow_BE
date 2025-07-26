@@ -1,5 +1,6 @@
 package com.startup.tasteflowbe.controller;
 
+import com.startup.tasteflowbe.dto.response.ProductUnitDTO;
 import com.startup.tasteflowbe.model.ProductUnit;
 import com.startup.tasteflowbe.service.ProductUnitService;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +29,8 @@ public class ProductUnitController {
     }
 
     @PostMapping
-    public ResponseEntity<ProductUnit> createProductUnit(@RequestBody ProductUnit productUnit) {
-        return ResponseEntity.ok(productUnitService.createProductUnit(productUnit));
+    public ResponseEntity<ProductUnit> createProductUnit(@RequestBody ProductUnitDTO productUnitDTO) {
+        return ResponseEntity.ok(productUnitService.createProductUnit(productUnitDTO));
     }
 
     @PutMapping("/{id}")

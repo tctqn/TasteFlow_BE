@@ -1,7 +1,12 @@
 package com.startup.tasteflowbe.service.impl;
 
+import com.startup.tasteflowbe.dto.response.ProductUnitDTO;
+import com.startup.tasteflowbe.model.Product;
 import com.startup.tasteflowbe.model.ProductUnit;
+import com.startup.tasteflowbe.model.Unit;
+import com.startup.tasteflowbe.repository.ProductRepository;
 import com.startup.tasteflowbe.repository.ProductUnitRepository;
+import com.startup.tasteflowbe.repository.UnitRepository;
 import com.startup.tasteflowbe.service.ProductUnitService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -11,10 +16,11 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-public class
-ProductUnitServiceImpl implements ProductUnitService {
+public class ProductUnitServiceImpl implements ProductUnitService {
 
     private final ProductUnitRepository productUnitRepository;
+    private final ProductRepository productRepository;
+    private final UnitRepository unitRepository;
 
     @Override
     public List<ProductUnit> getAllProductUnits() {
@@ -27,8 +33,29 @@ ProductUnitServiceImpl implements ProductUnitService {
     }
 
     @Override
-    public ProductUnit createProductUnit(ProductUnit productUnit) {
-        return productUnitRepository.save(productUnit);
+    public ProductUnit createProductUnit(ProductUnitDTO productUnitDTO) {
+        ProductUnit productUnit = new ProductUnit();
+
+        Product product = productRepository.findById(productUnitDTO.getProductId())
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        productUnit.setProduct(product);
+
+        Unit unit = unitRepository.findByName(productUnitDTO.getUnitName())
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        productUnit.setUnit(unit);
+        productUnit.setConversionRate(productUnitDTO.getConversionRate());
+        productUnit.setIsBaseUnit(false);
+        productUnit.setDescription(productUnitDTO.getDescription());
+        productUnit.setPrice(productUnitDTO.getPrice());
+        productUnit.setSku(productUnitDTO.getSku());
+        productUnit.setImageUrl(productUnitDTO.getImageUrl());
+
+        product.getProductUnits().add(productUnit);
+        productRepository.save(product);
+
+        return productUnit;
     }
 
     @Override
@@ -49,12 +76,15 @@ ProductUnitServiceImpl implements ProductUnitService {
 
     public Long getUnitIdByProductUnitId(Long productUnitId) {
         ProductUnit pu = productUnitRepository.findById(productUnitId)
-                .orElseThrow(() -> new RuntimeException("ProductUnit not found with id " + productUnitId));;
+                .orElseThrow(() -> new RuntimeException("ProductUnit not found with id " + productUnitId));
+        ;
         return pu.getUnit().getUnitId();
     }
 
     @Override
-    public Optional<Object> findByProduct_ProductIdAndUnit_UnitIdAndIsBaseUnit(Long productProductId, Long unitUnitId, Boolean isBaseUnit) {
-        return productUnitRepository.findByProduct_ProductIdAndUnit_UnitIdAndIsBaseUnit(productProductId, unitUnitId, isBaseUnit);
+    public Optional<Object> findByProduct_ProductIdAndUnit_UnitIdAndIsBaseUnit(Long productProductId, Long unitUnitId,
+            Boolean isBaseUnit) {
+        return productUnitRepository.findByProduct_ProductIdAndUnit_UnitIdAndIsBaseUnit(productProductId, unitUnitId,
+                isBaseUnit);
     }
 }

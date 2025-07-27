@@ -8,6 +8,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -61,6 +62,9 @@ public class User {
     @JsonIgnore
     private Store store;
 
+    @OneToMany(mappedBy = "user")
+    @JsonIgnore
+    private List<StoreStaff> storeAssignments;
 
     @Column(nullable = false)
     private boolean enabled = false;

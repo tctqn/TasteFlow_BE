@@ -107,9 +107,8 @@ public class SecurityConfig {
                                         "/api/delivery-trackings/**")
                                 .hasAnyRole("WAREHOUSE_MANAGER", "ADMIN", "STORE_MANAGER", "STORE_STAFF")
 
-                                // ADMIN-only routes
-                                .requestMatchers("/api/users/**")
-                                .hasRole("ADMIN")
+                                // USER routes for STORE_MANAGER and ADMIN
+                                .requestMatchers("/api/users/**").hasAnyRole("STORE_MANAGER", "ADMIN")
 
                                 // All other requests must be authenticated
                                 .anyRequest().authenticated())

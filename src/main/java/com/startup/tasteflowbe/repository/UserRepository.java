@@ -20,6 +20,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     User findByUserId(Long userId);
     Optional<User> findByVerificationToken(String token);
     Optional<User> findByEmail(String email);
-
-
+    @Query("SELECT u FROM User u JOIN StoreStaff ss ON u = ss.user WHERE ss.store.storeId = :storeId AND ss.active = true")
+    List<User> findActiveUsersByStoreId(Long storeId);
 }

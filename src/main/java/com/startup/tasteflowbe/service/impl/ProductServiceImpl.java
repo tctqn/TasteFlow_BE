@@ -146,6 +146,12 @@ public class ProductServiceImpl implements ProductService {
     private Product createNewProductFromRow(Row row) {
         Product newProduct = new Product();
 
+        // SKU
+        String sku = getStringCellValue(row.getCell(5), "SKU");
+        if (productUnitRepository.findBySku(sku).isPresent()) {
+            throw new IllegalArgumentException("SKU '" + sku + "' already exists. Please use a unique SKU.");
+        }
+
         // Cột 1: Tên sản phẩm
         String name = getStringCellValue(row.getCell(1), "Product Name");
         newProduct.setName(name);
@@ -178,6 +184,9 @@ public class ProductServiceImpl implements ProductService {
 
         // Cột 5: SKU
         String sku = getStringCellValue(row.getCell(5), "SKU");
+        if (productUnitRepository.findBySku(sku).isPresent()) {
+            throw new IllegalArgumentException("SKU '" + sku + "' already exists. Please use a unique SKU.");
+        }
         productUnit.setSku(sku);
 
         // Cột 6: Image URL

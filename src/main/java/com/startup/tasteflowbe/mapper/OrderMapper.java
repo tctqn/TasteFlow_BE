@@ -7,7 +7,7 @@ import com.startup.tasteflowbe.model.Order;
 import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;
 
-@Mapper(componentModel = "spring", uses = OrderItemMapper.class)
+@Mapper(componentModel = "spring", uses = { OrderItemMapper.class, StoreMapper.class })
 public interface OrderMapper {
 
     OrderMapper INSTANCE = Mappers.getMapper(OrderMapper.class);
@@ -26,6 +26,7 @@ public interface OrderMapper {
     @Mapping(source = "invoice.invoiceCompanyAddress", target = "invoiceCompanyAddress")
     @Mapping(source = "invoice.invoiceUrl", target = "invoiceUrl")
     @Mapping(source = "invoice.issuedAt", target = "invoiceIssuedAt")
+    @Mapping(source = "store", target = "store")
     OrderResponseDTO toDto(Order order);
 
     @Named("mapStatus")
@@ -33,3 +34,4 @@ public interface OrderMapper {
         return status.name();
     }
 }
+

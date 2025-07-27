@@ -1,5 +1,6 @@
 package com.startup.tasteflowbe.model;
 
+import com.startup.tasteflowbe.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -22,8 +23,9 @@ public class DeliveryTracking {
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private String status;
+    private OrderStatus status;
 
     @Column(name = "tracking_number", length = 100)
     private String trackingNumber;

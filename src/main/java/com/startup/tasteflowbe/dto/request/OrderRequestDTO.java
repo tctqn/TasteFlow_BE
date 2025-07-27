@@ -12,6 +12,8 @@ public class OrderRequestDTO {
     private List<CartItemDTO> cartItems;
 
     // Thông tin giá trị đơn hàng
+    private BigDecimal finalPrice;
+    private BigDecimal shippingFee;
     private BigDecimal totalPrice;
 
     // Thông tin người nhận

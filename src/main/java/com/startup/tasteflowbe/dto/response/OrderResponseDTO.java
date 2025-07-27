@@ -21,6 +21,8 @@ public class OrderResponseDTO {
     private String deliveryDate;
     private String deliverySlot;
     private BigDecimal totalPrice;
+    private BigDecimal shippingFee;
+    private BigDecimal finalPrice;
     private String refCode;
     private boolean needInvoice;
     private String invoiceCompanyName;
@@ -30,5 +32,6 @@ public class OrderResponseDTO {
     private String invoiceUrl;
     private LocalDateTime invoiceIssuedAt;
     private LocalDateTime orderDate;
+    private StoreResponseDTO store;
     private List<OrderItemResponseDTO> items;
 }

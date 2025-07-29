@@ -294,7 +294,35 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public void deleteProduct(Long id) {
-        productUnitRepository.deleteById(id);
+        ProductUnit unitToDelete = productUnitRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("ProductUnit not found with id " + id));
+
+        Product product = unitToDelete.getProduct();
+
+        // Xóa unit khỏi danh sách units của product
+        product.getProductUnits().remove(unitToDelete);
+        productUnitRepository.delete(unitToDelete);
+
+        // Nếu không còn unit nào khác → xóa luôn product
+        if (product.getProductUnits().isEmpty()) {
+            productRepository.delete(product);
+            return;
+        }
+
+        // Nếu unit bị xóa là baseUnit → gán lại baseUnit khác
+        if (Boolean.TRUE.equals(unitToDelete.getIsBaseUnit())) {
+            // Chọn unit đầu tiên còn lại và set isBaseUnit = true
+            ProductUnit newBaseUnit = product.getProductUnits().get(0);
+            newBaseUnit.setIsBaseUnit(true);
+            productUnitRepository.save(newBaseUnit);
+        }
+
+        // Đảm bảo tất cả các unit khác không bị đánh dấu baseUnit sai
+        for (ProductUnit pu : product.getProductUnits()) {
+            if (!pu.getProductUnitId().equals(id) && !pu.equals(product.getProductUnits().get(0))) {
+                pu.setIsBaseUnit(false);
+            }
+        }
     }
 
     @Override

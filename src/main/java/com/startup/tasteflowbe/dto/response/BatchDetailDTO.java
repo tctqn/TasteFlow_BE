@@ -16,4 +16,5 @@ public class BatchDetailDTO {
     private String note;
     private String supplierName;
     private String unitName;
+    private String expiryStatus; // Trạng thái hạn sử dụng
 }

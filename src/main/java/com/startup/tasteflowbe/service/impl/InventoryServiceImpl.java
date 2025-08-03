@@ -277,6 +277,7 @@ public class InventoryServiceImpl implements InventoryService {
     public List<BatchDetailDTO> getBatchDetailsByProductAndWarehouseOrStore(Long productId, Long warehouseId, Long storeId) {
         List<Inventory> inventories = inventoryRepository.findByProductAndWarehouseOrStore(productId, warehouseId, storeId);
         List<BatchDetailDTO> batchDetails = new ArrayList<>();
+        LocalDate currentDate = LocalDate.now();
         for (Inventory inv : inventories) {
             BatchDetailDTO dto = new BatchDetailDTO();
             dto.setBatchId(inv.getBatch().getBatchId());
@@ -299,6 +300,24 @@ public class InventoryServiceImpl implements InventoryService {
                         .getUnit().getName();
             }
             dto.setUnitName(baseUnitName);
+
+            // Tính trạng thái hạn sử dụng cho từng batch
+            LocalDate manufactureDate = inv.getBatch().getManufactureDate();
+            LocalDate expiryDate = inv.getBatch().getExpirationDate();
+            String expiryStatus = "BÌNH THƯỜNG";
+            if (manufactureDate != null && expiryDate != null) {
+                long totalDays = ChronoUnit.DAYS.between(manufactureDate, expiryDate);
+                long remainingDays = ChronoUnit.DAYS.between(currentDate, expiryDate);
+                double percentRemaining = totalDays > 0 ? (double) remainingDays / totalDays : 0.0;
+                if (remainingDays < 0) {
+                    expiryStatus = "HẾT HẠN";
+                } else if (percentRemaining < 0.1) {
+                    expiryStatus = "GẦN HẾT HẠN GẤP";
+                } else if (percentRemaining < 0.3) {
+                    expiryStatus = "SẮP HẾT HẠN";
+                }
+            }
+            dto.setExpiryStatus(expiryStatus);
             batchDetails.add(dto);
         }
         return batchDetails;

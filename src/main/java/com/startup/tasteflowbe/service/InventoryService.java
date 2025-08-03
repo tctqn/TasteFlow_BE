@@ -40,4 +40,6 @@ public interface InventoryService {
 
     // Lấy danh sách sản phẩm duy nhất trong cửa hàng theo storeId (StoreProductDTO)
     List<StoreProductDTO> getStoreProductsByStoreId(Long storeId);
+
+    int updateReorderLevel(Long productId, Long warehouseId, Long storeId, Integer reorderLevel);
 }

@@ -396,4 +396,14 @@ public class InventoryServiceImpl implements InventoryService {
         }
         return result;
     }
+
+    @Override
+    public int updateReorderLevel(Long productId, Long warehouseId, Long storeId, Integer reorderLevel) {
+        List<Inventory> inventories = inventoryRepository.findByProductAndWarehouseOrStore(productId, warehouseId, storeId);
+        for (Inventory inv : inventories) {
+            inv.setReorderLevel(reorderLevel);
+        }
+        inventoryRepository.saveAll(inventories);
+        return inventories.size();
+    }
 }

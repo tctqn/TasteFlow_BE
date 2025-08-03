@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -187,6 +189,7 @@ public class InventoryServiceImpl implements InventoryService {
     public List<WarehouseProductDTO> getWarehouseProductsByWarehouseId(Long warehouseId) {
         List<Product> products = inventoryRepository.findDistinctProductsByWarehouseId(warehouseId);
         List<WarehouseProductDTO> result = new ArrayList<>();
+        LocalDate currentDate = LocalDate.now();
         for (Product product : products) {
             List<Inventory> inventories = inventoryRepository.findByWarehouse_WarehouseId(warehouseId)
                     .stream().filter(inv -> inv.getProduct().getProductId().equals(product.getProductId())).toList();
@@ -214,8 +217,42 @@ public class InventoryServiceImpl implements InventoryService {
             Double avgImportPrice = importPrices.isEmpty() ? null : importPrices.stream().mapToDouble(Double::doubleValue).average().orElse(0);
             // Ngưỡng cảnh báo nhập hàng lại
             Integer reorderLevel = inventories.get(0).getReorderLevel();
+
+            // Kiểm tra hạn sử dụng các batch
+            boolean hasExpiredBatch = false;
+            boolean hasBatchBelow30 = false;
+            boolean hasBatchBelow10 = false;
+            List<Double> percentRemainings = new ArrayList<>();
+            for (Inventory inv : inventories) {
+                LocalDate manufactureDate = inv.getBatch().getManufactureDate();
+                LocalDate expiryDate = inv.getBatch().getExpirationDate();
+                if (manufactureDate != null && expiryDate != null) {
+                    long totalDays = ChronoUnit.DAYS.between(manufactureDate, expiryDate);
+                    long remainingDays = ChronoUnit.DAYS.between(currentDate, expiryDate);
+                    double percentRemaining = totalDays > 0 ? (double) remainingDays / totalDays : 0.0;
+                    percentRemainings.add(percentRemaining);
+                    if (remainingDays < 0) {
+                        hasExpiredBatch = true;
+                    } else if (percentRemaining < 0.1) {
+                        hasBatchBelow10 = true;
+                    } else if (percentRemaining < 0.3) {
+                        hasBatchBelow30 = true;
+                    }
+                }
+            }
+            String expiryStatus;
+            if (hasExpiredBatch) {
+                expiryStatus = "CÓ LÔ HẾT HẠN";
+            } else if (hasBatchBelow10) {
+                expiryStatus = "GẦN HẾT HẠN GẤP";
+            } else if (hasBatchBelow30) {
+                expiryStatus = "SẮP HẾT HẠN";
+            } else {
+                expiryStatus = "BÌNH THƯỜNG";
+            }
+
             // Trạng thái hàng hóa (ví dụ: BÌNH THƯỜNG, SẮP HẾT, QUÁ TỒN...)
-            String status = totalQuantity <= reorderLevel ? "SẮP HẾT" : "BÌNH THƯỜNG";
+            String status = totalQuantity <= reorderLevel ? "SẮP HẾT HÀNG" : "BÌNH THƯỜNG";
             WarehouseProductDTO dto = WarehouseProductDTO.builder()
                     .sku(sku)
                     .productId(product.getProductId())
@@ -229,6 +266,7 @@ public class InventoryServiceImpl implements InventoryService {
                     .avgImportPrice(avgImportPrice)
                     .reorderLevel(reorderLevel)
                     .status(status)
+                    .expiryStatus(expiryStatus)
                     .build();
             result.add(dto);
         }
@@ -270,6 +308,7 @@ public class InventoryServiceImpl implements InventoryService {
     public List<StoreProductDTO> getStoreProductsByStoreId(Long storeId) {
         List<Product> products = inventoryRepository.findDistinctProductsByStoreId(storeId);
         List<StoreProductDTO> result = new ArrayList<>();
+        LocalDate currentDate = LocalDate.now();
         for (Product product : products) {
             List<Inventory> inventories = inventoryRepository.findByStore_StoreId(storeId)
                 .stream().filter(inv -> inv.getProduct().getProductId().equals(product.getProductId())).toList();
@@ -288,8 +327,40 @@ public class InventoryServiceImpl implements InventoryService {
             int totalBatches = (int) inventories.stream().map(Inventory::getBatch).distinct().count();
             // Ngưỡng cảnh báo nhập hàng lại
             Integer reorderLevel = inventories.get(0).getReorderLevel();
+
+            // Kiểm tra hạn sử dụng các batch
+            boolean hasExpiredBatch = false;
+            boolean hasBatchBelow30 = false;
+            boolean hasBatchBelow10 = false;
+            for (Inventory inv : inventories) {
+                LocalDate manufactureDate = inv.getBatch().getManufactureDate();
+                LocalDate expiryDate = inv.getBatch().getExpirationDate();
+                if (manufactureDate != null && expiryDate != null) {
+                    long totalDays = ChronoUnit.DAYS.between(manufactureDate, expiryDate);
+                    long remainingDays = ChronoUnit.DAYS.between(currentDate, expiryDate);
+                    double percentRemaining = totalDays > 0 ? (double) remainingDays / totalDays : 0.0;
+                    if (remainingDays < 0) {
+                        hasExpiredBatch = true;
+                    } else if (percentRemaining < 0.1) {
+                        hasBatchBelow10 = true;
+                    } else if (percentRemaining < 0.3) {
+                        hasBatchBelow30 = true;
+                    }
+                }
+            }
+            String expiryStatus;
+            if (hasExpiredBatch) {
+                expiryStatus = "CÓ LÔ HẾT HẠN";
+            } else if (hasBatchBelow10) {
+                expiryStatus = "GẦN HẾT HẠN GẤP";
+            } else if (hasBatchBelow30) {
+                expiryStatus = "SẮP HẾT HẠN";
+            } else {
+                expiryStatus = "BÌNH THƯỜNG";
+            }
+
             // Trạng thái hàng hóa
-            String status = totalQuantity <= reorderLevel ? "SẮP HẾT" : "BÌNH THƯỜNG";
+            String status = totalQuantity <= reorderLevel ? "SẮP HẾT HÀNG" : "BÌNH THƯỜNG";
             StoreProductDTO dto = StoreProductDTO.builder()
                 .productId(product.getProductId())
                 .sku(sku)
@@ -300,6 +371,7 @@ public class InventoryServiceImpl implements InventoryService {
                 .totalBatches(totalBatches)
                 .reorderLevel(reorderLevel)
                 .status(status)
+                .expiryStatus(expiryStatus)
                 .build();
             result.add(dto);
         }

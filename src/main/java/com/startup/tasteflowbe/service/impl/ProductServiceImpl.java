@@ -31,7 +31,6 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +45,6 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
-    private final PromotionRepository promotionRepository;
     private final ProductUnitRepository productUnitRepository;
     private final ProductBatchRepository productBatchRepository;
     private final UnitRepository unitRepository;

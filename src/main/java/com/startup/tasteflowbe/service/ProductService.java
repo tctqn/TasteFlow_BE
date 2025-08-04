@@ -6,7 +6,6 @@ import com.startup.tasteflowbe.dto.request.ProductRequestDTO;
 import com.startup.tasteflowbe.dto.response.ProductResponseDTO;
 import com.startup.tasteflowbe.dto.response.ProductUnitDTO;
 import com.startup.tasteflowbe.model.Product;
-import com.startup.tasteflowbe.model.ProductUnit;
 
 import io.jsonwebtoken.io.IOException;
 

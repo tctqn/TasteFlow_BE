@@ -3,7 +3,6 @@ package com.startup.tasteflowbe.service.impl;
 import com.startup.tasteflowbe.dto.request.BulkApprovalRequestDTO;
 import com.startup.tasteflowbe.dto.request.CreateWarehouseRequestDTO;
 import com.startup.tasteflowbe.dto.request.ItemApprovalDTO;
-import com.startup.tasteflowbe.model.Product;
 import com.startup.tasteflowbe.model.ProductBatch;
 import com.startup.tasteflowbe.model.ProductUnit;
 import com.startup.tasteflowbe.model.WarehouseRequest;
@@ -11,7 +10,6 @@ import com.startup.tasteflowbe.model.WarehouseRequestItem;
 import com.startup.tasteflowbe.repository.ProductBatchRepository;
 import com.startup.tasteflowbe.repository.ProductUnitRepository;
 import com.startup.tasteflowbe.repository.SupplierRepository;
-import com.startup.tasteflowbe.repository.WarehouseRepository;
 import com.startup.tasteflowbe.repository.WarehouseRequestItemRepository;
 import com.startup.tasteflowbe.repository.WarehouseRequestRepository;
 import com.startup.tasteflowbe.service.WarehouseRequestService;
@@ -34,7 +32,6 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
     private final WarehouseRequestRepository requestRepository;
     private final WarehouseRequestItemRepository itemRepository;
     private final ProductUnitRepository productUnitRepository;
-    private final WarehouseRepository warehouseRepository;
     private final SupplierRepository supplierRepository;
     private final ProductBatchRepository productBatchRepository;
 

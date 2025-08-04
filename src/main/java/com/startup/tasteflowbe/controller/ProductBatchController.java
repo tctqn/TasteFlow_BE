@@ -6,11 +6,7 @@ import com.startup.tasteflowbe.dto.response.ProductBatchResponseDTO;
 import com.startup.tasteflowbe.dto.response.ProductResponseDTO;
 import com.startup.tasteflowbe.model.*;
 import com.startup.tasteflowbe.repository.*;
-import com.startup.tasteflowbe.service.InventoryService;
 import com.startup.tasteflowbe.service.ProductBatchService;
-import com.startup.tasteflowbe.service.StockMovementService;
-
-import aj.org.objectweb.asm.Handle;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

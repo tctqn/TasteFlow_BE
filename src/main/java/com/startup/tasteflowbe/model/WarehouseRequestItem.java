@@ -3,7 +3,6 @@ package com.startup.tasteflowbe.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
-import java.util.List;
 
 @Entity
 @Table(name = "warehouse_request_items")

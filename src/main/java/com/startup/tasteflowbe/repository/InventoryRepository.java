@@ -2,7 +2,6 @@ package com.startup.tasteflowbe.repository;
 
 import com.startup.tasteflowbe.model.Inventory;
 import com.startup.tasteflowbe.model.Product;
-import com.startup.tasteflowbe.model.ProductBatch;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

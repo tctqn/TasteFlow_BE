@@ -16,7 +16,19 @@ public interface ShippingAddressMapper {
     @Mapping(target = "user", source = "user")
     @Mapping(target = "recipientName", source = "dto.recipientName")
     @Mapping(target = "phone", source = "dto.phone")
-    @Mapping(target = "addressLine", expression = "java(dto.getAddressLine() + \", \" + dto.getWard() + \", \" + dto.getDistrict() + \", \" + dto.getProvince())")
     @Mapping(target = "isDefault", source = "dto.isDefault")
+    @Mapping(
+            target = "addressLine",
+            expression = "java(buildFullAddress(dto))"
+    )
     ShippingAddress toEntity(ShippingAddressRequestDTO dto, User user);
+
+    default String buildFullAddress(ShippingAddressRequestDTO dto) {
+        StringBuilder sb = new StringBuilder();
+        if (dto.getAddressLine() != null) sb.append(dto.getAddressLine());
+        if (dto.getWard() != null) sb.append(", ").append(dto.getWard());
+        if (dto.getDistrict() != null) sb.append(", ").append(dto.getDistrict());
+        if (dto.getProvince() != null) sb.append(", ").append(dto.getProvince());
+        return sb.toString();
+    }
 }

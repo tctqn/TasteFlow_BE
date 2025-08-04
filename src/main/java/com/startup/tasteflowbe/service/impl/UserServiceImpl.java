@@ -84,4 +84,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<User> getAvailableStoreManagers() { return userRepository.findAvailableStoreManagers(); }
+
+    @Override
+    public List<User> getActiveUsersByStoreId(Long storeId) {
+        return userRepository.findActiveUsersByStoreId(storeId);
+    }
 }

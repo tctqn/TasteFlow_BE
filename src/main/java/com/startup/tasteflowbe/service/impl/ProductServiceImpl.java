@@ -3,6 +3,10 @@ package com.startup.tasteflowbe.service.impl;
 import com.startup.tasteflowbe.dto.response.ProductDetailDTO;
 import com.startup.tasteflowbe.dto.response.ProductListItemDTO;
 import com.startup.tasteflowbe.dto.response.ProductUnitDTO;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.MultiFormatWriter;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
 import com.startup.tasteflowbe.dto.request.ProductRequestDTO;
 import com.startup.tasteflowbe.dto.response.ProductResponseDTO;
 import com.startup.tasteflowbe.mapper.ProductMapper;
@@ -11,6 +15,7 @@ import com.startup.tasteflowbe.repository.*;
 import com.startup.tasteflowbe.service.ProductService;
 
 import io.jsonwebtoken.io.IOException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 import org.apache.poi.ss.usermodel.Cell;
@@ -22,14 +27,17 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import javax.imageio.ImageIO;
 
 @Service
 @RequiredArgsConstructor
@@ -37,11 +45,11 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
-    private final PromotionRepository promotionRepository;
     private final ProductUnitRepository productUnitRepository;
     private final ProductBatchRepository productBatchRepository;
     private final UnitRepository unitRepository;
     private final ProductMapper productMapper;
+    private final S3ServiceImpl s3Service;
 
     // ✅ Phần CRUD Admin cũ giữ nguyên
     @Override
@@ -97,6 +105,10 @@ public class ProductServiceImpl implements ProductService {
         units.add(productUnit);
         product.setProductUnits(units);
 
+        // Tạo QR code và upload lên S3
+        String qrUrl = generateAndUploadQrCode(dto.getSku());
+        productUnit.setQrCodeUrl(qrUrl);
+
         // Lưu ProductUnit
         productUnitRepository.save(productUnit);
 
@@ -104,99 +116,167 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional
     public void readProductsFromExcel(MultipartFile file) throws IOException, java.io.IOException {
         System.out.println("Reading products from Excel file: " + file.getOriginalFilename());
-        Workbook workbook = new XSSFWorkbook(file.getInputStream());
-        Sheet sheet = workbook.getSheetAt(0);
+        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
+            Sheet sheet = workbook.getSheetAt(0);
 
-        for (Row row : sheet) {
-            if (row.getRowNum() == 0)
-                continue; // Bỏ dòng tiêu đề
+            for (Row row : sheet) {
+                if (row.getRowNum() == 0)
+                    continue; // Bỏ qua dòng tiêu đề
 
-            try {
-                Product product = new Product();
+                try {
+                    // Đọc productId (Cột 0) để xác định là sản phẩm mới hay cũ
+                    Cell productIdCell = row.getCell(0, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
 
-                // Cột 0: Tên sản phẩm
-                Cell nameCell = row.getCell(0);
-                String name = (nameCell != null && nameCell.getCellType() == CellType.STRING)
-                        ? nameCell.getStringCellValue()
-                        : nameCell != null && nameCell.getCellType() == CellType.NUMERIC
-                                ? String.valueOf((long) nameCell.getNumericCellValue())
-                                : "";
-                product.setName(name);
-                System.out.println("Processing product: " + name);
+                    Product product;
+                    if (productIdCell == null || productIdCell.getCellType() == CellType.BLANK) {
+                        // TRƯỜNG HỢP 1: TẠO SẢN PHẨM MỚI (productId trống)
+                        product = createNewProductFromRow(row);
+                    } else {
+                        // TRƯỜNG HỢP 2: THÊM UNIT CHO SẢN PHẨM CŨ (có productId)
+                        long productId = (long) getNumericCellValue(productIdCell, "Product ID");
+                        product = productRepository.findById(productId)
+                                .orElseThrow(() -> new RuntimeException("Product not found with id " + productId));
+                    }
 
-                // Cột 1: ID category
-                Cell categoryCell = row.getCell(1);
-                if (categoryCell == null || categoryCell.getCellType() != CellType.NUMERIC) {
-                    throw new IllegalArgumentException("Category ID must be numeric at row " + row.getRowNum());
+                    // Sau khi có 'product', tạo 'ProductUnit' từ các thông tin còn lại của dòng
+                    createProductUnitFromRow(row, product);
+
+                } catch (Exception e) {
+                    // Ghi lại lỗi chi tiết của từng dòng và tiếp tục xử lý các dòng tiếp theo
+                    System.err.println("Error processing row " + (row.getRowNum() + 1) + ": " + e.getMessage());
+                    // Hoặc throw new RuntimeException("Error at row " + row.getRowNum() + ": " +
+                    // e.getMessage(), e); nếu muốn dừng hẳn
                 }
-                long categoryId = (long) categoryCell.getNumericCellValue();
-                Category category = categoryRepository.findById(categoryId)
-                        .orElseThrow(() -> new RuntimeException("Category not found with id " + categoryId));
-                product.setCategory(category);
+            }
+        }
+    }
 
-                productRepository.saveAndFlush(product);
+    private Product createNewProductFromRow(Row row) {
+        Product newProduct = new Product();
 
-                ProductUnit productUnit = new ProductUnit();
-                productUnit.setProduct(product);
+        // SKU
+        String sku = getStringCellValue(row.getCell(5), "SKU");
+        if (productUnitRepository.findBySku(sku).isPresent()) {
+            throw new IllegalArgumentException("SKU '" + sku + "' already exists. Please use a unique SKU.");
+        }
 
-                // Cột 2: Price
-                Cell priceCell = row.getCell(2);
-                double price = (priceCell != null && priceCell.getCellType() == CellType.NUMERIC)
-                        ? priceCell.getNumericCellValue()
-                        : Double.parseDouble(priceCell.getStringCellValue());
-                productUnit.setPrice(BigDecimal.valueOf(price));
+        // Cột 1: Tên sản phẩm
+        String name = getStringCellValue(row.getCell(1), "Product Name");
+        newProduct.setName(name);
+        System.out.println("Processing new product: " + name);
 
-                // Cột 3: Unit ID
-                Cell unitCell = row.getCell(3);
-                if (unitCell == null || unitCell.getCellType() != CellType.NUMERIC) {
-                    throw new IllegalArgumentException("Unit ID must be numeric at row " + row.getRowNum());
+        // Cột 2: ID category
+        long categoryId = (long) getNumericCellValue(row.getCell(2), "Category ID");
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("Category not found with id " + categoryId));
+        newProduct.setCategory(category);
+        newProduct.setIsDraft(false); // Mặc định là không phải bản nháp
+
+        // Lưu product để có ID, cần thiết để ProductUnit tham chiếu
+        return productRepository.save(newProduct);
+    }
+
+    private void createProductUnitFromRow(Row row, Product product) {
+        ProductUnit productUnit = new ProductUnit();
+        productUnit.setProduct(product);
+
+        // Cột 3: Unit ID
+        long unitId = (long) getNumericCellValue(row.getCell(3), "Unit ID");
+        Unit unit = unitRepository.findById(unitId)
+                .orElseThrow(() -> new RuntimeException("Unit not found with id " + unitId));
+        productUnit.setUnit(unit);
+
+        // Cột 4: Price
+        double price = getNumericCellValue(row.getCell(4), "Price");
+        productUnit.setPrice(BigDecimal.valueOf(price));
+
+        // Cột 5: SKU
+        String sku = getStringCellValue(row.getCell(5), "SKU");
+        if (productUnitRepository.findBySku(sku).isPresent()) {
+            throw new IllegalArgumentException("SKU '" + sku + "' already exists. Please use a unique SKU.");
+        }
+        productUnit.setSku(sku);
+
+        // Cột 6: Image URL
+        productUnit.setImageUrl(getStringCellValue(row.getCell(6), "Image URL"));
+
+        // Cột 7: Description
+        productUnit.setDescription(getStringCellValue(row.getCell(7), "Description"));
+
+        // Cột 8: Conversion Rate
+        double conversionRateDouble = getNumericCellValue(row.getCell(8), "Conversion Rate");
+        productUnit.setConversionRate((int) conversionRateDouble);
+
+        // Cột 9: Is Base Unit
+        boolean isBaseUnit = getBooleanCellValue(row.getCell(9), "Is Base Unit");
+        productUnit.setIsBaseUnit(isBaseUnit);
+
+        // Logic kiểm tra nếu là base unit mới cho sản phẩm mới thì Conversion Rate phải
+        // là 1
+        if (product.getProductUnits() == null || product.getProductUnits().isEmpty()) { // Đây là unit đầu tiên
+            if (!isBaseUnit) {
+                throw new IllegalArgumentException(
+                        "The first unit for a new product must be a base unit (isBaseUnit=TRUE).");
+            }
+            if (productUnit.getConversionRate() != 1) {
+                throw new IllegalArgumentException("The base unit must have a conversion rate of 1.");
+            }
+        } else { // Sản phẩm đã có unit từ trước
+            if (isBaseUnit) { // Kiểm tra không cho thêm base unit thứ 2
+                boolean hasBaseUnit = product.getProductUnits().stream().anyMatch(ProductUnit::getIsBaseUnit);
+                if (hasBaseUnit) {
+                    throw new IllegalArgumentException("Product already has a base unit. Cannot add another one.");
                 }
-                long unitId = (long) unitCell.getNumericCellValue();
-                Unit unit = unitRepository.findById(unitId)
-                        .orElseThrow(() -> new RuntimeException("Unit not found with id " + unitId));
-                productUnit.setUnit(unit);
-
-                // Cột 4: SKU
-                Cell skuCell = row.getCell(4);
-                String sku = (skuCell != null)
-                        ? (skuCell.getCellType() == CellType.STRING
-                                ? skuCell.getStringCellValue()
-                                : String.valueOf((long) skuCell.getNumericCellValue()))
-                        : "";
-                productUnit.setSku(sku);
-
-                // Cột 5: Image URL
-                Cell imageCell = row.getCell(5);
-                String imageUrl = (imageCell != null)
-                        ? (imageCell.getCellType() == CellType.STRING
-                                ? imageCell.getStringCellValue()
-                                : String.valueOf(imageCell.getNumericCellValue()))
-                        : "";
-                productUnit.setImageUrl(imageUrl);
-
-                // Cột 6: Mô tả
-                Cell descCell = row.getCell(6);
-                String description = (descCell != null)
-                        ? (descCell.getCellType() == CellType.STRING
-                                ? descCell.getStringCellValue()
-                                : String.valueOf(descCell.getNumericCellValue()))
-                        : "";
-                productUnit.setDescription(description);
-
-                productUnit.setConversionRate(1);
-                productUnit.setIsBaseUnit(true);
-
-                product.setProductUnits(Collections.singletonList(productUnit));
-
-                productUnitRepository.save(productUnit);
-            } catch (Exception e) {
-                throw new RuntimeException("Error at row " + row.getRowNum() + ": " + e.getMessage(), e);
             }
         }
 
-        workbook.close();
+        productUnitRepository.save(productUnit);
+    }
+
+    // --- Helper methods to read cell values safely ---
+
+    private String getStringCellValue(Cell cell, String columnName) {
+        if (cell == null || cell.getCellType() == CellType.BLANK)
+            return "";
+        if (cell.getCellType() == CellType.STRING)
+            return cell.getStringCellValue();
+        if (cell.getCellType() == CellType.NUMERIC)
+            return String.valueOf(cell.getNumericCellValue());
+        return "";
+    }
+
+    private double getNumericCellValue(Cell cell, String columnName) {
+        if (cell == null || cell.getCellType() == CellType.BLANK) {
+            throw new IllegalArgumentException(columnName + " is required and must be numeric.");
+        }
+        if (cell.getCellType() == CellType.NUMERIC) {
+            return cell.getNumericCellValue();
+        }
+        if (cell.getCellType() == CellType.STRING) {
+            try {
+                return Double.parseDouble(cell.getStringCellValue());
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException(
+                        columnName + " has invalid numeric value: " + cell.getStringCellValue());
+            }
+        }
+        throw new IllegalArgumentException(columnName + " must be a numeric value.");
+    }
+
+    private boolean getBooleanCellValue(Cell cell, String columnName) {
+        if (cell == null || cell.getCellType() == CellType.BLANK) {
+            throw new IllegalArgumentException(columnName + " is required and must be TRUE or FALSE.");
+        }
+        if (cell.getCellType() == CellType.BOOLEAN) {
+            return cell.getBooleanCellValue();
+        }
+        if (cell.getCellType() == CellType.STRING) {
+            return Boolean.parseBoolean(cell.getStringCellValue());
+        }
+        throw new IllegalArgumentException(columnName + " must be a boolean (TRUE/FALSE) value.");
     }
 
     @Override
@@ -225,7 +305,35 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public void deleteProduct(Long id) {
-        productUnitRepository.deleteById(id);
+        ProductUnit unitToDelete = productUnitRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("ProductUnit not found with id " + id));
+
+        Product product = unitToDelete.getProduct();
+
+        // Xóa unit khỏi danh sách units của product
+        product.getProductUnits().remove(unitToDelete);
+        productUnitRepository.delete(unitToDelete);
+
+        // Nếu không còn unit nào khác → xóa luôn product
+        if (product.getProductUnits().isEmpty()) {
+            productRepository.delete(product);
+            return;
+        }
+
+        // Nếu unit bị xóa là baseUnit → gán lại baseUnit khác
+        if (Boolean.TRUE.equals(unitToDelete.getIsBaseUnit())) {
+            // Chọn unit đầu tiên còn lại và set isBaseUnit = true
+            ProductUnit newBaseUnit = product.getProductUnits().get(0);
+            newBaseUnit.setIsBaseUnit(true);
+            productUnitRepository.save(newBaseUnit);
+        }
+
+        // Đảm bảo tất cả các unit khác không bị đánh dấu baseUnit sai
+        for (ProductUnit pu : product.getProductUnits()) {
+            if (!pu.getProductUnitId().equals(id) && !pu.equals(product.getProductUnits().get(0))) {
+                pu.setIsBaseUnit(false);
+            }
+        }
     }
 
     @Override
@@ -268,4 +376,26 @@ public class ProductServiceImpl implements ProductService {
     public Integer countByCategoryId(Long categoryId) {
         return productRepository.countByCategory_CategoryId(categoryId);
     }
+
+    public String generateAndUploadQrCode(String sku) {
+        try {
+            int width = 300;
+            int height = 300;
+
+            BitMatrix bitMatrix = new MultiFormatWriter().encode(sku, BarcodeFormat.QR_CODE, width, height);
+            BufferedImage qrImage = MatrixToImageWriter.toBufferedImage(bitMatrix);
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(qrImage, "png", baos);
+            baos.flush();
+            byte[] imageBytes = baos.toByteArray();
+            baos.close();
+
+            // Upload và trả về URL
+            return s3Service.uploadImageFromBytes(imageBytes, sku + "_qr.png");
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate or upload QR code", e);
+        }
+    }
+
 }

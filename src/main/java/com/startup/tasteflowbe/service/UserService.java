@@ -13,4 +13,5 @@ public interface UserService {
     void deleteUser(Long id);
     List<User> getAvailableWarehouseManagers();
     List<User> getAvailableStoreManagers();
+    List<User> getActiveUsersByStoreId(Long storeId);
 }

@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
 @RequestMapping("/api/stores")
@@ -48,6 +47,13 @@ public class StoreController {
     @GetMapping("/manager/{managerId}")
     public ResponseEntity<Store> getStoreByManager(@PathVariable Long managerId) {
         return storeService.getStoreByManager(managerId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/staff/{staffId}")
+    public ResponseEntity<Store> getStoreByStaff(@PathVariable Long staffId) {
+        return storeService.getStoreByStaff(staffId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

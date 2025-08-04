@@ -2,7 +2,6 @@ package com.startup.tasteflowbe.dto.response;
 
 import lombok.Data;
 
-import com.startup.tasteflowbe.model.Store;
 import com.startup.tasteflowbe.model.Warehouse;
 
 @Data

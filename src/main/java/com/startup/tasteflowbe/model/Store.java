@@ -1,10 +1,13 @@
 package com.startup.tasteflowbe.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.startup.tasteflowbe.enums.Region;
 import com.startup.tasteflowbe.enums.StoreStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Entity
 @Table(name = "stores")
@@ -54,7 +57,6 @@ public class Store {
                 '}';
     }
 
-
     @Column(name = "province", length = 100)
     private String province;
 
@@ -63,4 +65,9 @@ public class Store {
 
     @Column(name = "village", length = 100)
     private String village;
+
+    @OneToMany(mappedBy = "store")
+    @JsonIgnore
+    private List<StoreStaff> staffAssignments;
+
 }

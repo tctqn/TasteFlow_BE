@@ -4,7 +4,6 @@ import com.startup.tasteflowbe.dto.request.InventoryRequestDTO;
 import com.startup.tasteflowbe.dto.request.StoreInventoryRequestDTO;
 import com.startup.tasteflowbe.dto.response.*;
 import com.startup.tasteflowbe.model.*;
-import com.startup.tasteflowbe.repository.ProductBatchRepository;
 import com.startup.tasteflowbe.service.InventoryService;
 import com.startup.tasteflowbe.service.ProductUnitService;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +22,6 @@ public class InventoryController {
 
     private final InventoryService inventoryService;
     private final ProductUnitService productUnitService;
-    private final ProductBatchRepository productBatchRepository;
 
     @GetMapping
     public ResponseEntity<List<Inventory>> getAllInventories() {
@@ -165,5 +163,15 @@ public class InventoryController {
     @GetMapping("/store/{storeId}/products")
     public List<StoreProductDTO> getStoreProducts(@PathVariable Long storeId) {
         return inventoryService.getStoreProductsByStoreId(storeId);
+    }
+
+    @PutMapping("/reorder-level")
+    public ResponseEntity<?> updateReorderLevel(
+            @RequestParam Long productId,
+            @RequestParam(required = false) Long warehouseId,
+            @RequestParam(required = false) Long storeId,
+            @RequestParam Integer reorderLevel) {
+        int updated = inventoryService.updateReorderLevel(productId, warehouseId, storeId, reorderLevel);
+        return ResponseEntity.ok(Map.of("updatedRecords", updated));
     }
 }

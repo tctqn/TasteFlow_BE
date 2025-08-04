@@ -22,4 +22,5 @@ public class WarehouseProductDTO {
     private Double salePrice; // Giá bán
     private Integer reorderLevel; // Ngưỡng cảnh báo nhập hàng lại
     private String status; // Trạng thái hàng hóa
+    private String expiryStatus; // Trạng thái hạn sử dụng
 }

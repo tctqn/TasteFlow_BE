@@ -9,7 +9,12 @@ import java.util.Optional;
 
 @Repository
 public interface ProductUnitRepository extends JpaRepository<ProductUnit, Long> {
-    Optional<Object> findByProduct_ProductIdAndUnit_UnitIdAndIsBaseUnit(Long productProductId, Long unitUnitId, Boolean isBaseUnit);
+    Optional<Object> findByProduct_ProductIdAndUnit_UnitIdAndIsBaseUnit(Long productProductId, Long unitUnitId,
+            Boolean isBaseUnit);
+
     Optional<List<ProductUnit>> findByProduct_ProductId(Long productId);
+
     Optional<Object> findByProduct_ProductIdAndUnit_UnitId(Long productProductId, Long unitUnitId);
+
+    Optional<ProductUnit> findBySku(String sku);
 }

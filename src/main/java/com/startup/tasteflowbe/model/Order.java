@@ -1,8 +1,6 @@
 package com.startup.tasteflowbe.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreType;
 import com.startup.tasteflowbe.enums.OrderStatus;
 import com.startup.tasteflowbe.enums.PaymentMethod;
 import jakarta.persistence.*;

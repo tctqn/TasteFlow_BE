@@ -53,4 +53,9 @@ public class UserController {
         return ResponseEntity.ok(userService.getAvailableStoreManagers());
     }
 
+    @GetMapping("/active-by-store/{storeId}")
+    public ResponseEntity<List<User>> getActiveUsersByStore(@PathVariable Long storeId) {
+        return ResponseEntity.ok(userService.getActiveUsersByStoreId(storeId));
+    }
+
 }

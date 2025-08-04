@@ -2,22 +2,17 @@ package com.startup.tasteflowbe.controller;
 
 import com.startup.tasteflowbe.dto.response.VoucherResponseDTO;
 import com.startup.tasteflowbe.dto.request.CreateVoucherRequest;
-import com.startup.tasteflowbe.enums.DiscountType;
-import com.startup.tasteflowbe.enums.DistributionType;
 import com.startup.tasteflowbe.model.User;
 import com.startup.tasteflowbe.model.Voucher;
 import com.startup.tasteflowbe.repository.UserRepository;
 import com.startup.tasteflowbe.service.VoucherService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @RestController

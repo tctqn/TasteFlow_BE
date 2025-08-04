@@ -5,9 +5,6 @@ import com.startup.tasteflowbe.dto.LoginRequest;
 import com.startup.tasteflowbe.dto.RegisterRequest;
 import com.startup.tasteflowbe.dto.ResetPasswordRequest;
 import com.startup.tasteflowbe.dto.response.AuthResponseDTO;
-import com.startup.tasteflowbe.dto.response.UserDTO;
-import com.startup.tasteflowbe.mapper.UserMapper;
-import com.startup.tasteflowbe.model.User;
 import com.startup.tasteflowbe.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
-    private final UserMapper userMapper;
 
     // Đăng ký người dùng mới
     @PostMapping("/register")

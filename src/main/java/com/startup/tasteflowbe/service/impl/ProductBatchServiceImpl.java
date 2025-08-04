@@ -4,13 +4,11 @@ import com.startup.tasteflowbe.model.Inventory;
 import com.startup.tasteflowbe.model.ProductBatch;
 import com.startup.tasteflowbe.model.ProductUnit;
 import com.startup.tasteflowbe.model.StockMovement;
-import com.startup.tasteflowbe.model.Warehouse;
 import com.startup.tasteflowbe.enums.MovementType;
 import com.startup.tasteflowbe.repository.InventoryRepository;
 import com.startup.tasteflowbe.repository.ProductBatchRepository;
 import com.startup.tasteflowbe.repository.ProductUnitRepository;
 import com.startup.tasteflowbe.repository.StockMovementRepository;
-import com.startup.tasteflowbe.repository.WarehouseRepository;
 import com.startup.tasteflowbe.service.ProductBatchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,8 +29,6 @@ public class ProductBatchServiceImpl implements ProductBatchService {
     private final StockMovementRepository stockMovementRepository;
 
     private final ProductUnitRepository productUnitRepository;
-
-    private final WarehouseRepository warehouseRepository;
 
     @Override
     public List<ProductBatch> getAllProductBatches() {

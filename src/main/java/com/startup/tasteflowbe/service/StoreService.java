@@ -17,4 +17,6 @@ public interface StoreService {
     void deleteStore(Long id);
 
     Optional<Store> getStoreByManager(Long managerId);
+
+    Optional<Store> getStoreByStaff(Long staffId);
 }

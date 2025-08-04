@@ -2,14 +2,12 @@ package com.startup.tasteflowbe.controller;
 
 import com.startup.tasteflowbe.model.ProductBatch;
 import com.startup.tasteflowbe.model.StockMovement;
-import com.startup.tasteflowbe.model.StoreRequest;
 import com.startup.tasteflowbe.dto.StoreTransferParam;
 import com.startup.tasteflowbe.dto.request.StockMovementRequestDTO;
 import com.startup.tasteflowbe.dto.response.ProductBatchResponseDTO;
 import com.startup.tasteflowbe.dto.response.StockMovementResponseDTO;
 import com.startup.tasteflowbe.service.StockMovementService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

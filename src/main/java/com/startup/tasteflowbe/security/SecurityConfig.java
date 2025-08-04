@@ -13,9 +13,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
@@ -107,9 +104,9 @@ public class SecurityConfig {
                                                 .hasAnyRole("WAREHOUSE_MANAGER", "ADMIN", "STORE_MANAGER",
                                                                 "STORE_STAFF")
 
-                                                // ADMIN-only routes
+                                                // USER routes for STORE_MANAGER and ADMIN
                                                 .requestMatchers("/api/users/**")
-                                                .hasRole("ADMIN")
+                                                .hasAnyRole("STORE_MANAGER", "ADMIN", "STORE_STAFF")
 
                                                 // All other requests must be authenticated
                                                 .anyRequest().authenticated())

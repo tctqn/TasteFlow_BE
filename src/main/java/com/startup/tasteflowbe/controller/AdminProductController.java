@@ -6,6 +6,8 @@ import com.startup.tasteflowbe.dto.response.ProductListItemDTO;
 import com.startup.tasteflowbe.dto.response.ProductResponseDTO;
 import com.startup.tasteflowbe.dto.response.ProductUnitDTO;
 import com.startup.tasteflowbe.service.ProductService;
+import com.startup.tasteflowbe.service.S3Service;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +21,7 @@ import java.util.List;
 public class AdminProductController {
 
     private final ProductService productService;
+    private final S3Service s3Service;
 
     @GetMapping
     public ResponseEntity<List<ProductListItemDTO>> getAllProductsForList() {
@@ -46,6 +49,17 @@ public class AdminProductController {
             return ResponseEntity.ok("Uploaded and processed successfully");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Failed: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/upload/s3")
+    public String uploadFileToS3(@RequestParam("file") MultipartFile file) {
+        try {
+            String imageUrl = s3Service.uploadImage(file);
+
+            return imageUrl;
+        } catch (Exception e) {
+            return "Failed: " + e.getMessage();
         }
     }
 

@@ -2,7 +2,9 @@ package com.startup.tasteflowbe.service.impl;
 
 import com.startup.tasteflowbe.enums.StoreStatus;
 import com.startup.tasteflowbe.model.Store;
+import com.startup.tasteflowbe.model.StoreStaff;
 import com.startup.tasteflowbe.repository.StoreRepository;
+import com.startup.tasteflowbe.repository.StoreStaffRepository;
 import com.startup.tasteflowbe.repository.UserRepository;
 import com.startup.tasteflowbe.service.StoreService;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ public class StoreServiceImpl implements StoreService {
     private final StoreRepository storeRepository;
 
     private final UserRepository userRepository;
+    private final StoreStaffRepository storeStaffRepository;
 
     @Override
     public List<Store> getAllStores() {
@@ -32,6 +35,12 @@ public class StoreServiceImpl implements StoreService {
     @Override
     public Optional<Store> getStoreByManager(Long managerId) {
         return storeRepository.findByManager_UserId(managerId);
+    }
+
+    @Override
+    public Optional<Store> getStoreByStaff(Long staffId) {
+        StoreStaff storeStaff = storeStaffRepository.findIdByUser_UserId(staffId);
+        return storeRepository.findById(storeStaff.getStore().getStoreId());
     }
 
     @Override

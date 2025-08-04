@@ -5,10 +5,7 @@ import com.startup.tasteflowbe.dto.response.CreatePaymentResponseDTO;
 import com.startup.tasteflowbe.model.Payment;
 import com.startup.tasteflowbe.repository.PaymentRepository;
 import com.startup.tasteflowbe.service.PaymentService;
-import com.startup.tasteflowbe.utils.OrderCodeGenerator;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import vn.payos.PayOS;
 import vn.payos.type.CheckoutResponseData;
@@ -40,7 +37,6 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public CreatePaymentResponseDTO createPayment(Long orderCode, Long amount, String description) {
         try {
-            Integer amountInVND = amount.intValue();
 
             PaymentData paymentData = PaymentData.builder()
                     .orderCode(orderCode)

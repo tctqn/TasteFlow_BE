@@ -3,6 +3,10 @@ package com.startup.tasteflowbe.service.impl;
 import com.startup.tasteflowbe.dto.response.ProductDetailDTO;
 import com.startup.tasteflowbe.dto.response.ProductListItemDTO;
 import com.startup.tasteflowbe.dto.response.ProductUnitDTO;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.MultiFormatWriter;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
 import com.startup.tasteflowbe.dto.request.ProductRequestDTO;
 import com.startup.tasteflowbe.dto.response.ProductResponseDTO;
 import com.startup.tasteflowbe.mapper.ProductMapper;
@@ -23,6 +27,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,6 +37,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import javax.imageio.ImageIO;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +51,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductBatchRepository productBatchRepository;
     private final UnitRepository unitRepository;
     private final ProductMapper productMapper;
+    private final S3ServiceImpl s3Service;
 
     // ✅ Phần CRUD Admin cũ giữ nguyên
     @Override
@@ -97,6 +106,10 @@ public class ProductServiceImpl implements ProductService {
         List<ProductUnit> units = new ArrayList<>();
         units.add(productUnit);
         product.setProductUnits(units);
+
+        // Tạo QR code và upload lên S3
+        String qrUrl = generateAndUploadQrCode(dto.getSku());
+        productUnit.setQrCodeUrl(qrUrl);
 
         // Lưu ProductUnit
         productUnitRepository.save(productUnit);
@@ -365,4 +378,26 @@ public class ProductServiceImpl implements ProductService {
     public Integer countByCategoryId(Long categoryId) {
         return productRepository.countByCategory_CategoryId(categoryId);
     }
+
+    public String generateAndUploadQrCode(String sku) {
+        try {
+            int width = 300;
+            int height = 300;
+
+            BitMatrix bitMatrix = new MultiFormatWriter().encode(sku, BarcodeFormat.QR_CODE, width, height);
+            BufferedImage qrImage = MatrixToImageWriter.toBufferedImage(bitMatrix);
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(qrImage, "png", baos);
+            baos.flush();
+            byte[] imageBytes = baos.toByteArray();
+            baos.close();
+
+            // Upload và trả về URL
+            return s3Service.uploadImageFromBytes(imageBytes, sku + "_qr.png");
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate or upload QR code", e);
+        }
+    }
+
 }

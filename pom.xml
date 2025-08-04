@@ -161,7 +161,7 @@
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
-            <version>1.15</version> <!-- Version ổn định, có thể đổi lên bản cao hơn nếu muốn -->
+            <version>1.15</version>            <!-- Version ổn định, có thể đổi lên bản cao hơn nếu muốn -->
         </dependency>
 
         <dependency>
@@ -173,7 +173,7 @@
         <dependency>
             <groupId>jakarta.validation</groupId>
             <artifactId>jakarta.validation-api</artifactId>
-            <version>3.0.2</version> <!-- Hoặc 3.1.x -->
+            <version>3.0.2</version>            <!-- Hoặc 3.1.x -->
         </dependency>
 
 
@@ -192,6 +192,17 @@
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml</artifactId>
             <version>5.4.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>core</artifactId>
+            <version>3.5.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>javase</artifactId>
+            <version>3.5.1</version>
         </dependency>
 
     </dependencies>

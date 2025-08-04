@@ -51,4 +51,11 @@ public class StoreController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    @GetMapping("/staff/{staffId}")
+    public ResponseEntity<Store> getStoreByStaff(@PathVariable Long staffId) {
+        return storeService.getStoreByStaff(staffId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
 }

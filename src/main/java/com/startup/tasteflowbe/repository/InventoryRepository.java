@@ -2,6 +2,8 @@ package com.startup.tasteflowbe.repository;
 
 import com.startup.tasteflowbe.model.Inventory;
 import com.startup.tasteflowbe.model.Product;
+import com.startup.tasteflowbe.model.ProductBatch;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,10 +16,10 @@ import java.util.Optional;
 @Repository
 public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     List<Inventory> findByWarehouse_WarehouseIdAndProduct_ProductIdAndBatch_BatchId(Long warehouseWarehouseId,
-                                                                                    Long productProductId, Long batchBatchId);
+            Long productProductId, Long batchBatchId);
 
     Optional<Inventory> findByStore_StoreIdAndProduct_ProductIdAndBatch_BatchId(Long storeId, Long productId,
-                                                                                Long batchBatchId);
+            Long batchBatchId);
 
     List<Inventory> findByStore_StoreIdAndProduct_ProductIdAndQuantityGreaterThanAndBatch_ExpirationDateAfterOrderByBatch_ExpirationDateAsc(
             Long storeId, Long productId, int quantity, LocalDate now);
@@ -35,8 +37,8 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
                   AND i.batch.unit.unitId = :unitId
             """)
     int findAvailableQuantity(@Param("storeId") Long storeId,
-                              @Param("productId") Long productId,
-                              @Param("unitId") Long unitId);
+            @Param("productId") Long productId,
+            @Param("unitId") Long unitId);
 
     @Query("SELECT i FROM Inventory i WHERE i.warehouse.warehouseId = :warehouseId")
     List<Inventory> findByWarehouse_WarehouseId(Long warehouseId);
@@ -47,16 +49,17 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
 
     // Tìm inventory theo productId và warehouseId hoặc storeId
     @Query("""
-        SELECT i FROM Inventory i
-        WHERE i.product.productId = :productId
-        AND ((:warehouseId IS NOT NULL AND i.warehouse.warehouseId = :warehouseId) 
-             OR (:storeId IS NOT NULL AND i.store.storeId = :storeId))
-    """)
+                SELECT i FROM Inventory i
+                WHERE i.product.productId = :productId
+                AND ((:warehouseId IS NOT NULL AND i.warehouse.warehouseId = :warehouseId)
+                     OR (:storeId IS NOT NULL AND i.store.storeId = :storeId))
+            """)
     List<Inventory> findByProductAndWarehouseOrStore(@Param("productId") Long productId,
-                                                     @Param("warehouseId") Long warehouseId,
-                                                     @Param("storeId") Long storeId);
+            @Param("warehouseId") Long warehouseId,
+            @Param("storeId") Long storeId);
 
     // Lấy danh sách sản phẩm duy nhất trong cửa hàng theo storeId
     @Query("SELECT DISTINCT i.product FROM Inventory i WHERE i.store.storeId = :storeId")
     List<Product> findDistinctProductsByStoreId(@Param("storeId") Long storeId);
+
 }

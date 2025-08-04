@@ -108,7 +108,8 @@ public class SecurityConfig {
                                                                 "STORE_STAFF")
 
                                                 // USER routes for STORE_MANAGER and ADMIN
-                                                .requestMatchers("/api/users/**").hasAnyRole("STORE_MANAGER", "ADMIN")
+                                                .requestMatchers("/api/users/**")
+                                                .hasAnyRole("STORE_MANAGER", "ADMIN", "STORE_STAFF")
 
                                                 // All other requests must be authenticated
                                                 .anyRequest().authenticated())

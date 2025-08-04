@@ -33,6 +33,9 @@ public class ProductUnit {
     @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
 
+    @Column(name = "qr_code_url", columnDefinition = "TEXT")
+    private String qrCodeUrl;
+
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 

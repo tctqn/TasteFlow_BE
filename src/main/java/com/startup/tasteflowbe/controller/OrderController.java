@@ -1,6 +1,7 @@
 package com.startup.tasteflowbe.controller;
 
 import com.startup.tasteflowbe.dto.request.OrderRequestDTO;
+import com.startup.tasteflowbe.dto.request.StoreOrderDTO;
 import com.startup.tasteflowbe.dto.request.UpdateOrderStatusDTO;
 import com.startup.tasteflowbe.dto.response.CreatePaymentResponseDTO;
 import com.startup.tasteflowbe.dto.response.OrderItemResponseDTO;
@@ -39,7 +40,6 @@ public class OrderController {
         return ResponseEntity.ok(orderMapper.toDto(order));
     }
 
-
     @GetMapping("/{id}")
     public ResponseEntity<Order> getOrderById(@PathVariable Long id) {
         return orderService.getOrderById(id)
@@ -61,6 +61,12 @@ public class OrderController {
         return ResponseEntity.ok(orderService.createOrder(order));
     }
 
+    @PostMapping("/store")
+    public ResponseEntity<?> createStoreOrder(@RequestBody StoreOrderDTO orderRequest) {
+        Order order = orderService.createStoreOrder(orderRequest);
+        return ResponseEntity.ok(order);
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<Order> updateOrder(@PathVariable Long id, @RequestBody Order order) {
         return ResponseEntity.ok(orderService.updateOrder(id, order));
@@ -72,10 +78,9 @@ public class OrderController {
         return ResponseEntity.ok(orders);
     }
 
-
     @PutMapping("/update/{id}")
     public ResponseEntity<OrderResponseDTO> updateOrderStatus(@PathVariable Long id,
-                                                              @RequestBody UpdateOrderStatusDTO request) {
+            @RequestBody UpdateOrderStatusDTO request) {
         return ResponseEntity.ok(orderService.updateOrderStatus(id, request.getStatus(), request.getNotes()));
     }
 

@@ -72,6 +72,7 @@ public class SecurityConfig {
                                                                 "/api/orders/**",
                                                                 "/api/webhook/**",
                                                                 "/api/inventories/store/stock",
+                                                                "/api/suppliers/**",
                                                                 "/api/admin/products/**")
                                                 .permitAll()
 
@@ -97,7 +98,6 @@ public class SecurityConfig {
                                                                 /* "/api/orders/**", */
                                                                 "/api/invoices/**",
                                                                 "/api/payments/**",
-                                                                "/api/suppliers/**",
                                                                 "/api/refunds/**",
                                                                 "/api/warehouses/**",
                                                                 "/api/delivery-trackings/**")

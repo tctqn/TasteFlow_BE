@@ -91,7 +91,7 @@ public class AuthServiceImpl implements AuthService {
         user.setVerificationToken(resetToken);
         userRepository.save(user);
 
-        String link = "http://localhost:8081/reset-password?token=" + resetToken;
+        String link = "https://api.tasteflow.me/reset-password?token=" + resetToken;
         String message = String.format(
                 "Chào %s,\n\n" +
                         "Bạn đã yêu cầu đặt lại mật khẩu. Nhấn vào liên kết sau để tiếp tục:\n%s\n\n" +

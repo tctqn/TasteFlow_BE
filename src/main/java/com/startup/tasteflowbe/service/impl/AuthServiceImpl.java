@@ -139,4 +139,15 @@ public class AuthServiceImpl implements AuthService {
         // Gọi lại logic updateUser của UserService để tái sử dụng
         return userService.updateUser(id, user);
     }
+
+    @Override
+    public void changePassword(Long userId, String oldPassword, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
+            throw new RuntimeException("Mật khẩu cũ không đúng");
+        }
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
 }

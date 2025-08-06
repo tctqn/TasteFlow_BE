@@ -10,6 +10,7 @@ import com.startup.tasteflowbe.enums.Role;
 import com.startup.tasteflowbe.repository.UserRepository;
 import com.startup.tasteflowbe.service.AuthService;
 import com.startup.tasteflowbe.security.JwtUtil;
+import com.startup.tasteflowbe.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -26,6 +27,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtil jwtUtil; // Để tạo JWT token
     private final JavaMailSender mailSender;
     private final UserMapper userMapper; // Mapper để chuyển đổi giữa User và UserDTO
+    private final UserService userService;
 
     @Override
     public AuthResponseDTO login(LoginRequest loginRequest) {
@@ -130,5 +132,11 @@ public class AuthServiceImpl implements AuthService {
         mailMessage.setText(message);
 
         mailSender.send(mailMessage);
+    }
+
+    @Override
+    public User updateUser(Long id, User user) {
+        // Gọi lại logic updateUser của UserService để tái sử dụng
+        return userService.updateUser(id, user);
     }
 }

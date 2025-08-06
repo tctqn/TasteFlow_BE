@@ -6,6 +6,7 @@ import com.startup.tasteflowbe.dto.RegisterRequest;
 import com.startup.tasteflowbe.dto.ResetPasswordRequest;
 import com.startup.tasteflowbe.dto.response.AuthResponseDTO;
 import com.startup.tasteflowbe.service.AuthService;
+import com.startup.tasteflowbe.model.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -65,4 +66,8 @@ public class AuthController {
         }
     }
 
+    @PutMapping("/profile/{id}")
+    public ResponseEntity<?> updateProfile(@PathVariable Long id, @RequestBody User user) {
+        return ResponseEntity.ok(authService.updateUser(id, user));
+    }
 }

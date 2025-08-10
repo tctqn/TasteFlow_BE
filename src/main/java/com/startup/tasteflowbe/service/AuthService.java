@@ -3,6 +3,7 @@ package com.startup.tasteflowbe.service;
 import com.startup.tasteflowbe.dto.LoginRequest;
 import com.startup.tasteflowbe.dto.RegisterRequest;
 import com.startup.tasteflowbe.dto.response.AuthResponseDTO;
+import com.startup.tasteflowbe.model.User;
 
 public interface AuthService {
     AuthResponseDTO login(LoginRequest loginRequest);
@@ -10,4 +11,6 @@ public interface AuthService {
     void enableUser(String token);
     void forgotPassword(String email);
     void resetPassword(String token, String newPassword);
+    User updateUser(Long id, User user);
+    void changePassword(Long userId, String oldPassword, String newPassword);
 }

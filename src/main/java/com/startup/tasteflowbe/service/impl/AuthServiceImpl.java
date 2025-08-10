@@ -10,6 +10,7 @@ import com.startup.tasteflowbe.enums.Role;
 import com.startup.tasteflowbe.repository.UserRepository;
 import com.startup.tasteflowbe.service.AuthService;
 import com.startup.tasteflowbe.security.JwtUtil;
+import com.startup.tasteflowbe.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -26,6 +27,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtil jwtUtil; // Để tạo JWT token
     private final JavaMailSender mailSender;
     private final UserMapper userMapper; // Mapper để chuyển đổi giữa User và UserDTO
+    private final UserService userService;
 
     @Override
     public AuthResponseDTO login(LoginRequest loginRequest) {
@@ -89,7 +91,7 @@ public class AuthServiceImpl implements AuthService {
         user.setVerificationToken(resetToken);
         userRepository.save(user);
 
-        String link = "http://localhost:8081/reset-password?token=" + resetToken;
+        String link = "https://api.tasteflow.me/reset-password?token=" + resetToken;
         String message = String.format(
                 "Chào %s,\n\n" +
                         "Bạn đã yêu cầu đặt lại mật khẩu. Nhấn vào liên kết sau để tiếp tục:\n%s\n\n" +
@@ -130,5 +132,22 @@ public class AuthServiceImpl implements AuthService {
         mailMessage.setText(message);
 
         mailSender.send(mailMessage);
+    }
+
+    @Override
+    public User updateUser(Long id, User user) {
+        // Gọi lại logic updateUser của UserService để tái sử dụng
+        return userService.updateUser(id, user);
+    }
+
+    @Override
+    public void changePassword(Long userId, String oldPassword, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
+            throw new RuntimeException("Mật khẩu cũ không đúng");
+        }
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
     }
 }

@@ -71,4 +71,9 @@ public class User {
 
     private String verificationToken;
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<UserNotification> userNotifications;
+
+
 }

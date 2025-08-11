@@ -39,6 +39,7 @@ jobs:
           echo "PAYOS_API_KEY=${{ secrets.PAYOS_API_KEY }}" >> .env
           echo "PAYOS_CHECKSUM_KEY=${{ secrets.PAYOS_CHECKSUM_KEY }}" >> .env
           echo "PAYOS_BASE_URL=${{ secrets.PAYOS_BASE_URL }}" >> .env
+          echo "GOOGLE_GEMINI_API_KEY=${{ secrets.GOOGLE_GEMINI_API_KEY }}" >> .env
 
       - name: Copy JAR + .env to EC2
         uses: appleboy/scp-action@v0.1.7

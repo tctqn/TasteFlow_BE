@@ -1,8 +1,10 @@
 package com.startup.tasteflowbe.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -11,6 +13,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "product_batches")
 @Data
+@ToString(exclude = {"product", "supplier", "warehouse", "unit", "requestItem"})
 @NoArgsConstructor
 public class ProductBatch {
 
@@ -37,6 +40,7 @@ public class ProductBatch {
 
     @OneToOne
     @JoinColumn(name = "request_item_id")
+    @JsonIgnore
     private WarehouseRequestItem requestItem;
 
     @Column(name = "quantity", nullable = false)

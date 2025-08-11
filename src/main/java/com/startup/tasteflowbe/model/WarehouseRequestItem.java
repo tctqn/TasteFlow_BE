@@ -30,6 +30,6 @@ public class WarehouseRequestItem {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "request_id", nullable = false)
-    @JsonIgnore // Tránh vòng lặp vô hạn khi serialize JSON
+    @JsonIgnore
     private WarehouseRequest warehouseRequest;
 }

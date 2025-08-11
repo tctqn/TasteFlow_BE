@@ -73,7 +73,8 @@ public class SecurityConfig {
                                                                 "/api/webhook/**",
                                                                 "/api/inventories/store/stock",
                                                                 "/api/suppliers/**",
-                                                                "/api/admin/products/**")
+                                                                "/api/admin/products/**",
+                                                                "/api/return-requests/**")
                                                 .permitAll()
 
                                                 // CUSTOMER routes

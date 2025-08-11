@@ -73,7 +73,12 @@ public class SecurityConfig {
                                                                 "/api/webhook/**",
                                                                 "/api/inventories/store/stock",
                                                                 "/api/suppliers/**",
-                                                                "/api/admin/products/**")
+                                                                "/api/admin/products/**",
+                                                                "/ws/info/**",
+                                                                "/ws/ai/**", // SockJS handshake + /info
+                                                                "/topic/**", // STOMP topic subscriptions
+                                                                "/app/**",
+                                                                "/api/ai/**")
                                                 .permitAll()
 
                                                 // CUSTOMER routes

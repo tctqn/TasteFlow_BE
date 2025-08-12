@@ -7,6 +7,7 @@ import com.startup.tasteflowbe.dto.response.CreatePaymentResponseDTO;
 import com.startup.tasteflowbe.dto.response.OrderResponseDTO;
 import com.startup.tasteflowbe.enums.DiscountType;
 import com.startup.tasteflowbe.enums.MovementType;
+import com.startup.tasteflowbe.enums.NotificationType;
 import com.startup.tasteflowbe.enums.OrderStatus;
 import com.startup.tasteflowbe.enums.PaymentMethod;
 import com.startup.tasteflowbe.mapper.OrderMapper;
@@ -39,6 +40,8 @@ public class OrderServiceImpl implements OrderService {
     private final VoucherRepository voucherRepository;
 
     private final InvoiceService invoiceService;
+
+    private final NotificationService notificationService;
 
     private final UserRepository userRepository;
 
@@ -391,6 +394,15 @@ public class OrderServiceImpl implements OrderService {
         }
 
         orderRepository.save(order); // Cập nhật invoice nếu có
+
+        //Gửi thông báo tới người dùng và cửa hàng
+        notificationService.sendNotificationToUsers(
+            Arrays.asList(user.getUserId(), store.getManager().getUserId()), 
+            NotificationType.ORDER, 
+            "Đơn hàng mới đã được tạo: " + order.getOrderCode()
+        );
+
+
         return orderMapper.toDto(order);
     }
 

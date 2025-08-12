@@ -3,15 +3,20 @@ package com.startup.tasteflowbe.service.impl;
 import com.startup.tasteflowbe.dto.request.BulkApprovalRequestDTO;
 import com.startup.tasteflowbe.dto.request.CreateWarehouseRequestDTO;
 import com.startup.tasteflowbe.dto.request.ItemApprovalDTO;
+import com.startup.tasteflowbe.enums.NotificationType;
+import com.startup.tasteflowbe.enums.Role;
 import com.startup.tasteflowbe.model.ProductBatch;
 import com.startup.tasteflowbe.model.ProductUnit;
+import com.startup.tasteflowbe.model.User;
 import com.startup.tasteflowbe.model.WarehouseRequest;
 import com.startup.tasteflowbe.model.WarehouseRequestItem;
 import com.startup.tasteflowbe.repository.ProductBatchRepository;
 import com.startup.tasteflowbe.repository.ProductUnitRepository;
 import com.startup.tasteflowbe.repository.SupplierRepository;
+import com.startup.tasteflowbe.repository.UserRepository;
 import com.startup.tasteflowbe.repository.WarehouseRequestItemRepository;
 import com.startup.tasteflowbe.repository.WarehouseRequestRepository;
+import com.startup.tasteflowbe.service.NotificationService;
 import com.startup.tasteflowbe.service.WarehouseRequestService;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -21,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -34,6 +40,8 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
     private final ProductUnitRepository productUnitRepository;
     private final SupplierRepository supplierRepository;
     private final ProductBatchRepository productBatchRepository;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
@@ -55,6 +63,21 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
         }).collect(Collectors.toList());
 
         request.setItems(items);
+
+        // 🔹 Lấy tất cả Admins
+        List<Long> adminIds = userRepository.findByRole(Role.ADMIN)
+                .stream()
+                .map(User::getUserId)
+                .collect(Collectors.toList());
+
+        // 🔹 Thêm createdBy vào danh sách
+        adminIds.add(dto.getCreatedBy());
+
+        notificationService.sendNotificationToUsers(
+            adminIds, 
+            NotificationType.ALERT, 
+            "Yêu cầu nhập hàng mới đã được tạo từ kho: " + dto.getWarehouseId()
+        );
 
         return requestRepository.save(request);
     }
@@ -137,6 +160,12 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
 
         updateParentRequestStatus(request);
 
+        notificationService.sendNotificationToUsers(
+            Arrays.asList(request.getCreatedBy()), 
+            NotificationType.ALERT, 
+            "Yêu cầu nhập hàng mới đã được duyệt: " + requestId
+        );
+
         return requestRepository.save(request);
     }
 
@@ -152,6 +181,13 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
             item.setFulfilledQuantity(0);
             WarehouseRequestItem savedItem = itemRepository.save(item);
             updateParentRequestStatus(savedItem.getWarehouseRequest());
+
+            notificationService.sendNotificationToUsers(
+                Arrays.asList(savedItem.getWarehouseRequest().getWarehouse().getManager().getUserId()), 
+                NotificationType.ALERT, 
+                "Yêu cầu nhập hàng bị từ chối:  " + savedItem.getRequestItemId()
+            );
+
             return savedItem;
         }
         WarehouseRequestItem item = itemRepository.findById(itemId)
@@ -177,6 +213,12 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
         }
 
         WarehouseRequestItem savedItem = itemRepository.save(item);
+
+        notificationService.sendNotificationToUsers(
+            Arrays.asList(savedItem.getWarehouseRequest().getWarehouse().getManager().getUserId()), 
+            NotificationType.ALERT, 
+            "Yêu cầu nhập hàng đã được duyệt:  " + savedItem.getRequestItemId()
+        );
 
         updateParentRequestStatus(savedItem.getWarehouseRequest());
 

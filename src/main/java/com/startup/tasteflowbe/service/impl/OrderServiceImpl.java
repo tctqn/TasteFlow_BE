@@ -480,7 +480,7 @@ public class OrderServiceImpl implements OrderService {
         order.setFullName(dto.getFull_name());
         order.setPhone(dto.getPhone());
         order.setAddress("In-store order");
-        order.setDeliveryDate(LocalDateTime.now().toString());
+        order.setDeliveryDate(LocalDateTime.now());
         order.setDeliverySlot(LocalDateTime.now().toString());
         order.setPaymentMethod(PaymentMethod.valueOf(dto.getPayment_method()));
         order.setStatus(OrderStatus.valueOf(dto.getStatus()));

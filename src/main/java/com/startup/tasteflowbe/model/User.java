@@ -3,18 +3,18 @@ package com.startup.tasteflowbe.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.startup.tasteflowbe.enums.Role;
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
 @Table(name = "users")
-@Data
 @NoArgsConstructor
+@Getter
+@Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(onlyExplicitlyIncluded = true)
 public class User {
 
     @Id

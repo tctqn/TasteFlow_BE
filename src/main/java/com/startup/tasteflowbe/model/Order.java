@@ -4,35 +4,56 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.startup.tasteflowbe.enums.OrderStatus;
 import com.startup.tasteflowbe.enums.PaymentMethod;
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "orders")
-@Data
+@Table(
+        name = "orders",
+        indexes = {
+                @Index(name = "idx_order_user", columnList = "user_id"),
+                @Index(name = "idx_order_store", columnList = "store_id"),
+                @Index(name = "idx_order_status", columnList = "status"),
+                @Index(name = "idx_order_date", columnList = "order_date")
+        },
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_order_code", columnNames = "order_code")
+        }
+)
+@Getter
+@Setter
 @NoArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(onlyExplicitlyIncluded = true)
 public class Order {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "order_id")
+    @EqualsAndHashCode.Include
+    @ToString.Include
     private Long orderId;
 
     @Column(name = "order_code", unique = true)
+    @ToString.Include
     private String orderCode;
 
-    // Thông tin user
-    @ManyToOne
+    // User (to-one -> LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     @JsonIgnore
     private User user;
 
-    // Thông tin người nhận
+    // Người nhận
     @Column(name = "full_name", nullable = false)
+    @ToString.Include
     private String fullName;
 
     @Column(name = "phone", nullable = false)
@@ -41,9 +62,9 @@ public class Order {
     @Column(name = "address", nullable = false)
     private String address;
 
-    // Thông tin thanh toán
+    // Thanh toán
     @Enumerated(EnumType.STRING)
-    @Column(name = "payment_method", nullable = false)
+    @Column(name = "payment_method", nullable = false, length = 32)
     private PaymentMethod paymentMethod;
 
     @Column(name = "total_price", nullable = false, precision = 10, scale = 2)
@@ -53,6 +74,7 @@ public class Order {
     private BigDecimal shippingFee = BigDecimal.ZERO;
 
     @Column(name = "final_price", nullable = false, precision = 10, scale = 2)
+    @ToString.Include
     private BigDecimal finalPrice;
 
     @Column(name = "ref_code")
@@ -61,46 +83,61 @@ public class Order {
     @Column(name = "note")
     private String note;
 
-    // Thông tin giao hàng
-    @Column(name = "delivery_date", nullable = false)
+    // Giao hàng
+    @Column(name = "delivery_date")
     private String deliveryDate;
 
     @Column(name = "delivery_slot", nullable = false)
     private String deliverySlot;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false, length = 32)
+    @ToString.Include
     private OrderStatus status = OrderStatus.PENDING;
 
-    // Có xuất hóa đơn hay không
     @Column(name = "need_invoice", nullable = false)
     private boolean needInvoice;
 
-    // Thông tin voucher
+    // Voucher (to-many -> LAZY mặc định)
     @ManyToMany
-    @JoinTable(name = "order_vouchers", joinColumns = @JoinColumn(name = "order_id"), inverseJoinColumns = @JoinColumn(name = "voucher_id"))
+    @JoinTable(
+            name = "order_vouchers",
+            joinColumns = @JoinColumn(name = "order_id"),
+            inverseJoinColumns = @JoinColumn(name = "voucher_id")
+    )
+    @BatchSize(size = 50)
     private List<Voucher> vouchers;
 
     @Column(name = "voucher_discount", precision = 10, scale = 2)
     private BigDecimal voucherDiscount;
 
-    // Thông tin hệ thống khác
+    // Hệ thống
     @Column(name = "order_date", nullable = false)
     private LocalDateTime orderDate = LocalDateTime.now();
 
-    @ManyToOne
+    // ShippingAddress (to-one -> LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "shipping_address_id")
     @JsonIgnore
     private ShippingAddress shippingAddress;
 
-    @ManyToOne
+    // Store (to-one -> LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id")
     private Store store;
 
+    // OrderItems (to-many -> LAZY)
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY)
+    @BatchSize(size = 50)
     private List<OrderItem> orderItems;
 
+    // Invoice (to-one -> LAZY)
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
     private Invoice invoice;
+
+    @PrePersist
+    protected void prePersist() {
+        if (orderDate == null) orderDate = LocalDateTime.now();
+    }
 }

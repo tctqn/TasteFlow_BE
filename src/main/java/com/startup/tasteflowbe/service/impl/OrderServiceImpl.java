@@ -6,6 +6,7 @@ import com.startup.tasteflowbe.dto.request.StoreOrderDTO;
 import com.startup.tasteflowbe.dto.response.CreatePaymentResponseDTO;
 import com.startup.tasteflowbe.dto.response.OrderResponseDTO;
 import com.startup.tasteflowbe.enums.DiscountType;
+import com.startup.tasteflowbe.enums.MovementType;
 import com.startup.tasteflowbe.enums.NotificationType;
 import com.startup.tasteflowbe.enums.OrderStatus;
 import com.startup.tasteflowbe.enums.PaymentMethod;
@@ -34,6 +35,7 @@ public class OrderServiceImpl implements OrderService {
     private final S3Service s3Service;
 
     private final InvoiceRepository invoiceRepository;
+    private final StockMovementRepository stockMovementRepository;
 
     private final VoucherRepository voucherRepository;
 
@@ -55,6 +57,7 @@ public class OrderServiceImpl implements OrderService {
     private final StoreService storeService;
     private final StoreRepository storeRepository;
     private final InventoryRepository inventoryRepository;
+    private final InventoryService inventoryService;
 
     @Override
     public List<Order> getAllOrders() {
@@ -375,6 +378,7 @@ public class OrderServiceImpl implements OrderService {
             invoice.setInvoiceEmail(dto.getInvoiceInfo().getEmail());
             invoice.setInvoiceTaxCode(dto.getInvoiceInfo().getTaxCode());
             invoice.setInvoiceCompanyAddress(dto.getInvoiceInfo().getCompanyAddress());
+            invoice.setIssuedAt(LocalDateTime.now());
             invoice.setTotalAmount(order.getTotalPrice());
 
             try {
@@ -402,6 +406,7 @@ public class OrderServiceImpl implements OrderService {
         return orderMapper.toDto(order);
     }
 
+    @Transactional
     @Override
     public CreatePaymentResponseDTO handleOnlinePayment(OrderResponseDTO order) {
         Long amount = order.getTotalPrice().longValue();
@@ -410,13 +415,71 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public void markOrderAsPaid(Long orderCode) {
         Optional<Order> optionalOrder = orderRepository.findByOrderCode(orderCode.toString());
-        if (optionalOrder.isPresent()) {
-            Order order = optionalOrder.get();
-            order.setStatus(OrderStatus.PAID);
-            orderRepository.save(order);
+        if (optionalOrder.isEmpty()) return;
+
+        Order order = optionalOrder.get();
+
+        // Idempotent: nếu đã PAID rồi thì không trừ tiếp
+        if (order.getStatus() == OrderStatus.PAID) {
+            return;
         }
+
+        // Trừ tồn kho theo từng OrderItem, ưu tiên lô gần hết hạn (FEFO)
+        for (OrderItem item : order.getOrderItems()) {
+            if (item.getProduct() == null) continue;
+
+            int remainingQty = item.getQuantity(); // hoặc item.getQuantityInBase() nếu inventory tính theo base unit
+
+            // Lấy list tồn kho tại cửa hàng theo sản phẩm, còn hàng, chưa hết hạn, sort theo expiry asc
+            List<Inventory> inventories = inventoryRepository
+                    .findByStore_StoreIdAndProduct_ProductIdAndQuantityGreaterThanAndBatch_ExpirationDateAfterOrderByBatch_ExpirationDateAsc(
+                            order.getStore().getStoreId(),
+                            item.getProduct().getProductId(),
+                            0,
+                            java.time.LocalDate.now()
+                    );
+
+            for (Inventory inv : inventories) {
+                if (remainingQty <= 0) break;
+
+                int available = inv.getQuantity();
+                if (available <= 0) continue;
+
+                int used = Math.min(available, remainingQty);
+
+                // Trừ tồn kho
+                inv.setQuantity(available - used);
+                inventoryRepository.save(inv);
+
+                // Ghi nhận chuyển động kho
+                StockMovement movement = new StockMovement();
+                movement.setWarehouse(inv.getWarehouse()); // nếu Inventory có warehouse
+                movement.setStore(order.getStore());
+                movement.setProduct(item.getProduct());
+                movement.setBatch(inv.getBatch());
+                movement.setMovementType(MovementType.SALE); // Giảm tồn kho do bán
+                movement.setQuantity(used);
+                movement.setNote("Bán đơn " + order.getOrderCode());
+                stockMovementRepository.save(movement);
+
+                remainingQty -= used;
+            }
+
+            // Nếu vẫn thiếu => ném lỗi (hoặc bạn có thể rollback toàn bộ)
+            if (remainingQty > 0) {
+                throw new IllegalArgumentException(
+                        "Not enough stock for product ID: " + item.getProduct().getProductId()
+                                + " at store ID: " + order.getStore().getStoreId()
+                );
+            }
+        }
+
+        // Cuối cùng: set trạng thái PAID
+        order.setStatus(OrderStatus.PAID);
+        orderRepository.save(order);
     }
 
     @Override

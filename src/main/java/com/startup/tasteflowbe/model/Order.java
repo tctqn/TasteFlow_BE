@@ -6,6 +6,8 @@ import com.startup.tasteflowbe.enums.PaymentMethod;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -82,8 +84,8 @@ public class Order {
     private String note;
 
     // Giao hàng
-    @Column(name = "delivery_date", nullable = false)
-    private LocalDateTime deliveryDate;
+    @Column(name = "delivery_date")
+    private String deliveryDate;
 
     @Column(name = "delivery_slot", nullable = false)
     private String deliverySlot;

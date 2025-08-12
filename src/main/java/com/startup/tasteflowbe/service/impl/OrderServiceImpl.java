@@ -375,6 +375,7 @@ public class OrderServiceImpl implements OrderService {
             invoice.setInvoiceEmail(dto.getInvoiceInfo().getEmail());
             invoice.setInvoiceTaxCode(dto.getInvoiceInfo().getTaxCode());
             invoice.setInvoiceCompanyAddress(dto.getInvoiceInfo().getCompanyAddress());
+            invoice.setIssuedAt(LocalDateTime.now());
             invoice.setTotalAmount(order.getTotalPrice());
 
             try {
@@ -480,7 +481,7 @@ public class OrderServiceImpl implements OrderService {
         order.setFullName(dto.getFull_name());
         order.setPhone(dto.getPhone());
         order.setAddress("In-store order");
-        order.setDeliveryDate(LocalDateTime.now());
+        order.setDeliveryDate(LocalDateTime.now().toString());
         order.setDeliverySlot(LocalDateTime.now().toString());
         order.setPaymentMethod(PaymentMethod.valueOf(dto.getPayment_method()));
         order.setStatus(OrderStatus.valueOf(dto.getStatus()));

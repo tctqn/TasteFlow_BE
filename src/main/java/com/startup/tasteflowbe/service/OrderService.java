@@ -22,8 +22,6 @@ public interface OrderService {
 
     void deleteOrder(Long id);
 
-    // Order checkoutFromCartItems(Long userId, List<Long> cartItemIds, List<Long>
-    // voucherIds, Long shippingAddressId, Long storeId);
     OrderResponseDTO createOrder(OrderRequestDTO dto);
 
     CreatePaymentResponseDTO handleOnlinePayment(OrderResponseDTO order);
@@ -36,5 +34,5 @@ public interface OrderService {
 
     List<OrderResponseDTO> getAllOrdersByUserId(Long userId);
 
-    public Order createStoreOrder(StoreOrderDTO storeOrderDTO);
+    Order createStoreOrder(StoreOrderDTO storeOrderDTO);
 }

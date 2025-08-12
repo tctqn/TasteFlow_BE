@@ -14,13 +14,13 @@ public class WarehouseRequest {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "request_id")
-    private Integer requestId;
+    private Long requestId;
 
     @Column(name = "warehouse_id", nullable = false)
-    private Integer warehouseId;
+    private Long warehouseId;
 
     @Column(name = "created_by", nullable = false)
-    private Integer createdBy;
+    private Long createdBy;
 
     @CreationTimestamp
     @Column(name = "request_date", updatable = false)

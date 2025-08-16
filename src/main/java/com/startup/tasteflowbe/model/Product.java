@@ -38,7 +38,7 @@ public class Product {
     private String name;
 
     // to-one -> LAZY để tránh N+1
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "category_id")
     @JsonIgnore
     private Category category;
@@ -47,7 +47,7 @@ public class Product {
     private LocalDateTime createdAt;
 
     // to-many -> LAZY (mặc định), không serialize trực tiếp để tránh vòng lặp
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     @BatchSize(size = 50)
     @JsonIgnore
     private List<ProductUnit> productUnits;

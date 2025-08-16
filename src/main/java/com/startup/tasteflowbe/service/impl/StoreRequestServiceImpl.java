@@ -1,9 +1,13 @@
 package com.startup.tasteflowbe.service.impl;
 
 import com.startup.tasteflowbe.dto.request.StoreRequestDTO;
+import com.startup.tasteflowbe.enums.NotificationType;
+import com.startup.tasteflowbe.model.Store;
 import com.startup.tasteflowbe.model.StoreRequest;
 import com.startup.tasteflowbe.model.StoreRequestItem;
+import com.startup.tasteflowbe.repository.StoreRepository;
 import com.startup.tasteflowbe.repository.StoreRequestRepository;
+import com.startup.tasteflowbe.service.NotificationService;
 import com.startup.tasteflowbe.service.StoreRequestService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -12,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,6 +25,8 @@ import java.util.Optional;
 public class StoreRequestServiceImpl implements StoreRequestService {
 
     private final StoreRequestRepository storeRequestRepository;
+    private final StoreRepository storeRepository;
+    private final NotificationService notificationService;
 
     @Override
     public List<StoreRequest> getAllStoreRequests() {
@@ -87,8 +94,20 @@ public class StoreRequestServiceImpl implements StoreRequestService {
 
         existingRequest.setStatus(status);
 
-        if ("Completed".equalsIgnoreCase(status)) {
-            existingRequest.setCompletedDate(LocalDateTime.now());
+        switch (status) {
+            case "Completed":
+                existingRequest.setCompletedDate(LocalDateTime.now());
+
+                Store store = storeRepository.findByStoreId(existingRequest.getStoreId());
+                notificationService.sendNotificationToUsers(
+                        Arrays.asList(store.getManager().getUserId()),
+                        NotificationType.ALERT,
+                        "Yêu cầu nhập hàng tới cửa hàng " + store.getName() + " đã hoàn thành");
+
+                break;
+
+            default:
+                break;
         }
 
         return storeRequestRepository.save(existingRequest);

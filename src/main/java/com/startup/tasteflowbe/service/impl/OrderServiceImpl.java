@@ -395,13 +395,11 @@ public class OrderServiceImpl implements OrderService {
 
         orderRepository.save(order); // Cập nhật invoice nếu có
 
-        //Gửi thông báo tới người dùng và cửa hàng
+        // Gửi thông báo tới người dùng và cửa hàng
         notificationService.sendNotificationToUsers(
-            Arrays.asList(user.getUserId(), store.getManager().getUserId()), 
-            NotificationType.ORDER, 
-            "Đơn hàng mới đã được tạo: " + order.getOrderCode()
-        );
-
+                Arrays.asList(user.getUserId(), store.getManager().getUserId()),
+                NotificationType.ORDER,
+                "Đơn hàng" + order.getOrderCode() + " đã được tạo: ");
 
         return orderMapper.toDto(order);
     }
@@ -418,7 +416,8 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public void markOrderAsPaid(Long orderCode) {
         Optional<Order> optionalOrder = orderRepository.findByOrderCode(orderCode.toString());
-        if (optionalOrder.isEmpty()) return;
+        if (optionalOrder.isEmpty())
+            return;
 
         Order order = optionalOrder.get();
 
@@ -429,24 +428,27 @@ public class OrderServiceImpl implements OrderService {
 
         // Trừ tồn kho theo từng OrderItem, ưu tiên lô gần hết hạn (FEFO)
         for (OrderItem item : order.getOrderItems()) {
-            if (item.getProduct() == null) continue;
+            if (item.getProduct() == null)
+                continue;
 
             int remainingQty = item.getQuantity(); // hoặc item.getQuantityInBase() nếu inventory tính theo base unit
 
-            // Lấy list tồn kho tại cửa hàng theo sản phẩm, còn hàng, chưa hết hạn, sort theo expiry asc
+            // Lấy list tồn kho tại cửa hàng theo sản phẩm, còn hàng, chưa hết hạn, sort
+            // theo expiry asc
             List<Inventory> inventories = inventoryRepository
                     .findByStore_StoreIdAndProduct_ProductIdAndQuantityGreaterThanAndBatch_ExpirationDateAfterOrderByBatch_ExpirationDateAsc(
                             order.getStore().getStoreId(),
                             item.getProduct().getProductId(),
                             0,
-                            java.time.LocalDate.now()
-                    );
+                            java.time.LocalDate.now());
 
             for (Inventory inv : inventories) {
-                if (remainingQty <= 0) break;
+                if (remainingQty <= 0)
+                    break;
 
                 int available = inv.getQuantity();
-                if (available <= 0) continue;
+                if (available <= 0)
+                    continue;
 
                 int used = Math.min(available, remainingQty);
 
@@ -472,8 +474,7 @@ public class OrderServiceImpl implements OrderService {
             if (remainingQty > 0) {
                 throw new IllegalArgumentException(
                         "Not enough stock for product ID: " + item.getProduct().getProductId()
-                                + " at store ID: " + order.getStore().getStoreId()
-                );
+                                + " at store ID: " + order.getStore().getStoreId());
             }
         }
 

@@ -51,7 +51,7 @@ public class InvoiceServiceImpl implements InvoiceService {
         context.setVariable("email", invoice.getInvoiceEmail());
         context.setVariable("address", invoice.getInvoiceCompanyAddress());
         context.setVariable("items", order.getOrderItems());
-        context.setVariable("totalPrice", order.getTotalPrice());
+        context.setVariable("totalPrice", order.getFinalPrice());
 
         String html = templateEngine.process("invoice-template", context);
 

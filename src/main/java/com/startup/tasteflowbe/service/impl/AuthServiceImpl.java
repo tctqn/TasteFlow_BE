@@ -117,7 +117,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void sendVerificationEmail(User user) {
-        String link = "https://api.tasteflow.me/verify-email?token=" + user.getVerificationToken();
+    String link = "https://tasteflow-ui.vercel.app/verify-email?token=" + user.getVerificationToken();
         String message = String.format(
                 "Chào %s,\n\n" +
                         "Vui lòng xác minh email của bạn bằng cách nhấn vào đường link sau:\n%s\n\n" +

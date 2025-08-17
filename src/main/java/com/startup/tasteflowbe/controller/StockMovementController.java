@@ -2,6 +2,7 @@ package com.startup.tasteflowbe.controller;
 
 import com.startup.tasteflowbe.model.ProductBatch;
 import com.startup.tasteflowbe.model.StockMovement;
+import com.startup.tasteflowbe.dto.response.StockMovementDTO;
 import com.startup.tasteflowbe.dto.StoreTransferParam;
 import com.startup.tasteflowbe.dto.request.StockMovementRequestDTO;
 import com.startup.tasteflowbe.dto.response.ProductBatchResponseDTO;
@@ -34,7 +35,7 @@ public class StockMovementController {
     }
 
     @GetMapping
-    public List<StockMovement> getAllStockMovements() {
+    public List<StockMovementDTO> getAllStockMovements() {
         return stockMovementService.getAllStockMovements();
     }
 

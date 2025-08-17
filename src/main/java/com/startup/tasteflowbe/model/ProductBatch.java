@@ -10,16 +10,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(
-        name = "product_batches",
-        indexes = {
-                @Index(name = "idx_batch_product", columnList = "product_id"),
-                @Index(name = "idx_batch_supplier", columnList = "supplier_id"),
-                @Index(name = "idx_batch_warehouse", columnList = "warehouse_id"),
-                @Index(name = "idx_batch_unit", columnList = "unit_id"),
-                @Index(name = "idx_batch_expiration", columnList = "expiration_date")
-        }
-)
+@Table(name = "product_batches", indexes = {
+        @Index(name = "idx_batch_product", columnList = "product_id"),
+        @Index(name = "idx_batch_supplier", columnList = "supplier_id"),
+        @Index(name = "idx_batch_warehouse", columnList = "warehouse_id"),
+        @Index(name = "idx_batch_unit", columnList = "unit_id"),
+        @Index(name = "idx_batch_expiration", columnList = "expiration_date")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -44,7 +41,6 @@ public class ProductBatch {
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "supplier_id", nullable = false)
-    @JsonIgnore
     private Supplier supplier;
 
     @ManyToOne(optional = false)
@@ -58,7 +54,7 @@ public class ProductBatch {
     private Unit unit;
 
     // Owning side; để LAZY và ignore khi serialize
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "request_item_id")
     @JsonIgnore
     private WarehouseRequestItem requestItem;
@@ -91,7 +87,9 @@ public class ProductBatch {
 
     @PrePersist
     protected void onCreate() {
-        if (receivedDate == null) receivedDate = LocalDateTime.now();
-        if (importPrice == null) importPrice = BigDecimal.ZERO;
+        if (receivedDate == null)
+            receivedDate = LocalDateTime.now();
+        if (importPrice == null)
+            importPrice = BigDecimal.ZERO;
     }
 }

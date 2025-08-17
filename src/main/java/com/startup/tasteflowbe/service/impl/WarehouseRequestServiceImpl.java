@@ -71,19 +71,19 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
 
         request.setItems(items);
 
-        // 🔹 Lấy tất cả Admins
+        // Lấy tất cả Admins
         List<Long> adminIds = userRepository.findByRole(Role.ADMIN)
                 .stream()
                 .map(User::getUserId)
                 .collect(Collectors.toList());
 
-        // 🔹 Thêm createdBy vào danh sách
+        // Thêm createdBy vào danh sách
         adminIds.add(dto.getCreatedBy());
 
         notificationService.sendNotificationToUsers(
                 adminIds,
                 NotificationType.ALERT,
-                "Yêu cầu nhập hàng mới đã được tạo từ " + warehouse.getName());
+                "Yêu cầu nhập hàng mới đã được tạo từ kho: " + dto.getWarehouseId());
 
         return requestRepository.save(request);
     }
@@ -118,58 +118,51 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
             throw new IllegalStateException("Chỉ có thể duyệt/từ chối phiếu yêu cầu ở trạng thái PENDING.");
         }
 
-        request.setStatus(dto.getStatus());
-
+        // Xử lý từng item trong request
         for (BulkApprovalRequestDTO.ApprovalItemInfo itemInfo : dto.getItems()) {
-            if ("APPROVED".equals(dto.getStatus())) {
-                WarehouseRequestItem item = request.getItems().stream()
-                        .filter(dbItem -> dbItem.getRequestItemId().equals(itemInfo.getItemId()))
-                        .findFirst()
-                        .orElseThrow(() -> new EntityNotFoundException("Item không tồn tại: " + itemInfo.getItemId()));
+            WarehouseRequestItem item = request.getItems().stream()
+                    .filter(dbItem -> dbItem.getRequestItemId().equals(itemInfo.getItemId()))
+                    .findFirst()
+                    .orElseThrow(() -> new EntityNotFoundException("Item không tồn tại: " + itemInfo.getItemId()));
 
+            if ("APPROVED".equals(dto.getStatus())) {
+                // Validate approved quantity
                 if (itemInfo.getApprovedQuantity() == null || itemInfo.getApprovedQuantity() <= 0) {
                     throw new IllegalArgumentException("Số lượng duyệt phải lớn hơn 0.");
-                } else if (itemInfo.getApprovedQuantity() > item.getQuantity()) {
-                    throw new IllegalArgumentException("Số lượng duyệt không thể lớn hơn số lượng yêu cầu.");
-                } else if (itemInfo.getApprovedQuantity() < item.getQuantity()) {
-                    item.setStatus("PARTIALLY_APPROVED");
-                } else if (itemInfo.getApprovedQuantity() == item.getFulfilledQuantity()) {
-                    item.setStatus("APPROVED");
                 }
+
+                if (itemInfo.getApprovedQuantity() > item.getQuantity()) {
+                    throw new IllegalArgumentException("Số lượng duyệt không thể lớn hơn số lượng yêu cầu.");
+                }
+
+                // Set fulfilled quantity and determine item status
                 item.setFulfilledQuantity(itemInfo.getApprovedQuantity());
 
-                ProductBatch productBatch = new ProductBatch();
+                // Fix logic: Compare với quantity (requested), không phải fulfilledQuantity
+                if (itemInfo.getApprovedQuantity().equals(item.getQuantity())) {
+                    item.setStatus("APPROVED"); // Fully approved
+                } else {
+                    item.setStatus("PARTIALLY_APPROVED"); // Partially approved
+                }
 
-                ProductUnit productUnit = productUnitRepository.findById(item.getProductUnitId().longValue())
-                        .orElseThrow(() -> new EntityNotFoundException(
-                                "Không tìm thấy ProductUnit: " + item.getProductUnitId()));
+                // Create ProductBatch for approved items
+                createProductBatch(item, itemInfo);
 
-                productBatch.setProduct(productUnit.getProduct());
-                productBatch.setUnit(productUnit.getUnit());
-                productBatch.setQuantity(item.getFulfilledQuantity());
-                productBatch.setWarehouse(request.getWarehouse());
-                productBatch.setSupplier(itemInfo.getSupplierId() != null
-                        ? supplierRepository.findById(itemInfo.getSupplierId().longValue()).orElse(null)
-                        : null);
-                productBatch.setExpirationDate(itemInfo.getExpiresAt());
-                productBatch.setRequestItem(item);
-                productBatch.setStatus("SHIPPED");
-                productBatch.setImportPrice(
-                        productUnit.getPrice().multiply(BigDecimal.valueOf(item.getFulfilledQuantity())));
-                productBatch.setManufactureDate(LocalDate.now());
-
-                System.out.println("Creating ProductBatch: " + productBatch.getStatus() + " for Product: "
-                        + productBatch.getProduct().getName() + " with Quantity: " + productBatch.getQuantity());
-                productBatchRepository.save(productBatch);
+            } else if ("REJECTED".equals(dto.getStatus())) {
+                item.setStatus("REJECTED");
+                item.setFulfilledQuantity(0);
             }
+
+            itemRepository.save(item);
         }
 
+        // Update parent request status based on item statuses
         updateParentRequestStatus(request);
 
         notificationService.sendNotificationToUsers(
                 Arrays.asList(request.getCreatedBy()),
                 NotificationType.ALERT,
-                "Yêu cầu nhập hàng tới " + request.getWarehouse().getName() + " đã được duyệt");
+                "Yêu cầu nhập hàng đã được xử lý: " + requestId);
 
         return requestRepository.save(request);
     }
@@ -177,69 +170,105 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
     @Override
     @Transactional
     public WarehouseRequestItem processRequestItem(Integer itemId, ItemApprovalDTO approvalDTO) {
-
-        if ("REJECTED".equals(approvalDTO.getStatus())) {
-            WarehouseRequestItem item = itemRepository.findById(itemId)
-                    .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy item với ID: " + itemId));
-            System.out.println("Rejecting item with ID: " + itemId);
-            item.setStatus("REJECTED");
-            item.setFulfilledQuantity(0);
-            WarehouseRequestItem savedItem = itemRepository.save(item);
-            updateParentRequestStatus(savedItem.getWarehouseRequest());
-
-            notificationService.sendNotificationToUsers(
-                    Arrays.asList(savedItem.getWarehouseRequest().getWarehouse().getManager().getUserId()),
-                    NotificationType.ALERT,
-                    "Yêu cầu nhập hàng tới " + savedItem.getWarehouseRequest().getWarehouse().getName()
-                            + " đã bị từ chối.");
-
-            return savedItem;
-        }
         WarehouseRequestItem item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy item với ID: " + itemId));
 
-        if (!"PENDING".equals(item.getStatus()) && !"PARTIALLY_FULFILLED".equals(item.getStatus())) {
-            throw new IllegalStateException("Chỉ có thể xử lý item ở trạng thái PENDING hoặc PARTIALLY_FULFILLED.");
+        if (!"PENDING".equals(item.getStatus()) && !"PARTIALLY_APPROVED".equals(item.getStatus())) {
+            throw new IllegalStateException("Chỉ có thể xử lý item ở trạng thái PENDING hoặc PARTIALLY_APPROVED.");
         }
 
-        if ("APPROVED".equals(approvalDTO.getStatus())) {
+        // Xử lý trường hợp PARTIALLY_APPROVED - có thể approve thêm quantity
+        if ("PARTIALLY_APPROVED".equals(item.getStatus()) && "APPROVED".equals(approvalDTO.getStatus())) {
             if (approvalDTO.getApprovedQuantity() == null || approvalDTO.getApprovedQuantity() <= 0) {
                 throw new IllegalArgumentException("Số lượng duyệt phải lớn hơn 0.");
-            } else if (approvalDTO.getApprovedQuantity() > item.getQuantity()) {
-                throw new IllegalArgumentException("Số lượng duyệt không thể lớn hơn số lượng yêu cầu.");
-            } else if (approvalDTO.getApprovedQuantity() < item.getQuantity()) {
-                item.setStatus("PARTIALLY_FULFILLED");
-            } else if (approvalDTO.getApprovedQuantity() == item.getFulfilledQuantity()) {
-                item.setStatus("APPROVED");
             }
-            item.setFulfilledQuantity(approvalDTO.getApprovedQuantity());
-        } else {
+
+            int currentFulfilled = item.getFulfilledQuantity() != null ? item.getFulfilledQuantity() : 0;
+            int totalApproved = currentFulfilled + approvalDTO.getApprovedQuantity();
+
+            if (totalApproved > item.getQuantity()) {
+                throw new IllegalArgumentException("Tổng số lượng duyệt không thể lớn hơn số lượng yêu cầu.");
+            }
+
+            item.setFulfilledQuantity(totalApproved);
+
+            if (totalApproved == item.getQuantity()) {
+                item.setStatus("APPROVED"); // Fully approved
+            } else {
+                item.setStatus("PARTIALLY_APPROVED"); // Still partially approved
+            }
+
+            // Create ProductBatch for additional approved quantity
+            createProductBatchFromApproval(item, approvalDTO, approvalDTO.getApprovedQuantity());
+
+        } else if ("REJECTED".equals(approvalDTO.getStatus())) {
+            System.out.println("Rejecting item with ID: " + itemId);
+            item.setStatus("REJECTED");
             item.setFulfilledQuantity(0);
+
+        } else if ("APPROVED".equals(approvalDTO.getStatus())) {
+            // Validate approved quantity
+            if (approvalDTO.getApprovedQuantity() == null || approvalDTO.getApprovedQuantity() <= 0) {
+                throw new IllegalArgumentException("Số lượng duyệt phải lớn hơn 0.");
+            }
+
+            if (approvalDTO.getApprovedQuantity() > item.getQuantity()) {
+                throw new IllegalArgumentException("Số lượng duyệt không thể lớn hơn số lượng yêu cầu.");
+            }
+
+            // Set fulfilled quantity
+            item.setFulfilledQuantity(approvalDTO.getApprovedQuantity());
+
+            // Fix logic: Compare với quantity (requested)
+            if (approvalDTO.getApprovedQuantity().equals(item.getQuantity())) {
+                item.setStatus("APPROVED"); // Fully approved
+            } else {
+                item.setStatus("PARTIALLY_APPROVED"); // Partially approved
+            }
+
+            // Create ProductBatch for approved quantity
+            createProductBatchFromApproval(item, approvalDTO, approvalDTO.getApprovedQuantity());
         }
 
         WarehouseRequestItem savedItem = itemRepository.save(item);
 
-        notificationService.sendNotificationToUsers(
-                Arrays.asList(savedItem.getWarehouseRequest().getWarehouse().getManager().getUserId()),
-                NotificationType.ALERT,
-                "Yêu cầu nhập hàng tới " + savedItem.getWarehouseRequest().getWarehouse().getName() + " đã được duyệt");
+        // Fetch parent request with items to avoid LazyInitializationException
+        WarehouseRequest parentRequest = requestRepository
+                .findById(savedItem.getWarehouseRequest().getRequestId().intValue())
+                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy warehouse request"));
 
-        updateParentRequestStatus(savedItem.getWarehouseRequest());
+        // Send notification
+        if (parentRequest.getWarehouse() != null && parentRequest.getWarehouse().getManager() != null) {
+            notificationService.sendNotificationToUsers(
+                    Arrays.asList(parentRequest.getWarehouse().getManager().getUserId()),
+                    NotificationType.ALERT,
+                    "Yêu cầu nhập hàng đã được xử lý: " + savedItem.getRequestItemId());
+        }
 
-        ProductBatch productBatch = new ProductBatch();
+        // Update parent request status with properly loaded request
+        updateParentRequestStatus(parentRequest);
+
+        return savedItem;
+    }
+
+    private void createProductBatch(WarehouseRequestItem item, BulkApprovalRequestDTO.ApprovalItemInfo itemInfo) {
+        if (item.getFulfilledQuantity() <= 0) {
+            return; // Don't create batch for zero quantity
+        }
 
         ProductUnit productUnit = productUnitRepository.findById(item.getProductUnitId().longValue())
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Không tìm thấy ProductUnit: " + item.getProductUnitId()));
 
+        ProductBatch productBatch = new ProductBatch();
         productBatch.setProduct(productUnit.getProduct());
         productBatch.setUnit(productUnit.getUnit());
         productBatch.setQuantity(item.getFulfilledQuantity());
-        productBatch.setWarehouse(savedItem.getWarehouseRequest().getWarehouse());
-        productBatch.setSupplier(approvalDTO.getSupplierId() != null
-                ? supplierRepository.findById(approvalDTO.getSupplierId().longValue()).orElse(null)
+        productBatch.setWarehouse(item.getWarehouseRequest().getWarehouse());
+        productBatch.setSupplier(itemInfo.getSupplierId() != null
+                ? supplierRepository.findById(itemInfo.getSupplierId().longValue()).orElse(null)
                 : null);
-        productBatch.setExpirationDate(approvalDTO.getExpiresAt());
+        productBatch.setExpirationDate(itemInfo.getExpiresAt());
         productBatch.setRequestItem(item);
         productBatch.setStatus("SHIPPED");
         productBatch.setImportPrice(
@@ -248,9 +277,44 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
 
         System.out.println("Creating ProductBatch: " + productBatch.getStatus() + " for Product: "
                 + productBatch.getProduct().getName() + " with Quantity: " + productBatch.getQuantity());
-        productBatchRepository.save(productBatch);
 
-        return savedItem;
+        productBatchRepository.save(productBatch);
+    }
+
+    private void createProductBatchFromApproval(WarehouseRequestItem item, ItemApprovalDTO approvalDTO,
+            Integer batchQuantity) {
+        if (batchQuantity == null || batchQuantity <= 0) {
+            return; // Don't create batch for zero quantity
+        }
+
+        ProductUnit productUnit = productUnitRepository.findById(item.getProductUnitId().longValue())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Không tìm thấy ProductUnit: " + item.getProductUnitId()));
+
+        ProductBatch productBatch = new ProductBatch();
+        productBatch.setProduct(productUnit.getProduct());
+        productBatch.setUnit(productUnit.getUnit());
+        productBatch.setQuantity(batchQuantity); // Use the specific batch quantity, not total fulfilled
+        productBatch.setWarehouse(item.getWarehouseRequest().getWarehouse());
+        productBatch.setSupplier(approvalDTO.getSupplierId() != null
+                ? supplierRepository.findById(approvalDTO.getSupplierId().longValue()).orElse(null)
+                : null);
+        productBatch.setExpirationDate(approvalDTO.getExpiresAt());
+        productBatch.setRequestItem(item);
+        productBatch.setStatus("SHIPPED");
+        productBatch.setImportPrice(
+                productUnit.getPrice().multiply(BigDecimal.valueOf(batchQuantity)));
+        productBatch.setManufactureDate(LocalDate.now());
+
+        System.out.println("Creating ProductBatch: " + productBatch.getStatus() + " for Product: "
+                + productBatch.getProduct().getName() + " with Quantity: " + productBatch.getQuantity());
+
+        productBatchRepository.save(productBatch);
+    }
+
+    // Overloaded method for backward compatibility
+    private void createProductBatchFromApproval(WarehouseRequestItem item, ItemApprovalDTO approvalDTO) {
+        createProductBatchFromApproval(item, approvalDTO, approvalDTO.getApprovedQuantity());
     }
 
     private void updateParentRequestStatus(WarehouseRequest request) {
@@ -258,15 +322,16 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
         long approvedCount = request.getItems().stream().filter(i -> "APPROVED".equals(i.getStatus())).count();
         long rejectedCount = request.getItems().stream().filter(i -> "REJECTED".equals(i.getStatus())).count();
         long partiallyApprovedCount = request.getItems().stream()
-                .filter(i -> "PARTIALLY_FULFILLED".equals(i.getStatus())).count();
+                .filter(i -> "PARTIALLY_APPROVED".equals(i.getStatus())).count();
+
+        System.out.println("Status Update - Total: " + totalItems + ", Approved: " + approvedCount +
+                ", Rejected: " + rejectedCount + ", Partially Approved: " + partiallyApprovedCount);
 
         if (approvedCount == totalItems) {
             request.setStatus("APPROVED");
         } else if (rejectedCount == totalItems) {
             request.setStatus("REJECTED");
-        } else if (approvedCount > 0 || rejectedCount > 0) {
-            request.setStatus("PARTIALLY_APPROVED");
-        } else if (partiallyApprovedCount > 0) {
+        } else if (approvedCount > 0 || partiallyApprovedCount > 0) {
             request.setStatus("PARTIALLY_APPROVED");
         } else {
             request.setStatus("PROCESSING");

@@ -22,4 +22,7 @@ public interface AIProcessService {
 
     public GeminiResponse analyzeResponse(String prompt);
 
+    public String buildWarehouseJsonInput(Long warehouseId, Long productId);
+
+    public GeminiResponse warehouseReplenishmentAdvisor(String jsonInput);
 }

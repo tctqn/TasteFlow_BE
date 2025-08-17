@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import com.startup.tasteflowbe.dto.response.StockMovementDTO;
 
 @Service
 @RequiredArgsConstructor
@@ -72,8 +74,52 @@ public class StockMovementServiceImpl implements StockMovementService {
     }
 
     @Override
-    public List<StockMovement> getAllStockMovements() {
-        return stockMovementRepository.findAll();
+    public List<StockMovementDTO> getAllStockMovements() {
+        List<StockMovement> movements = stockMovementRepository.findAll();
+        return movements.stream().map(this::toDTO).collect(Collectors.toList());
+    }
+
+    private StockMovementDTO toDTO(StockMovement m) {
+        StockMovementDTO dto = new StockMovementDTO();
+        dto.setMovementId(m.getMovementId());
+
+        // Product
+        StockMovementDTO.ProductInfo productInfo = new StockMovementDTO.ProductInfo();
+        if (m.getProduct() != null) {
+            productInfo.setProductId(m.getProduct().getProductId());
+            productInfo.setName(m.getProduct().getName());
+        }
+        dto.setProduct(productInfo);
+
+        // Batch
+        StockMovementDTO.BatchInfo batchInfo = new StockMovementDTO.BatchInfo();
+        if (m.getBatch() != null) {
+            batchInfo.setBatchId(m.getBatch().getBatchId());
+        }
+        dto.setBatch(batchInfo);
+
+        dto.setMovementType(m.getMovementType());
+        dto.setQuantity(m.getQuantity());
+        dto.setMovementDate(m.getMovementDate());
+
+        // Warehouse
+        if (m.getWarehouse() != null) {
+            StockMovementDTO.WarehouseInfo warehouseInfo = new StockMovementDTO.WarehouseInfo();
+            warehouseInfo.setWarehouseId(m.getWarehouse().getWarehouseId());
+            warehouseInfo.setName(m.getWarehouse().getName());
+            dto.setWarehouse(warehouseInfo);
+        }
+
+        // Store
+        if (m.getStore() != null) {
+            StockMovementDTO.StoreInfo storeInfo = new StockMovementDTO.StoreInfo();
+            storeInfo.setStoreId(m.getStore().getStoreId());
+            storeInfo.setName(m.getStore().getName());
+            dto.setStore(storeInfo);
+        }
+
+        dto.setNote(m.getNote());
+        return dto;
     }
 
     @Override

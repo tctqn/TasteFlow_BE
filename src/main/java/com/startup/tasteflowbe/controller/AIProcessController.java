@@ -5,6 +5,8 @@ import com.startup.tasteflowbe.dto.response.GeminiResponse;
 import com.startup.tasteflowbe.service.AIProcessService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
 @RequestMapping("/api/ai")
@@ -53,6 +55,12 @@ public class AIProcessController {
     @GetMapping("/meal-suggestion-by-product/{context}")
     public GeminiResponse mealSuggestionByProduct(@PathVariable Long context) {
         return aiProcessService.mealSuggestionByProduct(context);
+    }
+
+    @GetMapping("/prediction-stock/{warehouseId}/{productId}")
+    public GeminiResponse getPredictionStockOfWarehouse(@PathVariable Long warehouseId, @PathVariable Long productId) {
+        String inputPrompt = aiProcessService.buildWarehouseJsonInput(warehouseId, productId);
+        return aiProcessService.warehouseReplenishmentAdvisor(inputPrompt);
     }
 
 }

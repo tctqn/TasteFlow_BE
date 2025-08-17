@@ -9,14 +9,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(
-        name = "products",
-        indexes = {
-                @Index(name = "idx_product_name", columnList = "name"),
-                @Index(name = "idx_product_category", columnList = "category_id"),
-                @Index(name = "idx_product_created_at", columnList = "created_at")
-        }
-)
+@Table(name = "products", indexes = {
+        @Index(name = "idx_product_name", columnList = "name"),
+        @Index(name = "idx_product_category", columnList = "category_id"),
+        @Index(name = "idx_product_created_at", columnList = "created_at")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -57,8 +54,10 @@ public class Product {
 
     @PrePersist
     protected void onCreate() {
-        if (createdAt == null) createdAt = LocalDateTime.now();
-        if (isDraft == null) isDraft = Boolean.FALSE;
+        if (createdAt == null)
+            createdAt = LocalDateTime.now();
+        if (isDraft == null)
+            isDraft = Boolean.FALSE;
     }
 
     // toString tối giản đã đủ (đã dùng @ToString.Include ở trên)

@@ -1,5 +1,12 @@
 package com.startup.tasteflowbe.service.impl;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 import com.google.common.collect.ImmutableList;
 import com.google.genai.Client;
@@ -33,6 +40,7 @@ import com.startup.tasteflowbe.repository.ProductUnitRepository;
 import com.startup.tasteflowbe.repository.PromotionRepository;
 import com.startup.tasteflowbe.repository.StoreRepository;
 import com.startup.tasteflowbe.repository.VoucherRepository;
+import com.startup.tasteflowbe.repository.WarehouseRepository;
 import com.startup.tasteflowbe.service.AIProcessService;
 import lombok.RequiredArgsConstructor;
 
@@ -55,6 +63,7 @@ public class AIProcessServiceImpl implements AIProcessService {
     private final ProductBatchRepository productBatchRepository;
     private final ProductUnitRepository productUnitRepository;
     private final VoucherRepository voucherRepository;
+    private final WarehouseRepository warehouseRepository;
     private final Client client;
 
     @Override
@@ -94,7 +103,7 @@ public class AIProcessServiceImpl implements AIProcessService {
         List<Map<String, Object>> data = storeRepository.findTopSellingProductsInSeason(storeId, 3, season);
         if (data.isEmpty()) {
             GeminiResponse response = new GeminiResponse();
-            response.setOutput("Không có dữ liệu bán hàng cho mùa " + season + " từ 3 năm trước.");
+            response.setError("Không có dữ liệu bán hàng cho mùa " + season + " từ 3 năm trước.");
             return response;
         }
 
@@ -173,7 +182,7 @@ public class AIProcessServiceImpl implements AIProcessService {
         }
 
         GeminiResponse response = new GeminiResponse();
-        response.setOutput(String.join("", results));
+        response.setError(String.join("", results));
         return response;
     }
 
@@ -524,5 +533,360 @@ public class AIProcessServiceImpl implements AIProcessService {
         GeminiRequest geminiRequest = new GeminiRequest();
         geminiRequest.setPrompt(prompt.toString());
         return processPrompt(geminiRequest);
+    }
+
+    @Override
+    public String buildWarehouseJsonInput(Long warehouseId, Long productId) {
+        final int M = 1;
+        final int nearExpiryDays = 7;
+        final double targetServiceLevel = 0.95;
+
+        ObjectMapper om = new ObjectMapper();
+        ObjectNode root = om.createObjectNode();
+        root.put("as_of_date", LocalDate.now().toString());
+
+        ObjectNode wh = om.createObjectNode();
+        wh.put("id", warehouseId);
+        String wname = warehouseRepository.findWarehouseNameById(warehouseId);
+        if (wname != null)
+            wh.put("name", wname);
+        root.set("warehouse", wh);
+
+        ObjectNode params = om.createObjectNode();
+        params.put("time_window_months", M);
+        params.put("near_expiry_days", nearExpiryDays);
+        params.put("target_service_level", targetServiceLevel);
+        params.putNull("budget_cap");
+        params.putArray("priority_categories");
+        root.set("params", params);
+
+        double onHand = Optional.ofNullable(warehouseRepository.onHandOfProduct(warehouseId, productId)).orElse(0d);
+        double reorderLevel = Optional.ofNullable(warehouseRepository.reorderLevelOfProduct(warehouseId, productId))
+                .orElse(0d);
+        double avgIn = Optional.ofNullable(warehouseRepository.avgMonthlyInboundOfProduct(warehouseId, productId, M))
+                .orElse(0d);
+        double avgOut = Optional
+                .ofNullable(warehouseRepository.avgMonthlyOutboundToStoreOfProduct(warehouseId, productId, M))
+                .orElse(0d);
+        double nearExpiryOnHand = Optional
+                .ofNullable(warehouseRepository.nearExpiryOnHandOfProduct(warehouseId, productId, nearExpiryDays))
+                .orElse(0d);
+        Integer minDte = warehouseRepository.minDaysToExpiryOfProduct(warehouseId, productId);
+        double avgExpired = Optional
+                .ofNullable(warehouseRepository.avgMonthlyExpiredEstimateOfProduct(warehouseId, productId, M))
+                .orElse(0d);
+
+        ArrayNode products = om.createArrayNode();
+        ObjectNode pnode = om.createObjectNode();
+        pnode.put("product_id", productId);
+        pnode.putNull("sku");
+        pnode.putNull("name");
+        pnode.putNull("category");
+        pnode.putNull("supplier_id");
+        pnode.putNull("lead_time_days");
+
+        pnode.put("reorder_level", reorderLevel);
+        pnode.put("case_pack", 1); // tránh 0 để rounding đúng
+        pnode.put("moq", 0);
+        pnode.put("on_hand_qty", onHand);
+        pnode.put("on_order_qty", 0);
+        pnode.put("avg_monthly_inbound", avgIn);
+        pnode.put("avg_monthly_outbound_to_store", avgOut);
+        pnode.put("avg_monthly_expired", avgExpired);
+        pnode.put("near_expiry_on_hand", nearExpiryOnHand);
+        if (minDte != null)
+            pnode.put("min_days_to_expiry", minDte);
+        else
+            pnode.putNull("min_days_to_expiry");
+        pnode.putNull("store_group_monthly_demand");
+        pnode.put("recent_trend", "flat");
+        pnode.putNull("notes");
+
+        products.add(pnode);
+        root.set("products", products);
+        return root.toPrettyString();
+    }
+
+    @Override
+    public GeminiResponse warehouseReplenishmentAdvisor(String jsonInput) {
+        try {
+            ObjectMapper om = new ObjectMapper();
+            om.findAndRegisterModules();
+            JsonNode inputJson = om.readTree(jsonInput);
+            JsonNode paramsNode = inputJson.path("params");
+            int timeWindowWeeks = paramsNode.path("time_window_weeks").asInt(1);
+            double targetServiceLevel = paramsNode.path("target_service_level").asDouble(0.95);
+            Double budgetCap = paramsNode.hasNonNull("budget_cap") ? paramsNode.get("budget_cap").asDouble() : null;
+
+            JsonNode warehouseNode = inputJson.path("warehouse");
+            long warehouseId = warehouseNode.path("id").asLong();
+            String warehouseName = warehouseNode.path("name").asText("Unknown Warehouse");
+
+            JsonNode productsArray = inputJson.path("products");
+            if (!productsArray.isArray() || productsArray.size() == 0) {
+                GeminiResponse errorResponse = new GeminiResponse();
+                errorResponse.setError("{\"error\": \"No products found in input JSON\"}");
+                return errorResponse;
+            }
+
+            ObjectNode reportRoot = om.createObjectNode();
+            ObjectNode report = om.createObjectNode();
+
+            report.put("analysis_date", inputJson.path("as_of_date").asText(LocalDate.now().toString()));
+            report.put("warehouse_id", warehouseId);
+            report.put("warehouse_name", warehouseName);
+            report.put("service_level_target", targetServiceLevel);
+            report.put("planning_horizon_weeks", timeWindowWeeks);
+            report.put("analysis_scope", "Đề xuất điều chỉnh lượng nhập hàng");
+
+            ArrayNode productAnalysis = om.createArrayNode();
+            double totalRecommendedOrderValue = 0.0;
+            int increaseItems = 0;
+            int decreaseItems = 0;
+            int maintainItems = 0;
+
+            for (JsonNode productNode : productsArray) {
+                ObjectNode productReport = processProductReplenishmentOptimized(productNode, timeWindowWeeks,
+                        targetServiceLevel, om);
+
+                productAnalysis.add(productReport);
+
+                double orderQty = productReport.path("recommendation").path("order_quantity").asDouble(0);
+                double unitCost = productReport.path("financial_analysis").path("estimated_unit_cost").asDouble(0);
+                totalRecommendedOrderValue += orderQty * unitCost;
+
+                String adjustmentType = productReport.path("recommendation").path("adjustment_type").asText();
+                switch (adjustmentType) {
+                    case "INCREASE" -> increaseItems++;
+                    case "DECREASE" -> decreaseItems++;
+                    case "MAINTAIN" -> maintainItems++;
+                }
+            }
+
+            report.set("product_analysis", productAnalysis);
+
+            ObjectNode executiveSummary = om.createObjectNode();
+            executiveSummary.put("total_products_analyzed", productsArray.size());
+            executiveSummary.put("increase_quantity_items", increaseItems);
+            executiveSummary.put("decrease_quantity_items", decreaseItems);
+            executiveSummary.put("maintain_quantity_items", maintainItems);
+            executiveSummary.put("total_recommended_order_value", Math.round(totalRecommendedOrderValue));
+            executiveSummary.put("budget_utilization_pct",
+                    budgetCap != null ? Math.min(100, (totalRecommendedOrderValue / budgetCap) * 100) : null);
+
+            report.set("executive_summary", executiveSummary);
+
+            ArrayNode strategicRecommendations = om.createArrayNode();
+            generateOptimizedStrategicRecommendations(strategicRecommendations, increaseItems,
+                    decreaseItems, maintainItems, totalRecommendedOrderValue, budgetCap);
+            report.set("strategic_recommendations", strategicRecommendations);
+
+            reportRoot.set("warehouse_replenishment_report", report);
+            GeminiResponse response = new GeminiResponse();
+            response.setOutput(reportRoot);
+            return response;
+
+        } catch (Exception e) {
+            GeminiResponse errorResponse = new GeminiResponse();
+            errorResponse.setError("{\"error\": \"Replenishment analysis failed: " + e.getMessage() + "\"}");
+            return errorResponse;
+        }
+    }
+
+    private ObjectNode processProductReplenishmentOptimized(JsonNode productNode, int timeWindowWeeks,
+            double targetServiceLevel, ObjectMapper om) {
+        ObjectNode productReport = om.createObjectNode();
+        long productId = productNode.path("product_id").asLong();
+        double onHand = productNode.path("on_hand_qty").asDouble(0);
+        double onOrder = productNode.path("on_order_qty").asDouble(0);
+        double avgMonthlyInbound = productNode.path("avg_monthly_inbound").asDouble(0);
+        double avgMonthlyOutbound = productNode.path("avg_monthly_outbound_to_store").asDouble(0);
+        double reorderLevel = productNode.path("reorder_level").asDouble(0);
+
+        int casePack = Math.max(1, productNode.path("case_pack").asInt(1));
+        int moq = productNode.path("moq").asInt(0);
+        int leadTimeDays = productNode.path("lead_time_days").asInt(7);
+
+        productReport.put("product_id", productId);
+
+        // Tính toán demand
+        ObjectNode demandAnalysis = om.createObjectNode();
+        double weeklyDemandFromOutbound = avgMonthlyOutbound / 4.33;
+        double weeklyDemandFromInbound = avgMonthlyInbound / 4.33;
+        double primaryWeeklyDemand = weeklyDemandFromOutbound > 0 ? weeklyDemandFromOutbound : weeklyDemandFromInbound;
+        double dailyDemand = primaryWeeklyDemand / 7.0;
+
+        demandAnalysis.put("weekly_demand", Math.round(primaryWeeklyDemand * 100.0) / 100.0);
+        demandAnalysis.put("daily_demand", Math.round(dailyDemand * 100.0) / 100.0);
+        demandAnalysis.put("trend", analyzeDemandTrend(weeklyDemandFromInbound, weeklyDemandFromOutbound));
+        productReport.set("demand_analysis", demandAnalysis);
+
+        // Tính toán inventory position
+        ObjectNode inventoryPosition = om.createObjectNode();
+        double totalPosition = onHand + onOrder;
+        double daysOnHand = dailyDemand > 0 ? totalPosition / dailyDemand : (totalPosition > 0 ? 999 : 0);
+
+        inventoryPosition.put("on_hand", onHand);
+        inventoryPosition.put("on_order", onOrder);
+        inventoryPosition.put("total_position", totalPosition);
+        inventoryPosition.put("days_on_hand", Math.round(daysOnHand * 10.0) / 10.0);
+        inventoryPosition.put("reorder_level", reorderLevel);
+        productReport.set("inventory_position", inventoryPosition);
+
+        // Tính toán optimal order quantity
+        double zScore = getZScoreForServiceLevel(targetServiceLevel);
+        double leadTimeWeeks = leadTimeDays / 7.0;
+        double weeklyVariability = Math.max(0.15,
+                Math.abs(weeklyDemandFromInbound - weeklyDemandFromOutbound) / Math.max(1, primaryWeeklyDemand));
+        double weeklyDemandStdDev = primaryWeeklyDemand * weeklyVariability;
+        double weeklySafetyStock = zScore * Math.sqrt(leadTimeWeeks) * weeklyDemandStdDev;
+        double leadTimeDemand = dailyDemand * leadTimeDays;
+        double optimalReorderPoint = leadTimeDemand + weeklySafetyStock;
+        double optimalTargetStock = optimalReorderPoint + (primaryWeeklyDemand * timeWindowWeeks);
+
+        // Tính gap và làm tròn theo bội số của 5
+        double rawGap = Math.max(0, optimalTargetStock - totalPosition);
+        long recommendedOrderQty = roundToMultipleOfFive(rawGap);
+
+        // Đảm bảo MOQ
+        if (recommendedOrderQty > 0 && recommendedOrderQty < moq) {
+            recommendedOrderQty = roundToMultipleOfFive(moq);
+        }
+
+        // Xác định loại adjustment
+        String adjustmentType = determineAdjustmentType(recommendedOrderQty, avgMonthlyInbound);
+        String adjustmentReason = buildAdjustmentReason(adjustmentType, recommendedOrderQty, daysOnHand, leadTimeDays,
+                reorderLevel, totalPosition);
+
+        ObjectNode recommendation = om.createObjectNode();
+        recommendation.put("adjustment_type", adjustmentType);
+        recommendation.put("order_quantity", recommendedOrderQty);
+        recommendation.put("previous_avg_monthly", Math.round(avgMonthlyInbound));
+        recommendation.put("adjustment_reason", adjustmentReason);
+        recommendation.put("priority", determinePriority(daysOnHand, leadTimeDays, totalPosition, reorderLevel));
+        productReport.set("recommendation", recommendation);
+
+        // Financial analysis
+        ObjectNode financialAnalysis = om.createObjectNode();
+        double estimatedUnitCost = estimateUnitCost(avgMonthlyInbound, productId);
+        double orderValue = recommendedOrderQty * estimatedUnitCost;
+
+        financialAnalysis.put("estimated_unit_cost", Math.round(estimatedUnitCost * 100.0) / 100.0);
+        financialAnalysis.put("recommended_order_value", Math.round(orderValue * 100.0) / 100.0);
+        productReport.set("financial_analysis", financialAnalysis);
+
+        return productReport;
+    }
+
+    private long roundToMultipleOfFive(double value) {
+        if (value <= 0)
+            return 0;
+        return Math.round(value / 5.0) * 5;
+    }
+
+    private String determineAdjustmentType(long orderQty, double currentAvgMonthly) {
+        if (orderQty == 0)
+            return "MAINTAIN";
+
+        double monthlyEquivalent = orderQty * 1.0; // Giả sử order hàng tuần
+        if (monthlyEquivalent > currentAvgMonthly * 1.2) {
+            return "INCREASE";
+        } else if (monthlyEquivalent < currentAvgMonthly * 0.8) {
+            return "DECREASE";
+        } else {
+            return "MAINTAIN";
+        }
+    }
+
+    private String buildAdjustmentReason(String adjustmentType, long orderQty, double daysOnHand,
+            int leadTimeDays, double reorderLevel, double totalPosition) {
+        switch (adjustmentType) {
+            case "INCREASE":
+                if (daysOnHand < leadTimeDays) {
+                    return String.format("Tăng lên %d đơn vị - Tồn kho thấp (%,.1f ngày), dưới lead time %d ngày",
+                            orderQty, daysOnHand, leadTimeDays);
+                } else if (totalPosition < reorderLevel) {
+                    return String.format("Tăng lên %d đơn vị - Dưới mức reorder point (%,.0f)",
+                            orderQty, reorderLevel);
+                } else {
+                    return String.format("Tăng lên %d đơn vị - Tối ưu hóa service level", orderQty);
+                }
+            case "DECREASE":
+                return String.format("Giảm xuống %d đơn vị - Tồn kho đủ dùng (%,.1f ngày)",
+                        orderQty, daysOnHand);
+            case "MAINTAIN":
+                return String.format("Giữ nguyên mức hiện tại - Tồn kho ổn định (%,.1f ngày)", daysOnHand);
+            default:
+                return "Đề xuất duy trì mức nhập hiện tại";
+        }
+    }
+
+    private String determinePriority(double daysOnHand, int leadTimeDays, double totalPosition, double reorderLevel) {
+        if (daysOnHand < leadTimeDays * 0.5) {
+            return "HIGH";
+        } else if (totalPosition < reorderLevel) {
+            return "MEDIUM";
+        } else {
+            return "LOW";
+        }
+    }
+
+    private String analyzeDemandTrend(double weeklyInbound, double weeklyOutbound) {
+        if (weeklyOutbound > weeklyInbound * 1.15)
+            return "Tăng trưởng";
+        if (weeklyOutbound < weeklyInbound * 0.85)
+            return "Giảm dần";
+        return "Ổn định";
+    }
+
+    private void generateOptimizedStrategicRecommendations(ArrayNode recommendations, int increaseItems,
+            int decreaseItems, int maintainItems, double totalOrderValue, Double budgetCap) {
+
+        if (increaseItems > 0) {
+            recommendations.add(
+                    String.format("📈 TĂNG LƯỢNG NHẬP: %d sản phẩm cần tăng số lượng nhập để đảm bảo service level",
+                            increaseItems));
+        }
+
+        if (decreaseItems > 0) {
+            recommendations
+                    .add(String.format("📉 GIẢM LƯỢNG NHẬP: %d sản phẩm có thể giảm số lượng nhập để tối ưu chi phí",
+                            decreaseItems));
+        }
+
+        if (maintainItems > 0) {
+            recommendations.add(String.format("📊 DUY TRÌ HIỆN TẠI: %d sản phẩm đang ở mức tối ưu",
+                    maintainItems));
+        }
+
+        recommendations.add(String.format("💰 TỔNG GIÁ TRỊ ĐỀ XUẤT: %,.0f VND cho chu kỳ tiếp theo",
+                totalOrderValue));
+
+        if (budgetCap != null) {
+            double utilizationPct = (totalOrderValue / budgetCap) * 100;
+            if (utilizationPct > 100) {
+                recommendations.add(String.format(
+                        "⚠️ VƯỢT NGÂN SÁCH: Cần %,.0f VND nhưng chỉ có %,.0f VND. Ưu tiên items HIGH priority",
+                        totalOrderValue, budgetCap));
+            } else {
+                recommendations.add(String.format("✅ NGÂN SÁCH: Sử dụng %.1f%% ngân sách khả dụng", utilizationPct));
+            }
+        }
+    }
+
+    private double estimateUnitCost(double avgInbound, long productId) {
+        return Math.max(10, avgInbound * 0.1 + productId % 100);
+    }
+
+    private double getZScoreForServiceLevel(double serviceLevel) {
+        if (serviceLevel >= 0.99)
+            return 2.33;
+        if (serviceLevel >= 0.98)
+            return 2.05;
+        if (serviceLevel >= 0.95)
+            return 1.65;
+        if (serviceLevel >= 0.90)
+            return 1.28;
+        return 1.0;
     }
 }

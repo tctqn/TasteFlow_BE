@@ -37,28 +37,28 @@ public class ProductBatch {
     private Long batchId;
 
     // to-one -> LAZY để giảm N+1
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(optional = false)
     @JoinColumn(name = "product_id", nullable = false)
     @JsonIgnore
     private Product product;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(optional = false)
     @JoinColumn(name = "supplier_id", nullable = false)
     @JsonIgnore
     private Supplier supplier;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(optional = false)
     @JoinColumn(name = "warehouse_id", nullable = false)
     @JsonIgnore
     private Warehouse warehouse;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(optional = false)
     @JoinColumn(name = "unit_id", nullable = false)
     @JsonIgnore
     private Unit unit;
 
     // Owning side; để LAZY và ignore khi serialize
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne
     @JoinColumn(name = "request_item_id")
     @JsonIgnore
     private WarehouseRequestItem requestItem;

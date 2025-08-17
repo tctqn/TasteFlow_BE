@@ -13,8 +13,13 @@ import org.xhtmlrenderer.pdf.ITextRenderer;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -57,12 +62,26 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         ITextRenderer renderer = new ITextRenderer();
         renderer.setDocumentFromString(html);
-        renderer.getFontResolver().addFont("src/main/resources/fonts/DejaVuSans.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+
+        // Load font từ resources
+        String fontResource = "fonts/DejaVuSans.ttf";
+        try (InputStream fontStream = getClass().getClassLoader().getResourceAsStream(fontResource)) {
+            if (fontStream == null) {
+                throw new IOException("Font not found in resources: " + fontResource);
+            }
+            Path tempFontFile = Files.createTempFile("DejaVuSans", ".ttf");
+            Files.copy(fontStream, tempFontFile, StandardCopyOption.REPLACE_EXISTING);
+
+            renderer.getFontResolver().addFont(tempFontFile.toAbsolutePath().toString(),
+                    BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+        }
+
         renderer.layout();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         renderer.createPDF(baos);
         return baos.toByteArray();
     }
+
 
     @Override
     public List<Invoice> getAllInvoices() {

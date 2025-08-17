@@ -61,6 +61,10 @@ public class Promotion {
     @ToString.Include
     private LocalDateTime endDate;
 
+    @Column(name = "is_active", nullable = false)
+    private boolean isActive = false;
+
+
     @Column(name = "image_url")
     private String imageUrl;
 

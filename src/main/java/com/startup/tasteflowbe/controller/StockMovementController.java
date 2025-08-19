@@ -5,6 +5,7 @@ import com.startup.tasteflowbe.model.StockMovement;
 import com.startup.tasteflowbe.dto.response.StockMovementDTO;
 import com.startup.tasteflowbe.dto.StoreTransferParam;
 import com.startup.tasteflowbe.dto.request.StockMovementRequestDTO;
+import com.startup.tasteflowbe.dto.request.DamageStockRequestDTO;
 import com.startup.tasteflowbe.dto.response.ProductBatchResponseDTO;
 import com.startup.tasteflowbe.dto.response.StockMovementResponseDTO;
 import com.startup.tasteflowbe.service.StockMovementService;
@@ -101,6 +102,12 @@ public class StockMovementController {
         }
 
         return dto;
+    }
+
+    @PostMapping("/damage")
+    public ResponseEntity<String> damageStock(@RequestBody DamageStockRequestDTO dto) {
+        String result = stockMovementService.damageStock(dto);
+        return ResponseEntity.ok(result);
     }
 
 }

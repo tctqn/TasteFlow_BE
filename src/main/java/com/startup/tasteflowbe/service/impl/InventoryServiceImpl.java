@@ -193,8 +193,7 @@ public class InventoryServiceImpl implements InventoryService {
         for (Product product : products) {
             List<Inventory> inventories = inventoryRepository.findByWarehouse_WarehouseId(warehouseId)
                     .stream().filter(inv -> inv.getProduct().getProductId().equals(product.getProductId())).toList();
-            if (inventories.isEmpty())
-                continue;
+            if (inventories.isEmpty()) continue;
             // SKU và đơn vị cơ bản
             ProductUnit baseUnit = product.getProductUnits().stream()
                     .filter(ProductUnit::getIsBaseUnit)
@@ -215,8 +214,7 @@ public class InventoryServiceImpl implements InventoryService {
                     .toList();
             Double minImportPrice = importPrices.stream().min(Double::compareTo).orElse(null);
             Double maxImportPrice = importPrices.stream().max(Double::compareTo).orElse(null);
-            Double avgImportPrice = importPrices.isEmpty() ? null
-                    : importPrices.stream().mapToDouble(Double::doubleValue).average().orElse(0);
+            Double avgImportPrice = importPrices.isEmpty() ? null : importPrices.stream().mapToDouble(Double::doubleValue).average().orElse(0);
             // Ngưỡng cảnh báo nhập hàng lại
             Integer reorderLevel = inventories.get(0).getReorderLevel();
 
@@ -276,14 +274,15 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
-    public List<BatchDetailDTO> getBatchDetailsByProductAndWarehouseOrStore(Long productId, Long warehouseId,
-            Long storeId) {
-        List<Inventory> inventories = inventoryRepository.findByProductAndWarehouseOrStore(productId, warehouseId,
-                storeId);
+    public List<BatchDetailDTO> getBatchDetailsByProductAndWarehouseOrStore(Long productId, Long warehouseId, Long storeId) {
+        List<Inventory> inventories = inventoryRepository.findByProductAndWarehouseOrStore(productId, warehouseId, storeId);
         List<BatchDetailDTO> batchDetails = new ArrayList<>();
         LocalDate currentDate = LocalDate.now();
         for (Inventory inv : inventories) {
             BatchDetailDTO dto = new BatchDetailDTO();
+            dto.setProductId(inv.getProduct() != null ? inv.getProduct().getProductId() : null);
+            dto.setWarehouseId(inv.getWarehouse() != null ? inv.getWarehouse().getWarehouseId() : null);
+            dto.setStoreId(inv.getStore() != null ? inv.getStore().getStoreId() : null);
             dto.setBatchId(inv.getBatch().getBatchId());
             dto.setProductName(inv.getProduct().getName());
             dto.setQuantity(inv.getQuantity());
@@ -334,14 +333,13 @@ public class InventoryServiceImpl implements InventoryService {
         LocalDate currentDate = LocalDate.now();
         for (Product product : products) {
             List<Inventory> inventories = inventoryRepository.findByStore_StoreId(storeId)
-                    .stream().filter(inv -> inv.getProduct().getProductId().equals(product.getProductId())).toList();
-            if (inventories.isEmpty())
-                continue;
+                .stream().filter(inv -> inv.getProduct().getProductId().equals(product.getProductId())).toList();
+            if (inventories.isEmpty()) continue;
             // SKU và đơn vị cơ bản
             ProductUnit baseUnit = product.getProductUnits().stream()
-                    .filter(ProductUnit::getIsBaseUnit)
-                    .findFirst()
-                    .orElse(product.getProductUnits().get(0));
+                .filter(ProductUnit::getIsBaseUnit)
+                .findFirst()
+                .orElse(product.getProductUnits().get(0));
             String sku = baseUnit.getSku();
             String unitName = baseUnit.getUnit().getName();
             Double salePrice = baseUnit.getPrice() != null ? baseUnit.getPrice().doubleValue() : null;
@@ -386,17 +384,17 @@ public class InventoryServiceImpl implements InventoryService {
             // Trạng thái hàng hóa
             String status = totalQuantity <= reorderLevel ? "SẮP HẾT HÀNG" : "BÌNH THƯỜNG";
             StoreProductDTO dto = StoreProductDTO.builder()
-                    .productId(product.getProductId())
-                    .sku(sku)
-                    .productName(product.getName())
-                    .unitName(unitName)
-                    .salePrice(salePrice)
-                    .totalQuantity(totalQuantity)
-                    .totalBatches(totalBatches)
-                    .reorderLevel(reorderLevel)
-                    .status(status)
-                    .expiryStatus(expiryStatus)
-                    .build();
+                .productId(product.getProductId())
+                .sku(sku)
+                .productName(product.getName())
+                .unitName(unitName)
+                .salePrice(salePrice)
+                .totalQuantity(totalQuantity)
+                .totalBatches(totalBatches)
+                .reorderLevel(reorderLevel)
+                .status(status)
+                .expiryStatus(expiryStatus)
+                .build();
             result.add(dto);
         }
         return result;
@@ -404,8 +402,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     public int updateReorderLevel(Long productId, Long warehouseId, Long storeId, Integer reorderLevel) {
-        List<Inventory> inventories = inventoryRepository.findByProductAndWarehouseOrStore(productId, warehouseId,
-                storeId);
+        List<Inventory> inventories = inventoryRepository.findByProductAndWarehouseOrStore(productId, warehouseId, storeId);
         for (Inventory inv : inventories) {
             inv.setReorderLevel(reorderLevel);
         }

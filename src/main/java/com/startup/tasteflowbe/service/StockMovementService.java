@@ -4,6 +4,7 @@ import com.startup.tasteflowbe.model.StockMovement;
 import com.startup.tasteflowbe.dto.response.StockMovementDTO;
 import com.startup.tasteflowbe.dto.StoreTransferParam;
 import com.startup.tasteflowbe.dto.request.StockMovementRequestDTO;
+import com.startup.tasteflowbe.dto.request.DamageStockRequestDTO;
 
 import java.util.List;
 
@@ -18,4 +19,6 @@ public interface StockMovementService {
             List<StoreTransferParam> transferList);
 
     List<StockMovement> getStockMovementsToStore(Long storeId);
+
+    String damageStock(DamageStockRequestDTO dto);
 }

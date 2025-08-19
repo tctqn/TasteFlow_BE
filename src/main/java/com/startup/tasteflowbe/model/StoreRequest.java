@@ -38,7 +38,7 @@ public class StoreRequest {
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
-    @OneToMany(mappedBy = "storeRequest", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @OneToMany(mappedBy = "storeRequest", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<StoreRequestItem> items;
 

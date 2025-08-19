@@ -34,8 +34,7 @@ public class Payment {
     @ToString.Include
     private Long paymentId;
 
-    // to-one -> LAZY để tránh N+1 khi duyệt payment list
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(optional = false)
     @JoinColumn(name = "order_id", nullable = false)
     @JsonIgnore
     private Order order; // Một Order có thể có nhiều lần Payment

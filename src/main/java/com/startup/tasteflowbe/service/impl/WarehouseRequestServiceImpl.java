@@ -232,7 +232,6 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
 
         WarehouseRequestItem savedItem = itemRepository.save(item);
 
-        // Fetch parent request with items to avoid LazyInitializationException
         WarehouseRequest parentRequest = requestRepository
                 .findById(savedItem.getWarehouseRequest().getRequestId().intValue())
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy warehouse request"));

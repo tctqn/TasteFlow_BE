@@ -20,7 +20,8 @@ public class ReturnItem {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name="return_id")
+    @ManyToOne
+    @JoinColumn(name="return_id")
     private ReturnRequest returnRequest;
 
     private Long orderItemId;

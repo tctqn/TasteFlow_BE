@@ -31,8 +31,7 @@ public class Invoice {
     @ToString.Include
     private Long invoiceId;
 
-    // Owning side của quan hệ 1-1 với Order (khớp với Order.invoice mappedBy = "order")
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @OneToOne(optional = false)
     @JoinColumn(name = "order_id", nullable = false, unique = true)
     @JsonIgnore
     private Order order;

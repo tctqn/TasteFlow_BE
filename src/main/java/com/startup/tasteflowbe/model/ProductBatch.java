@@ -33,7 +33,6 @@ public class ProductBatch {
     @ToString.Include
     private Long batchId;
 
-    // to-one -> LAZY để giảm N+1
     @ManyToOne(optional = false)
     @JoinColumn(name = "product_id", nullable = false)
     @JsonIgnore
@@ -53,7 +52,6 @@ public class ProductBatch {
     @JsonIgnore
     private Unit unit;
 
-    // Owning side; để LAZY và ignore khi serialize
     @ManyToOne
     @JoinColumn(name = "request_item_id")
     @JsonIgnore

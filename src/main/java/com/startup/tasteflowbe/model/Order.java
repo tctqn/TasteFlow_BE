@@ -45,8 +45,7 @@ public class Order {
     @ToString.Include
     private String orderCode;
 
-    // User (to-one -> LAZY)
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "user_id")
     @JsonIgnore
     private User user;
@@ -98,7 +97,6 @@ public class Order {
     @Column(name = "need_invoice", nullable = false)
     private boolean needInvoice;
 
-    // Voucher (to-many -> LAZY mặc định)
     @ManyToMany
     @JoinTable(
             name = "order_vouchers",
@@ -115,24 +113,20 @@ public class Order {
     @Column(name = "order_date", nullable = false)
     private LocalDateTime orderDate = LocalDateTime.now();
 
-    // ShippingAddress (to-one -> LAZY)
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "shipping_address_id")
     @JsonIgnore
     private ShippingAddress shippingAddress;
 
-    // Store (to-one -> LAZY)
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "store_id")
     private Store store;
 
-    // OrderItems (to-many -> LAZY)
-    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "order")
     @BatchSize(size = 50)
     private List<OrderItem> orderItems;
 
-    // Invoice (to-one -> LAZY)
-    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL)
     @JsonIgnore
     private Invoice invoice;
 

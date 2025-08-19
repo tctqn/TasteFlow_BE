@@ -19,11 +19,11 @@ public class UserVoucher {
     @Column(name = "user_voucher_id")
     private Long userVoucherId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "voucher_id", nullable = false)
     private Voucher voucher;
 

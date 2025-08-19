@@ -24,7 +24,7 @@ import java.util.Set;
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@ToString(onlyExplicitlyIncluded = true) // KHÔNG in các quan hệ để tránh vòng lặp & lazy init
+@ToString(onlyExplicitlyIncluded = true)
 @BatchSize(size = 50)
 public class Promotion {
 
@@ -68,10 +68,8 @@ public class Promotion {
     @Column(name = "image_url")
     private String imageUrl;
 
-    // ====== Scope áp dụng (Many-to-Many, để LAZY & batch size) ======
-
     @Builder.Default
-    @ManyToMany(fetch = FetchType.LAZY)
+    @ManyToMany
     @JoinTable(
             name = "promotion_products",
             joinColumns = @JoinColumn(name = "promotion_id"),
@@ -81,7 +79,7 @@ public class Promotion {
     private Set<Product> applicableProducts = new HashSet<>();
 
     @Builder.Default
-    @ManyToMany(fetch = FetchType.LAZY)
+    @ManyToMany
     @JoinTable(
             name = "promotion_categories",
             joinColumns = @JoinColumn(name = "promotion_id"),
@@ -91,7 +89,7 @@ public class Promotion {
     private Set<Category> applicableCategories = new HashSet<>();
 
     @Builder.Default
-    @ManyToMany(fetch = FetchType.LAZY)
+    @ManyToMany
     @JoinTable(
             name = "promotion_stores",
             joinColumns = @JoinColumn(name = "promotion_id"),

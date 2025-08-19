@@ -34,23 +34,22 @@ public class OrderItem {
     @ToString.Include
     private Long orderItemId;
 
-    // to-one -> LAZY để tránh N+1 khi duyệt danh sách
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(optional = false)
     @JoinColumn(name = "order_id", nullable = false)
     @JsonIgnore // tránh vòng lặp khi serialize; trả qua DTO nếu cần
     private Order order;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(optional = false)
     @JoinColumn(name = "product_id", nullable = false)
     @JsonIgnore // thường trả DTO cho client thay vì entity
     private Product product;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(optional = false)
     @JoinColumn(name = "product_unit_id", nullable = false)
     @JsonIgnore
     private ProductUnit productUnit;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "batch_id")
     @JsonIgnore
     private ProductBatch batch; // có thể null

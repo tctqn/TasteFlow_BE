@@ -34,7 +34,6 @@ public class Product {
     @ToString.Include
     private String name;
 
-    // to-one -> LAZY để tránh N+1
     @ManyToOne
     @JoinColumn(name = "category_id")
     @JsonIgnore
@@ -43,7 +42,6 @@ public class Product {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    // to-many -> LAZY (mặc định), không serialize trực tiếp để tránh vòng lặp
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     @BatchSize(size = 50)
     @JsonIgnore

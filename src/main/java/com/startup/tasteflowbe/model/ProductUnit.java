@@ -36,13 +36,12 @@ public class ProductUnit {
     @ToString.Include
     private Long productUnitId;
 
-    // to-one -> LAZY để tránh N+1
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(optional = false)
     @JoinColumn(name = "product_id", nullable = false)
     @JsonIgnore
     private Product product;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(optional = false)
     @JoinColumn(name = "unit_id", nullable = false)
     @JsonIgnore
     private Unit unit;

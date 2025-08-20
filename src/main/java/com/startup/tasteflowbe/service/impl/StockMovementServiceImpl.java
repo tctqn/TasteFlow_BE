@@ -3,6 +3,7 @@ package com.startup.tasteflowbe.service.impl;
 import com.startup.tasteflowbe.model.*;
 import com.startup.tasteflowbe.dto.StoreTransferParam;
 import com.startup.tasteflowbe.dto.request.StockMovementRequestDTO;
+import com.startup.tasteflowbe.dto.request.DamageStockRequestDTO;
 import com.startup.tasteflowbe.enums.MovementType;
 import com.startup.tasteflowbe.repository.*;
 import com.startup.tasteflowbe.service.StockMovementService;
@@ -206,4 +207,50 @@ public class StockMovementServiceImpl implements StockMovementService {
         storeRequest.setStatus("Processing");
     }
 
+
+    @Override
+    @Transactional
+    public String damageStock(DamageStockRequestDTO dto) {
+        Inventory inventory;
+        if (dto.getStoreId() != null) {
+            // Tìm tồn kho tại cửa hàng
+            Optional<Inventory> inventoryOpt = inventoryRepository.findByStore_StoreIdAndProduct_ProductIdAndBatch_BatchId(
+                    dto.getStoreId(), dto.getProductId(), dto.getBatchId());
+            if (inventoryOpt.isEmpty()) {
+                throw new IllegalArgumentException("Không tìm thấy tồn kho phù hợp trong cửa hàng.");
+            }
+            inventory = inventoryOpt.get();
+        } else {
+            // Luôn tìm theo warehouseId
+            List<Inventory> inventories = inventoryRepository.findByWarehouse_WarehouseIdAndProduct_ProductIdAndBatch_BatchId(
+                    dto.getWarehouseId(), dto.getProductId(), dto.getBatchId());
+            if (inventories.isEmpty()) {
+                throw new IllegalArgumentException("Không tìm thấy tồn kho phù hợp trong kho.");
+            }
+            inventory = inventories.get(0);
+        }
+
+        if (inventory.getQuantity() < dto.getDamageQuantity()) {
+            throw new IllegalArgumentException("Số lượng hỏng/hết hạn lớn hơn tồn kho hiện tại.");
+        }
+        // Trừ số lượng hỏng/hết hạn khỏi tồn kho
+        inventory.setQuantity(inventory.getQuantity() - dto.getDamageQuantity());
+        inventoryRepository.save(inventory);
+
+        // Ghi nhận lịch sử movement
+        StockMovement movement = new StockMovement();
+        movement.setWarehouse(inventory.getWarehouse());
+        if (inventory != null) {
+            movement.setStore(inventory.getStore());
+        }
+        movement.setProduct(inventory.getProduct());
+        movement.setBatch(inventory.getBatch());
+        movement.setQuantity(dto.getDamageQuantity());
+        movement.setMovementType(dto.getMovementType());
+        movement.setMovementDate(LocalDateTime.now());
+        movement.setNote(dto.getNote());
+        stockMovementRepository.save(movement);
+
+        return "Đã cập nhật tồn kho và ghi nhận lịch sử hỏng/hết hạn.";
+    }
 }

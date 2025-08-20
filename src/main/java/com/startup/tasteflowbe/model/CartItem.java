@@ -32,13 +32,12 @@ public class CartItem {
     @ToString.Include
     private Long cartItemId;
 
-    // to-one -> LAZY để giảm N+1
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     @JsonIgnore // tránh vòng lặp khi serialize; dùng DTO nếu cần trả user
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(optional = false)
     @JoinColumn(name = "product_id", nullable = false)
     @JsonIgnore // tránh vòng lặp khi serialize; dùng DTO nếu cần trả product
     private Product product;
@@ -56,7 +55,6 @@ public class CartItem {
         }
     }
 
-    // toString tối giản, không đụng quan hệ để khỏi trigger lazy
     @Override
     public String toString() {
         return "CartItem{id=" + cartItemId + ", qty=" + quantity + "}";

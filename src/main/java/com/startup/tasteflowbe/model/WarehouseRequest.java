@@ -31,7 +31,7 @@ public class WarehouseRequest {
 
     private String notes;
 
-    @OneToMany(mappedBy = "warehouseRequest", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "warehouseRequest", cascade = CascadeType.ALL)
     private List<WarehouseRequestItem> items;
 
     @ManyToOne

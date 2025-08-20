@@ -36,8 +36,7 @@ public class DeliveryTracking {
     @ToString.Include
     private Long trackingId;
 
-    // to-one -> LAZY để tránh N+1
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(optional = false)
     @JoinColumn(name = "order_id", nullable = false)
     @JsonIgnore // tránh vòng lặp khi serialize; dùng DTO nếu cần trả kèm order
     private Order order;

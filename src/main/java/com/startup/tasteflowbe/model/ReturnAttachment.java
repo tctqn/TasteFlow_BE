@@ -18,11 +18,13 @@ public class ReturnAttachment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name="return_id")
+    @ManyToOne
+    @JoinColumn(name="return_id")
     @JsonBackReference
     private ReturnRequest returnRequest;
 
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name="return_item_id")
+    @ManyToOne
+    @JoinColumn(name="return_item_id")
     private ReturnItem returnItem;
 
     private String fileUrl;

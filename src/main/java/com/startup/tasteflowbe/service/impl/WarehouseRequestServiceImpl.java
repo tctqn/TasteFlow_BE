@@ -83,7 +83,7 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
         notificationService.sendNotificationToUsers(
                 adminIds,
                 NotificationType.ALERT,
-                "Yêu cầu nhập hàng mới đã được tạo từ kho: " + dto.getWarehouseId());
+                "Yêu cầu nhập hàng mới đã được tạo từ " + warehouse.getName());
 
         return requestRepository.save(request);
     }
@@ -162,7 +162,7 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
         notificationService.sendNotificationToUsers(
                 Arrays.asList(request.getCreatedBy()),
                 NotificationType.ALERT,
-                "Yêu cầu nhập hàng đã được xử lý: " + requestId);
+                "Yêu cầu nhập hàng tới " + request.getWarehouse().getName() + " đã được duyệt");
 
         return requestRepository.save(request);
     }
@@ -232,7 +232,6 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
 
         WarehouseRequestItem savedItem = itemRepository.save(item);
 
-        // Fetch parent request with items to avoid LazyInitializationException
         WarehouseRequest parentRequest = requestRepository
                 .findById(savedItem.getWarehouseRequest().getRequestId().intValue())
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy warehouse request"));
@@ -240,9 +239,10 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
         // Send notification
         if (parentRequest.getWarehouse() != null && parentRequest.getWarehouse().getManager() != null) {
             notificationService.sendNotificationToUsers(
-                    Arrays.asList(parentRequest.getWarehouse().getManager().getUserId()),
+                    Arrays.asList(savedItem.getWarehouseRequest().getWarehouse().getManager().getUserId()),
                     NotificationType.ALERT,
-                    "Yêu cầu nhập hàng đã được xử lý: " + savedItem.getRequestItemId());
+                    "Yêu cầu nhập hàng tới " + savedItem.getWarehouseRequest().getWarehouse().getName() + " đã được duyệt");
+                    
         }
 
         // Update parent request status with properly loaded request

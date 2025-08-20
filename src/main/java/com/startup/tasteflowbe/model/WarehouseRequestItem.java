@@ -28,7 +28,7 @@ public class WarehouseRequestItem {
 
     private String note;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(optional = false)
     @JoinColumn(name = "request_id", nullable = false)
     @JsonIgnore
     private WarehouseRequest warehouseRequest;

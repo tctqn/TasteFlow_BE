@@ -17,4 +17,7 @@ public class BatchDetailDTO {
     private String supplierName;
     private String unitName;
     private String expiryStatus; // Trạng thái hạn sử dụng
+    private Long productId;
+    private Long warehouseId;
+    private Long storeId;
 }

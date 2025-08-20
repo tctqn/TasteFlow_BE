@@ -39,8 +39,8 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
             @Param("productId") Long productId,
             @Param("unitId") Long unitId);
 
-    @Query("SELECT i FROM Inventory i WHERE i.warehouse.warehouseId = :warehouseId")
-    List<Inventory> findByWarehouse_WarehouseId(Long warehouseId);
+        @Query("SELECT i FROM Inventory i WHERE i.warehouse.warehouseId = :warehouseId AND i.store IS NULL")
+        List<Inventory> findByWarehouse_WarehouseId(Long warehouseId);
 
     // Lấy danh sách sản phẩm duy nhất trong kho hàng theo warehouseId
     @Query("SELECT DISTINCT i.product FROM Inventory i WHERE i.warehouse.warehouseId = :warehouseId")

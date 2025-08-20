@@ -193,8 +193,9 @@ public class InventoryServiceImpl implements InventoryService {
         for (Product product : products) {
             List<Inventory> inventories = inventoryRepository.findByWarehouse_WarehouseId(warehouseId)
                     .stream().filter(inv -> inv.getProduct().getProductId().equals(product.getProductId())).toList();
-            if (inventories.isEmpty()) continue;
-            // SKU và đơn vị cơ bản
+            int totalQuantity = inventories.stream().mapToInt(Inventory::getQuantity).sum();
+            if (inventories.isEmpty() || totalQuantity <= 0) continue;
+            // ...existing code...
             ProductUnit baseUnit = product.getProductUnits().stream()
                     .filter(ProductUnit::getIsBaseUnit)
                     .findFirst()
@@ -202,11 +203,7 @@ public class InventoryServiceImpl implements InventoryService {
             String sku = baseUnit.getSku();
             String unitName = baseUnit.getUnit().getName();
             Double salePrice = baseUnit.getPrice() != null ? baseUnit.getPrice().doubleValue() : null;
-            // Tổng số lượng tồn
-            int totalQuantity = inventories.stream().mapToInt(Inventory::getQuantity).sum();
-            // Số lô đang tồn
-            int totalBatches = (int) inventories.stream().map(Inventory::getBatch).distinct().count();
-            // Giá nhập các batch
+            int totalBatches = (int) inventories.stream().filter(inv -> inv.getQuantity() != null && inv.getQuantity() > 0).map(Inventory::getBatch).distinct().count();
             List<Double> importPrices = inventories.stream()
                     .map(inv -> inv.getBatch().getImportPrice())
                     .filter(java.util.Objects::nonNull)
@@ -215,10 +212,8 @@ public class InventoryServiceImpl implements InventoryService {
             Double minImportPrice = importPrices.stream().min(Double::compareTo).orElse(null);
             Double maxImportPrice = importPrices.stream().max(Double::compareTo).orElse(null);
             Double avgImportPrice = importPrices.isEmpty() ? null : importPrices.stream().mapToDouble(Double::doubleValue).average().orElse(0);
-            // Ngưỡng cảnh báo nhập hàng lại
             Integer reorderLevel = inventories.get(0).getReorderLevel();
 
-            // Kiểm tra hạn sử dụng các batch
             boolean hasExpiredBatch = false;
             boolean hasBatchBelow30 = false;
             boolean hasBatchBelow10 = false;
@@ -251,7 +246,6 @@ public class InventoryServiceImpl implements InventoryService {
                 expiryStatus = "BÌNH THƯỜNG";
             }
 
-            // Trạng thái hàng hóa (ví dụ: BÌNH THƯỜNG, SẮP HẾT, QUÁ TỒN...)
             String status = totalQuantity <= reorderLevel ? "SẮP HẾT HÀNG" : "BÌNH THƯỜNG";
             WarehouseProductDTO dto = WarehouseProductDTO.builder()
                     .sku(sku)
@@ -276,9 +270,13 @@ public class InventoryServiceImpl implements InventoryService {
     @Override
     public List<BatchDetailDTO> getBatchDetailsByProductAndWarehouseOrStore(Long productId, Long warehouseId, Long storeId) {
         List<Inventory> inventories = inventoryRepository.findByProductAndWarehouseOrStore(productId, warehouseId, storeId);
+        if (warehouseId != null) {
+            inventories = inventories.stream().filter(inv -> inv.getStore() == null).toList();
+        }
         List<BatchDetailDTO> batchDetails = new ArrayList<>();
         LocalDate currentDate = LocalDate.now();
         for (Inventory inv : inventories) {
+            if (inv.getQuantity() == null || inv.getQuantity() <= 0) continue;
             BatchDetailDTO dto = new BatchDetailDTO();
             dto.setProductId(inv.getProduct() != null ? inv.getProduct().getProductId() : null);
             dto.setWarehouseId(inv.getWarehouse() != null ? inv.getWarehouse().getWarehouseId() : null);
@@ -334,8 +332,9 @@ public class InventoryServiceImpl implements InventoryService {
         for (Product product : products) {
             List<Inventory> inventories = inventoryRepository.findByStore_StoreId(storeId)
                 .stream().filter(inv -> inv.getProduct().getProductId().equals(product.getProductId())).toList();
-            if (inventories.isEmpty()) continue;
-            // SKU và đơn vị cơ bản
+            int totalQuantity = inventories.stream().mapToInt(Inventory::getQuantity).sum();
+            if (inventories.isEmpty() || totalQuantity <= 0) continue;
+            // ...existing code...
             ProductUnit baseUnit = product.getProductUnits().stream()
                 .filter(ProductUnit::getIsBaseUnit)
                 .findFirst()
@@ -343,14 +342,9 @@ public class InventoryServiceImpl implements InventoryService {
             String sku = baseUnit.getSku();
             String unitName = baseUnit.getUnit().getName();
             Double salePrice = baseUnit.getPrice() != null ? baseUnit.getPrice().doubleValue() : null;
-            // Tổng số lượng tồn
-            int totalQuantity = inventories.stream().mapToInt(Inventory::getQuantity).sum();
-            // Số lô đang tồn
-            int totalBatches = (int) inventories.stream().map(Inventory::getBatch).distinct().count();
-            // Ngưỡng cảnh báo nhập hàng lại
+            int totalBatches = (int) inventories.stream().filter(inv -> inv.getQuantity() != null && inv.getQuantity() > 0).map(Inventory::getBatch).distinct().count();
             Integer reorderLevel = inventories.get(0).getReorderLevel();
 
-            // Kiểm tra hạn sử dụng các batch
             boolean hasExpiredBatch = false;
             boolean hasBatchBelow30 = false;
             boolean hasBatchBelow10 = false;
@@ -381,7 +375,6 @@ public class InventoryServiceImpl implements InventoryService {
                 expiryStatus = "BÌNH THƯỜNG";
             }
 
-            // Trạng thái hàng hóa
             String status = totalQuantity <= reorderLevel ? "SẮP HẾT HÀNG" : "BÌNH THƯỜNG";
             StoreProductDTO dto = StoreProductDTO.builder()
                 .productId(product.getProductId())

@@ -14,6 +14,7 @@ import org.xhtmlrenderer.pdf.ITextRenderer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -48,7 +49,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     public byte[] generateInvoicePdf(Order order, Invoice invoice) throws IOException {
         Context context = new Context();
         context.setVariable("orderId", order.getOrderCode());
-        context.setVariable("staff", "Truong Cong Trinh");
+        context.setVariable("staff", "Tasteflow");
         context.setVariable("createdAt", DATE_TIME_FORMATTER.format(invoice.getIssuedAt()));
         context.setVariable("companyName", invoice.getInvoiceCompanyName());
         context.setVariable("phone", invoice.getOrder().getPhone());
@@ -56,7 +57,11 @@ public class InvoiceServiceImpl implements InvoiceService {
         context.setVariable("email", invoice.getInvoiceEmail());
         context.setVariable("address", invoice.getInvoiceCompanyAddress());
         context.setVariable("items", order.getOrderItems());
-        context.setVariable("totalPrice", order.getFinalPrice());
+        context.setVariable("totalPrice", order.getTotalPrice());
+        context.setVariable("finalPrice", order.getFinalPrice());
+        context.setVariable("orderDiscountTotal", order.getTotalPrice().subtract(order.getFinalPrice()).subtract(order.getShippingFee()));
+        context.setVariable("voucherCodes", order.getVouchers());
+
 
         String html = templateEngine.process("invoice-template", context);
 

@@ -15,7 +15,7 @@ public interface StockMovementService {
 
     List<StockMovementDTO> getAllStockMovements();
 
-    void transferToStores(Long requestId, Long warehouseId, Long productId, Long batchId,
+    void transferToStores(Long requestId, Long warehouseId, Long productId,
             List<StoreTransferParam> transferList);
 
     List<StockMovement> getStockMovementsToStore(Long storeId);

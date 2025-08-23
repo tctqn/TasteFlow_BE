@@ -77,10 +77,13 @@
             margin-top: 30px;
             text-align: right;
         }
+
+        .total-discount { font-size: 16px; color: #b91c1c; margin-bottom: 6px; }
+
         .total-final {
             font-size: 24px;
             font-weight: bold;
-            color: #2563eb;
+            color: #000;
             border-top: 2px solid #333;
             padding-top: 15px;
         }
@@ -103,7 +106,7 @@
 <body>
     <div class="header">
         <div class="company-name">TasteFlow</div>
-        <div class="company-subtitle">Hệ thống quản lý chuỗi cửa hàng</div>
+        <div class="company-subtitle">Hệ thống quản lý chuỗi cửa hàng thực phẩm</div>
     </div>
 
     <div class="invoice-title">Hóa đơn bán hàng</div>
@@ -145,10 +148,29 @@
     </table>
 
     <div class="total-section">
+        <div class="total-price" style="font-weight: bold; font-size: 15px">
+            Tổng tiền hàng:
+            <span th:text="${#numbers.formatDecimal(totalPrice, 1, 'COMMA', 0, 'POINT')} + '₫'">185.800₫</span>
+        </div>
+        <div class="total-discount"
+             th:if="${(orderDiscountTotal != null and orderDiscountTotal > 0)}">
+            Mã giảm giá:
+            <span th:text="'-' + ${#numbers.formatDecimal((orderDiscountTotal != null ? orderDiscountTotal : 0), 1, 'COMMA', 0, 'POINT')} + '₫'">-15.000₫</span>
+            <!-- Hiển thị các mã khuyến mãi -->
+            <div class="voucher-list" style="margin-top:6px;">
+            <span th:each="code : ${voucherCodes}"
+                  class="voucher-code"
+                  style="display:inline-block;background:#fee2e2;color:#b91c1c;padding:4px 12px;border-radius:16px;font-size:13px;font-weight:600;margin-right:6px;">
+                <span th:text="${code.getCode()}">VOUCHER123</span>
+            </span>
+            </div>
+        </div>
         <div class="total-final">
-            Tổng cộng: <span th:text="${#numbers.formatDecimal(totalPrice, 1, 'COMMA', 0, 'POINT')} + '₫'">185.800₫</span>
+            Tổng cộng:
+            <span th:text="${#numbers.formatDecimal(finalPrice, 1, 'COMMA', 0, 'POINT')} + '₫'">185.800₫</span>
         </div>
     </div>
+
 
     <div class="footer">
         <div class="thank-you">Cảm ơn quý khách đã sử dụng dịch vụ!</div>

@@ -130,83 +130,76 @@ public class StockMovementServiceImpl implements StockMovementService {
 
     @Override
     @Transactional
-    public void transferToStores(Long requestId, Long warehouseId, Long productId, Long batchId,
+    public void transferToStores(Long requestId, Long warehouseId, Long productId,
             List<StoreTransferParam> transferList) {
-        // Lấy thông tin kho, sản phẩm, và lô hàng từ database
+        // Lấy warehouse và product
         Warehouse warehouse = warehouseRepository.findById(warehouseId).orElseThrow();
         Product product = productRepository.findById(productId).orElseThrow();
-        ProductBatch batch = productBatchRepository.findById(batchId).orElseThrow();
 
-        // Tính tổng số lượng cần chuyển đến các cửa hàng
+        // Tính tổng quantity cần chuyển
         int totalQuantity = transferList.stream()
                 .mapToInt(StoreTransferParam::getQuantity)
                 .sum();
 
-        // Lấy tồn kho hiện tại tại kho đối với sản phẩm và lô hàng tương ứng
-        List<Inventory> results = inventoryRepository
-                .findByWarehouse_WarehouseIdAndProduct_ProductIdAndBatch_BatchId(warehouseId, productId, batchId);
+        // Lấy tất cả tồn kho theo warehouse + product (không filter batchId)
+        List<Inventory> inventories = inventoryRepository
+                .findByWarehouse_WarehouseIdAndProduct_ProductIdAndStoreIsNullOrderByBatch_ExpirationDateAsc(
+                        warehouseId, productId);
 
-        if (results.isEmpty()) {
-            System.out.print("Lỗi");
-        }
-        if (results.size() > 1) {
-            System.out.print("Tìm thấy nhiều hơn 1 bản ghi tồn kho trùng khớp, dùng bản đầu tiên");
+        if (inventories.isEmpty()) {
+            throw new IllegalArgumentException("Không tìm thấy tồn kho cho sản phẩm này trong kho.");
         }
 
-        Inventory warehouseInventory = results.get(0);
-
-        // Kiểm tra xem kho có đủ hàng để chuyển không
-        if (warehouseInventory.getQuantity() < totalQuantity) {
+        // Tính tổng tồn kho khả dụng
+        int available = inventories.stream().mapToInt(Inventory::getQuantity).sum();
+        if (available < totalQuantity) {
             throw new IllegalArgumentException("Không đủ hàng trong kho để chuyển.");
         }
 
-        // Trừ số lượng đã chuyển khỏi kho
-        warehouseInventory.setQuantity(warehouseInventory.getQuantity() - totalQuantity);
-        inventoryRepository.save(warehouseInventory);
+        // Trừ tồn kho từ nhiều batch (FIFO theo expiration_date)
+        int remaining = totalQuantity;
+        for (Inventory inv : inventories) {
+            if (remaining <= 0)
+                break;
 
-        // Duyệt qua từng cửa hàng trong danh sách chuyển
-        for (StoreTransferParam param : transferList) {
-            Long storeId = param.getStoreId();
-            Integer quantity = param.getQuantity();
+            int deduct = Math.min(inv.getQuantity(), remaining);
+            inv.setQuantity(inv.getQuantity() - deduct);
+            inventoryRepository.save(inv);
 
-            // // Tìm tồn kho tại cửa hàng theo sản phẩm và lô hàng
-            // Inventory storeInventory = inventoryRepository
-            // .findByStore_StoreIdAndProduct_ProductIdAndBatch_BatchId(storeId, productId,
-            // batchId)
-            // .orElse(null);
+            // Lưu log stock movement cho từng store dựa trên transferList
+            for (StoreTransferParam param : transferList) {
+                int storeQty = param.getQuantity();
+                if (storeQty <= 0)
+                    continue;
 
-            // // Nếu chưa có tồn kho cho sản phẩm và lô hàng tại cửa hàng, tạo mới
-            // if (storeInventory == null) {
-            // storeInventory = new Inventory();
-            // storeInventory.setStore(storeRepository.findById(storeId).orElseThrow());
-            // storeInventory.setProduct(product);
-            // storeInventory.setBatch(batch);
-            // storeInventory.setQuantity(0); // Bắt đầu từ 0
-            // storeInventory.setReorderLevel(10); // Mức cảnh báo mặc định
-            // }
+                int usedFromThisBatch = Math.min(storeQty, deduct);
+                if (usedFromThisBatch > 0) {
+                    StockMovement movement = new StockMovement();
+                    movement.setWarehouse(warehouse);
+                    movement.setStore(storeRepository.findById(param.getStoreId()).orElseThrow());
+                    movement.setProduct(product);
+                    movement.setBatch(inv.getBatch()); // batch được chọn động
+                    movement.setQuantity(usedFromThisBatch);
+                    movement.setMovementDate(LocalDateTime.now());
+                    movement.setMovementType(MovementType.TRANSFER_TO_STORE);
+                    movement.setStoreRequest(storeRequestRepository.findById(requestId).orElseThrow());
+                    movement.setNote("Chuyển " + usedFromThisBatch + " sản phẩm từ batch "
+                            + inv.getBatch().getBatchId() + " đến cửa hàng " + param.getStoreId());
+                    stockMovementRepository.save(movement);
 
-            // // Cộng số lượng hàng được chuyển vào tồn kho của cửa hàng
-            // storeInventory.setQuantity(storeInventory.getQuantity() + quantity);
-            // inventoryRepository.save(storeInventory);
+                    // Cập nhật lại số lượng còn cần cho cửa hàng này
+                    param.setQuantity(storeQty - usedFromThisBatch);
+                    deduct -= usedFromThisBatch;
+                }
+            }
 
-            // Ghi lại lịch sử di chuyển kho
-            StockMovement movement = new StockMovement();
-            movement.setWarehouse(warehouse);
-            movement.setStore(storeRepository.findById(storeId).orElseThrow());
-            movement.setProduct(product);
-            movement.setBatch(batch);
-            movement.setQuantity(quantity);
-            movement.setMovementDate(LocalDateTime.now());
-            movement.setMovementType(MovementType.TRANSFER_TO_STORE);
-            movement.setStoreRequest(storeRequestRepository.findById(requestId).orElseThrow());
-            movement.setNote("Chuyển " + quantity + " sản phẩm đến cửa hàng " + storeId);
-            stockMovementRepository.save(movement);
+            remaining -= deduct;
         }
 
+        // Update trạng thái store_request
         StoreRequest storeRequest = storeRequestRepository.findById(requestId).orElseThrow();
         storeRequest.setStatus("Processing");
     }
-
 
     @Override
     @Transactional
@@ -214,16 +207,18 @@ public class StockMovementServiceImpl implements StockMovementService {
         Inventory inventory;
         if (dto.getStoreId() != null) {
             // Tìm tồn kho tại cửa hàng
-            Optional<Inventory> inventoryOpt = inventoryRepository.findByStore_StoreIdAndProduct_ProductIdAndBatch_BatchId(
-                    dto.getStoreId(), dto.getProductId(), dto.getBatchId());
+            Optional<Inventory> inventoryOpt = inventoryRepository
+                    .findByStore_StoreIdAndProduct_ProductIdAndBatch_BatchId(
+                            dto.getStoreId(), dto.getProductId(), dto.getBatchId());
             if (inventoryOpt.isEmpty()) {
                 throw new IllegalArgumentException("Không tìm thấy tồn kho phù hợp trong cửa hàng.");
             }
             inventory = inventoryOpt.get();
         } else {
             // Luôn tìm theo warehouseId
-            List<Inventory> inventories = inventoryRepository.findByWarehouse_WarehouseIdAndProduct_ProductIdAndBatch_BatchId(
-                    dto.getWarehouseId(), dto.getProductId(), dto.getBatchId());
+            List<Inventory> inventories = inventoryRepository
+                    .findByWarehouse_WarehouseIdAndProduct_ProductIdAndBatch_BatchId(
+                            dto.getWarehouseId(), dto.getProductId(), dto.getBatchId());
             if (inventories.isEmpty()) {
                 throw new IllegalArgumentException("Không tìm thấy tồn kho phù hợp trong kho.");
             }

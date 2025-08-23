@@ -45,9 +45,8 @@ public class StockMovementController {
             @RequestParam Long requestId,
             @RequestParam Long warehouseId,
             @RequestParam Long productId,
-            @RequestParam Long batchId,
             @RequestBody List<StoreTransferParam> transferList) {
-        stockMovementService.transferToStores(requestId, warehouseId, productId, batchId, transferList);
+        stockMovementService.transferToStores(requestId, warehouseId, productId, transferList);
     }
 
     @GetMapping("/store/{storeId}")

@@ -194,8 +194,8 @@ public class InventoryServiceImpl implements InventoryService {
             List<Inventory> inventories = inventoryRepository.findByWarehouse_WarehouseId(warehouseId)
                     .stream().filter(inv -> inv.getProduct().getProductId().equals(product.getProductId())).toList();
             int totalQuantity = inventories.stream().mapToInt(Inventory::getQuantity).sum();
-            if (inventories.isEmpty() || totalQuantity <= 0) continue;
-            // ...existing code...
+            if (inventories.isEmpty() || totalQuantity <= 0)
+                continue;
             ProductUnit baseUnit = product.getProductUnits().stream()
                     .filter(ProductUnit::getIsBaseUnit)
                     .findFirst()
@@ -203,7 +203,9 @@ public class InventoryServiceImpl implements InventoryService {
             String sku = baseUnit.getSku();
             String unitName = baseUnit.getUnit().getName();
             Double salePrice = baseUnit.getPrice() != null ? baseUnit.getPrice().doubleValue() : null;
-            int totalBatches = (int) inventories.stream().filter(inv -> inv.getQuantity() != null && inv.getQuantity() > 0).map(Inventory::getBatch).distinct().count();
+            int totalBatches = (int) inventories.stream()
+                    .filter(inv -> inv.getQuantity() != null && inv.getQuantity() > 0).map(Inventory::getBatch)
+                    .distinct().count();
             List<Double> importPrices = inventories.stream()
                     .map(inv -> inv.getBatch().getImportPrice())
                     .filter(java.util.Objects::nonNull)
@@ -211,7 +213,8 @@ public class InventoryServiceImpl implements InventoryService {
                     .toList();
             Double minImportPrice = importPrices.stream().min(Double::compareTo).orElse(null);
             Double maxImportPrice = importPrices.stream().max(Double::compareTo).orElse(null);
-            Double avgImportPrice = importPrices.isEmpty() ? null : importPrices.stream().mapToDouble(Double::doubleValue).average().orElse(0);
+            Double avgImportPrice = importPrices.isEmpty() ? null
+                    : importPrices.stream().mapToDouble(Double::doubleValue).average().orElse(0);
             Integer reorderLevel = inventories.get(0).getReorderLevel();
 
             boolean hasExpiredBatch = false;
@@ -268,15 +271,18 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
-    public List<BatchDetailDTO> getBatchDetailsByProductAndWarehouseOrStore(Long productId, Long warehouseId, Long storeId) {
-        List<Inventory> inventories = inventoryRepository.findByProductAndWarehouseOrStore(productId, warehouseId, storeId);
+    public List<BatchDetailDTO> getBatchDetailsByProductAndWarehouseOrStore(Long productId, Long warehouseId,
+            Long storeId) {
+        List<Inventory> inventories = inventoryRepository.findByProductAndWarehouseOrStore(productId, warehouseId,
+                storeId);
         if (warehouseId != null) {
             inventories = inventories.stream().filter(inv -> inv.getStore() == null).toList();
         }
         List<BatchDetailDTO> batchDetails = new ArrayList<>();
         LocalDate currentDate = LocalDate.now();
         for (Inventory inv : inventories) {
-            if (inv.getQuantity() == null || inv.getQuantity() <= 0) continue;
+            if (inv.getQuantity() == null || inv.getQuantity() <= 0)
+                continue;
             BatchDetailDTO dto = new BatchDetailDTO();
             dto.setProductId(inv.getProduct() != null ? inv.getProduct().getProductId() : null);
             dto.setWarehouseId(inv.getWarehouse() != null ? inv.getWarehouse().getWarehouseId() : null);
@@ -331,18 +337,21 @@ public class InventoryServiceImpl implements InventoryService {
         LocalDate currentDate = LocalDate.now();
         for (Product product : products) {
             List<Inventory> inventories = inventoryRepository.findByStore_StoreId(storeId)
-                .stream().filter(inv -> inv.getProduct().getProductId().equals(product.getProductId())).toList();
+                    .stream().filter(inv -> inv.getProduct().getProductId().equals(product.getProductId())).toList();
             int totalQuantity = inventories.stream().mapToInt(Inventory::getQuantity).sum();
-            if (inventories.isEmpty() || totalQuantity <= 0) continue;
+            if (inventories.isEmpty() || totalQuantity <= 0)
+                continue;
             // ...existing code...
             ProductUnit baseUnit = product.getProductUnits().stream()
-                .filter(ProductUnit::getIsBaseUnit)
-                .findFirst()
-                .orElse(product.getProductUnits().get(0));
+                    .filter(ProductUnit::getIsBaseUnit)
+                    .findFirst()
+                    .orElse(product.getProductUnits().get(0));
             String sku = baseUnit.getSku();
             String unitName = baseUnit.getUnit().getName();
             Double salePrice = baseUnit.getPrice() != null ? baseUnit.getPrice().doubleValue() : null;
-            int totalBatches = (int) inventories.stream().filter(inv -> inv.getQuantity() != null && inv.getQuantity() > 0).map(Inventory::getBatch).distinct().count();
+            int totalBatches = (int) inventories.stream()
+                    .filter(inv -> inv.getQuantity() != null && inv.getQuantity() > 0).map(Inventory::getBatch)
+                    .distinct().count();
             Integer reorderLevel = inventories.get(0).getReorderLevel();
 
             boolean hasExpiredBatch = false;
@@ -377,17 +386,17 @@ public class InventoryServiceImpl implements InventoryService {
 
             String status = totalQuantity <= reorderLevel ? "SẮP HẾT HÀNG" : "BÌNH THƯỜNG";
             StoreProductDTO dto = StoreProductDTO.builder()
-                .productId(product.getProductId())
-                .sku(sku)
-                .productName(product.getName())
-                .unitName(unitName)
-                .salePrice(salePrice)
-                .totalQuantity(totalQuantity)
-                .totalBatches(totalBatches)
-                .reorderLevel(reorderLevel)
-                .status(status)
-                .expiryStatus(expiryStatus)
-                .build();
+                    .productId(product.getProductId())
+                    .sku(sku)
+                    .productName(product.getName())
+                    .unitName(unitName)
+                    .salePrice(salePrice)
+                    .totalQuantity(totalQuantity)
+                    .totalBatches(totalBatches)
+                    .reorderLevel(reorderLevel)
+                    .status(status)
+                    .expiryStatus(expiryStatus)
+                    .build();
             result.add(dto);
         }
         return result;
@@ -395,7 +404,8 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     public int updateReorderLevel(Long productId, Long warehouseId, Long storeId, Integer reorderLevel) {
-        List<Inventory> inventories = inventoryRepository.findByProductAndWarehouseOrStore(productId, warehouseId, storeId);
+        List<Inventory> inventories = inventoryRepository.findByProductAndWarehouseOrStore(productId, warehouseId,
+                storeId);
         for (Inventory inv : inventories) {
             inv.setReorderLevel(reorderLevel);
         }

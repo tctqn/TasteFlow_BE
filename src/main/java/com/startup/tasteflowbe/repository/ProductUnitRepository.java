@@ -17,4 +17,6 @@ public interface ProductUnitRepository extends JpaRepository<ProductUnit, Long> 
     Optional<Object> findByProduct_ProductIdAndUnit_UnitId(Long productProductId, Long unitUnitId);
 
     Optional<ProductUnit> findBySku(String sku);
+
+    ProductUnit findByProductUnitId(Long productUnitId);
 }

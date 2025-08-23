@@ -8,6 +8,7 @@ import lombok.Data;
 @Data
 public class StoreOrderDTO {
     private Long store_id;
+    private Long user_id;
     private String full_name;
     private String phone;
     private String address;

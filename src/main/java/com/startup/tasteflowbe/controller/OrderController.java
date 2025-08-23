@@ -125,6 +125,7 @@ public class OrderController {
         dto.setOrderId(order.getOrderId());
         dto.setOrderCode(order.getOrderCode());
         dto.setTotal_price(order.getTotalPrice());
+        dto.setFinal_price(order.getFinalPrice());
         dto.setStatus(order.getStatus());
         dto.setOrder_date(order.getOrderDate());
         dto.setUser(order.getUser());

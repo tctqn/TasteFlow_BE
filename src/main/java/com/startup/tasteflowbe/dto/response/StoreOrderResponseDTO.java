@@ -14,6 +14,7 @@ public class StoreOrderResponseDTO {
     private Long orderId;
     private String orderCode;
     private BigDecimal total_price;
+    private BigDecimal final_price;
     private OrderStatus status;
     private LocalDateTime order_date;
 

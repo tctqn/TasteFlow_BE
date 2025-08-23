@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -100,15 +101,78 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public OrderResponseDTO updateOrderStatus(Long id, String status, String notes) {
-        return orderRepository.findById(id)
-                .map(od -> {
-                    od.setStatus(OrderStatus.valueOf(status));
-                    od.setNote(notes);
-                    Order savedOrder = orderRepository.save(od);
-                    return orderMapper.toDto(savedOrder);
-                })
+        Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Order not found with id " + id));
+
+        OrderStatus current = order.getStatus();
+        OrderStatus target  = OrderStatus.valueOf(status);
+
+        // Nếu chuyển sang CONFIRMED và trước đó chưa CONFIRMED trở lên -> trừ tồn kho (FEFO)
+        if (target == OrderStatus.CONFIRMED
+                && (current == OrderStatus.PENDING || current == OrderStatus.PAID)) {
+            commitInventoryForOrder(order);
+        }
+
+        order.setStatus(target);
+        order.setNote(notes);
+        Order savedOrder = orderRepository.save(order);
+        return orderMapper.toDto(savedOrder);
+    }
+
+    /**
+     * Trừ tồn kho theo từng OrderItem, ưu tiên lô gần hết hạn (FEFO).
+     * Idempotent theo trạng thái: chỉ nên gọi khi từ PENDING/PAID -> CONFIRMED.
+     */
+    private void commitInventoryForOrder(Order order) {
+        for (OrderItem item : order.getOrderItems()) {
+            if (item.getProduct() == null) continue;
+
+            // Số lượng cần trừ (ưu tiên quantityInBase nếu hệ thống quản lý theo base unit)
+            int remainingQty = item.getQuantityInBase() != null ? item.getQuantityInBase() : item.getQuantity();
+
+            // Lấy list tồn kho tại cửa hàng theo sản phẩm, còn hàng, chưa hết hạn, sort expiry asc (FEFO)
+            List<Inventory> inventories = inventoryRepository
+                    .findByStore_StoreIdAndProduct_ProductIdAndQuantityGreaterThanAndBatch_ExpirationDateAfterOrderByBatch_ExpirationDateAsc(
+                            order.getStore().getStoreId(),
+                            item.getProduct().getProductId(),
+                            0,
+                            LocalDate.now());
+
+            for (Inventory inv : inventories) {
+                if (remainingQty <= 0) break;
+
+                int available = inv.getQuantity();
+                if (available <= 0) continue;
+
+                int used = Math.min(available, remainingQty);
+
+                // Trừ tồn kho
+                inv.setQuantity(available - used);
+                inventoryRepository.save(inv);
+
+                // Ghi nhận chuyển động kho
+                StockMovement movement = new StockMovement();
+                movement.setWarehouse(inv.getWarehouse());
+                movement.setStore(order.getStore());
+                movement.setProduct(item.getProduct());
+                movement.setBatch(inv.getBatch());
+                movement.setMovementType(MovementType.SALE); // giảm tồn kho do bán/xác nhận
+                movement.setQuantity(used);
+                movement.setNote("Xác nhận đơn " + order.getOrderCode());
+                stockMovementRepository.save(movement);
+
+                remainingQty -= used;
+            }
+
+            // Nếu vẫn thiếu => ném lỗi để rollback toàn bộ giao dịch
+            if (remainingQty > 0) {
+                throw new IllegalArgumentException(
+                        "Not enough stock for product ID: " + item.getProduct().getProductId()
+                                + " at store ID: " + order.getStore().getStoreId());
+            }
+        }
     }
 
     @Override
@@ -124,153 +188,6 @@ public class OrderServiceImpl implements OrderService {
     public void deleteOrder(Long id) {
         orderRepository.deleteById(id);
     }
-
-    // @Override
-    // @Transactional
-    // public Order checkoutFromCartItems(Long userId, List<Long> cartItemIds,
-    // List<Long> voucherIds, Long shippingAddressId, Long storeId) {
-    // User user = userRepository.findById(userId)
-    // .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người
-    // dùng."));
-    //
-    // List<CartItem> cartItems =
-    // cartItemRepository.findByUser_UserIdAndCartItemIdIn(userId, cartItemIds);
-    // if (cartItems.isEmpty()) {
-    // throw new IllegalArgumentException("Giỏ hàng không hợp lệ.");
-    // }
-    //
-    // BigDecimal totalPrice = BigDecimal.ZERO;
-    // List<OrderItem> allOrderItems = new ArrayList<>();
-    //
-    // for (CartItem item : cartItems) {
-    // Product product = item.getProduct();
-    // int quantity = item.getQuantity();
-    // BigDecimal unitPrice = product.getPrice();
-    //
-    // // Tính giảm giá từ promotion (nếu có)
-    // List<Promotion> activePromotions =
-    // promotionRepository.findActivePromotionsByProductId(
-    // product.getProductId(), LocalDateTime.now());
-    //
-    // BigDecimal maxPromotionDiscount = activePromotions.stream()
-    // .map(Promotion::getDiscountPercentage)
-    // .max(BigDecimal::compareTo)
-    // .orElse(BigDecimal.ZERO);
-    //
-    // BigDecimal discountedPrice = unitPrice.multiply(BigDecimal.ONE.subtract(
-    // maxPromotionDiscount.divide(BigDecimal.valueOf(100),2,RoundingMode.HALF_UP)));
-    //
-    // // Truy vấn các inventory còn hàng, chưa hết hạn theo batch gần hết hạn trước
-    // tại cửa hàng
-    // List<Inventory> inventories = inventoryRepository
-    // .findByStore_StoreIdAndProduct_ProductIdAndQuantityGreaterThanAndBatch_ExpirationDateAfterOrderByBatch_ExpirationDateAsc(
-    // storeId, product.getProductId(), 0, LocalDate.now());
-    //
-    // int remainingQty = quantity;
-    //
-    // for (Inventory inv : inventories) {
-    // if (remainingQty <= 0) break;
-    //
-    // int usableQty = Math.min(inv.getQuantity(), remainingQty);
-    //
-    // OrderItem orderItem = new OrderItem();
-    // orderItem.setOrder(null); // gán sau khi tạo order
-    // orderItem.setProduct(product);
-    // orderItem.setQuantity(usableQty);
-    // orderItem.setPrice(discountedPrice.multiply(BigDecimal.valueOf(usableQty)));
-    // orderItem.setDiscount(unitPrice.subtract(discountedPrice).multiply(BigDecimal.valueOf(usableQty)));
-    // orderItem.setBatch(inv.getBatch());
-    //
-    // allOrderItems.add(orderItem);
-    //
-    // // Trừ tồn kho
-    // inv.setQuantity(inv.getQuantity() - usableQty);
-    // inventoryRepository.save(inv);
-    //
-    // // Ghi nhận chuyển động tồn kho
-    // StockMovement stockMovement = new StockMovement();
-    // stockMovement.setWarehouse(inv.getWarehouse());
-    // stockMovement.setStore(storeRepository.findByStoreId(storeId));
-    // stockMovement.setProduct(product);
-    // stockMovement.setBatch(inv.getBatch());
-    // stockMovement.setMovementType(MovementType.SALE); // Giảm tồn kho
-    // stockMovement.setQuantity(usableQty);
-    // stockMovement.setNote("Đặt hàng cho sản phẩm: " + product.getName());
-    // stockMovementRepository.save(stockMovement);
-    //
-    // remainingQty -= usableQty;
-    // }
-    //
-    // if (remainingQty > 0) {
-    // throw new IllegalArgumentException("Không đủ hàng cho sản phẩm: " +
-    // product.getName() + " tại cửa hàng.");
-    // }
-    //
-    // // Cộng tổng tiền
-    // totalPrice =
-    // totalPrice.add(discountedPrice.multiply(BigDecimal.valueOf(quantity)));
-    // }
-    //
-    // // Tính giảm giá từ các voucher (nếu có)
-    // BigDecimal totalDiscount = BigDecimal.ZERO;
-    // for (Long voucherId : voucherIds) {
-    // Voucher voucher = voucherRepository.findById(voucherId)
-    // .orElseThrow(() -> new IllegalArgumentException("Voucher không hợp lệ."));
-    //
-    // if (voucher.getStartDate().isAfter(LocalDateTime.now()) ||
-    // voucher.getEndDate().isBefore(LocalDateTime.now())) {
-    // throw new IllegalArgumentException("Voucher đã hết hạn hoặc chưa bắt đầu.");
-    // }
-    //
-    // BigDecimal voucherDiscount = BigDecimal.ZERO;
-    //
-    // if ("PERCENT".equalsIgnoreCase(voucher.getDiscountType().toString())) {
-    // // Giảm giá phần trăm: tính trên giá trị đã giảm sau các voucher trước đó
-    // voucherDiscount = totalPrice.multiply(voucher.getDiscountAmount()
-    // .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP));
-    // } else if ("AMOUNT".equalsIgnoreCase(voucher.getDiscountType().toString())) {
-    // // Giảm giá tiền mặt
-    // voucherDiscount = voucher.getDiscountAmount();
-    // }
-    //
-    // // Kiểm tra nếu giảm giá quá giá trị tổng đơn hàng thì chỉ giảm giá bằng tổng
-    // giá trị đơn hàng
-    // if (voucherDiscount.compareTo(totalPrice) > 0) {
-    // voucherDiscount = totalPrice;
-    // }
-    //
-    // // Cộng dồn giảm giá từ các voucher
-    // totalDiscount = totalDiscount.add(voucherDiscount);
-    // }
-    //
-    // // Áp dụng tổng giảm giá vào totalPrice
-    // totalPrice = totalPrice.subtract(totalDiscount);
-    //
-    // // Tạo đơn hàng
-    // Order order = new Order();
-    // order.setUser(user);
-    // order.setOrderDate(LocalDateTime.now());
-    // order.setTotalPrice(totalPrice);
-    // order.setVouchers(voucherRepository.findByVoucherIdIn(voucherIds));
-    // order.setVoucherDiscount(totalDiscount);
-    // order.setShippingAddress(shippingAddressRepository.findByAddressId(shippingAddressId));
-    // order.setStore(storeRepository.findByStoreId(storeId));
-    //
-    // order = orderRepository.save(order);
-    //
-    // // Gán order cho từng order item và lưu
-    // for (OrderItem orderItem : allOrderItems) {
-    // orderItem.setOrder(order);
-    // orderItemRepository.save(orderItem);
-    // }
-    //
-    // // Xử lý thanh toán
-    //
-    // // Xóa cart items đã xử lý
-    // cartItemRepository.deleteAll(cartItems);
-    //
-    // return order;
-    // }
 
     @Override
     @Transactional

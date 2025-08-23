@@ -4,13 +4,10 @@ import com.startup.tasteflowbe.dto.request.OrderRequestDTO;
 import com.startup.tasteflowbe.dto.request.StoreOrderDTO;
 import com.startup.tasteflowbe.dto.request.UpdateOrderStatusDTO;
 import com.startup.tasteflowbe.dto.response.CreatePaymentResponseDTO;
-import com.startup.tasteflowbe.dto.response.OrderItemResponseDTO;
 import com.startup.tasteflowbe.dto.response.OrderResponseDTO;
-import com.startup.tasteflowbe.dto.response.StoreOrderResponseDTO;
 import com.startup.tasteflowbe.enums.PaymentMethod;
 import com.startup.tasteflowbe.mapper.OrderMapper;
 import com.startup.tasteflowbe.model.Order;
-import com.startup.tasteflowbe.model.OrderItem;
 import com.startup.tasteflowbe.repository.OrderItemRepository;
 import com.startup.tasteflowbe.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -48,10 +45,10 @@ public class OrderController {
     }
 
     @GetMapping("/store/{id}")
-    public ResponseEntity<List<StoreOrderResponseDTO>> getAllStoreOrders(@PathVariable Long id) {
-        List<StoreOrderResponseDTO> dtoList = orderService.getAllStoreOrders(id)
+    public ResponseEntity<List<OrderResponseDTO>> getAllStoreOrders(@PathVariable Long id) {
+        List<OrderResponseDTO> dtoList = orderService.getAllStoreOrders(id)
                 .stream()
-                .map(this::convertToDto)
+                .map(orderMapper::toDto)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(dtoList);
     }
@@ -102,36 +99,36 @@ public class OrderController {
         return ResponseEntity.ok(orderResponse);
     }
 
-    private StoreOrderResponseDTO convertToDto(Order order) {
-        if (order == null) {
-            return null;
-        }
-
-        // Chuyển đổi List<OrderItem> -> List<OrderItemResponseDTO>
-        List<OrderItem> orderItems = orderItemRepository.findByOrder_OrderId(order.getOrderId());
-        List<OrderItemResponseDTO> orderItemDtos = orderItems.stream()
-                .map(item -> {
-                    OrderItemResponseDTO itemDto = new OrderItemResponseDTO();
-                    itemDto.setProductId(item.getProduct().getProductId());
-                    itemDto.setProductName(item.getProduct().getName());
-                    itemDto.setQuantity(item.getQuantity());
-                    itemDto.setPrice(item.getPrice());
-                    return itemDto;
-                })
-                .collect(Collectors.toList());
-
-        // Tạo và trả về DTO chính
-        StoreOrderResponseDTO dto = new StoreOrderResponseDTO();
-        dto.setOrderId(order.getOrderId());
-        dto.setOrderCode(order.getOrderCode());
-        dto.setTotal_price(order.getTotalPrice());
-        dto.setFinal_price(order.getFinalPrice());
-        dto.setStatus(order.getStatus());
-        dto.setOrder_date(order.getOrderDate());
-        dto.setUser(order.getUser());
-        dto.setOrderItems(orderItemDtos);
-
-        return dto;
-    }
+    // private StoreOrderResponseDTO convertToDto(Order order) {
+    // if (order == null) {
+    // return null;
+    // }
+    //
+    // // Chuyển đổi List<OrderItem> -> List<OrderItemResponseDTO>
+    // List<OrderItem> orderItems =
+    // orderItemRepository.findByOrder_OrderId(order.getOrderId());
+    // List<OrderItemResponseDTO> orderItemDtos = orderItems.stream()
+    // .map(item -> {
+    // OrderItemResponseDTO itemDto = new OrderItemResponseDTO();
+    // itemDto.setProductId(item.getProduct().getProductId());
+    // itemDto.setProductName(item.getProduct().getName());
+    // itemDto.setQuantity(item.getQuantity());
+    // itemDto.setPrice(item.getPrice());
+    // return itemDto;
+    // })
+    // .collect(Collectors.toList());
+    //
+    // // Tạo và trả về DTO chính
+    // StoreOrderResponseDTO dto = new StoreOrderResponseDTO();
+    // dto.setOrderId(order.getOrderId());
+    // dto.setOrderCode(order.getOrderCode());
+    // dto.setTotal_price(order.getTotalPrice());
+    // dto.setStatus(order.getStatus());
+    // dto.setOrder_date(order.getOrderDate());
+    // dto.setUser(order.getUser());
+    // dto.setOrderItems(orderItemDtos);
+    //
+    // return dto;
+    // }
 
 }

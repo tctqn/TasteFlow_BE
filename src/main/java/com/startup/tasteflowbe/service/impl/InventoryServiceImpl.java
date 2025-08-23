@@ -15,10 +15,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -141,39 +138,53 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
+    @Transactional
     public List<ProductInventoryDTO> getInventoryAllUnitByStore(Long storeId) {
-        List<Inventory> inventories = inventoryRepository.findByStore_StoreId(storeId);
+        // Lấy tất cả inventory của cửa hàng để suy ra danh sách productId có hàng tại store
+        List<Inventory> allInvAtStore = inventoryRepository.findByStore_StoreId(storeId);
 
-        Map<Long, Integer> productBaseQuantityMap = inventories.stream()
-                .collect(Collectors.groupingBy(
-                        inv -> inv.getProduct().getProductId(),
-                        Collectors.summingInt(Inventory::getQuantity)));
+        Set<Long> productIds = allInvAtStore.stream()
+                .map(Inventory::getProduct)
+                .filter(Objects::nonNull)
+                .map(Product::getProductId)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
 
+        LocalDate today = LocalDate.now();
         List<ProductInventoryDTO> result = new ArrayList<>();
 
-        for (Map.Entry<Long, Integer> entry : productBaseQuantityMap.entrySet()) {
-            Long productId = entry.getKey();
-            int baseQty = entry.getValue();
+        for (Long productId : productIds) {
+            // CHỈ lấy tồn kho còn hàng và CHƯA HẾT HẠN, sort FEFO (expiry asc)
+            List<Inventory> validInventories =
+                    inventoryRepository
+                            .findByStore_StoreIdAndProduct_ProductIdAndQuantityGreaterThanAndBatch_ExpirationDateAfterOrderByBatch_ExpirationDateAsc(
+                                    storeId, productId, 0, today);
+
+            // Tổng số lượng base từ các lô hợp lệ
+            int baseQty = validInventories.stream()
+                    .mapToInt(Inventory::getQuantity)
+                    .sum();
 
             Product product = productRepository.findById(productId).orElse(null);
-            if (product == null)
-                continue;
+            if (product == null) continue;
 
-            List<ProductUnit> units = productUnitRepository.findByProduct_ProductId(productId).get();
+            List<ProductUnit> units = productUnitRepository
+                    .findByProduct_ProductId(productId)
+                    .orElse(Collections.emptyList());
 
-            List<ProductUnitStockDTO> unitStocks = units.stream().map(unit -> {
-                int available = baseQty / unit.getConversionRate();
-                return new ProductUnitStockDTO(
-                        unit.getUnit().getName(),
-                        unit.getConversionRate(),
-                        available);
-            }).toList();
+            List<ProductUnitStockDTO> unitStocks = units.stream()
+                    .map(unit -> new ProductUnitStockDTO(
+                            unit.getUnit().getName(),
+                            unit.getConversionRate(),
+                            baseQty / unit.getConversionRate() // làm tròn xuống
+                    ))
+                    .collect(Collectors.toList());
 
             result.add(new ProductInventoryDTO(productId, product.getName(), unitStocks));
         }
 
         return result;
     }
+
 
     @Override
     public int getAvailableStock(Long storeId, Long productId, Long unitId) {

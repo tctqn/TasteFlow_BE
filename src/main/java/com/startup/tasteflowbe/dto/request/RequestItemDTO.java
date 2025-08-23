@@ -5,7 +5,9 @@ import lombok.Data;
 // DTO cho các mặt hàng trong phiếu yêu cầu
 @Data
 public class RequestItemDTO {
-    private Integer productUnitId;
+    private Long productUnitId;
     private Integer quantity;
     private String note;
+    private boolean directInput;
+    private Long supplierId;
 }

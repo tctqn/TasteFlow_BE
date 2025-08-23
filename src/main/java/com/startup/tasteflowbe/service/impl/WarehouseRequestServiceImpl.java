@@ -3,10 +3,12 @@ package com.startup.tasteflowbe.service.impl;
 import com.startup.tasteflowbe.dto.request.BulkApprovalRequestDTO;
 import com.startup.tasteflowbe.dto.request.CreateWarehouseRequestDTO;
 import com.startup.tasteflowbe.dto.request.ItemApprovalDTO;
+import com.startup.tasteflowbe.dto.request.RequestItemDTO;
 import com.startup.tasteflowbe.enums.NotificationType;
 import com.startup.tasteflowbe.enums.Role;
 import com.startup.tasteflowbe.model.ProductBatch;
 import com.startup.tasteflowbe.model.ProductUnit;
+import com.startup.tasteflowbe.model.Supplier;
 import com.startup.tasteflowbe.model.User;
 import com.startup.tasteflowbe.model.Warehouse;
 import com.startup.tasteflowbe.model.WarehouseRequest;
@@ -28,6 +30,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -59,15 +63,39 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
         request.setNotes(dto.getNotes());
         request.setStatus("PENDING");
 
-        List<WarehouseRequestItem> items = dto.getItems().stream().map(itemDto -> {
+        List<WarehouseRequestItem> items = new ArrayList<>();
+
+        for (RequestItemDTO itemDto : dto.getItems()) {
+            if (Boolean.TRUE.equals(itemDto.isDirectInput())) {
+                ProductUnit productUnit = productUnitRepository.findByProductUnitId(itemDto.getProductUnitId());
+                Supplier supplier = supplierRepository.findBySupplierId(itemDto.getSupplierId());
+                BigDecimal qt = BigDecimal.valueOf(itemDto.getQuantity());
+
+                ProductBatch batch = new ProductBatch();
+                batch.setProduct(productUnit.getProduct());
+                batch.setWarehouse(warehouse);
+                batch.setQuantity(itemDto.getQuantity());
+                batch.setImportPrice(productUnit.getPrice().multiply(qt));
+                batch.setReceivedDate(LocalDateTime.now());
+                batch.setStatus("SHIPPED");
+                batch.setUnit(productUnit.getUnit());
+                batch.setSupplier(supplier);
+                batch.setExpirationDate(LocalDate.now().plusDays(1));
+                batch.setManufactureDate(LocalDate.now());
+
+                productBatchRepository.save(batch);
+
+                continue;
+            }
+
             WarehouseRequestItem item = new WarehouseRequestItem();
-            item.setProductUnitId(itemDto.getProductUnitId());
+            item.setProductUnitId(itemDto.getProductUnitId().intValue());
             item.setQuantity(itemDto.getQuantity());
             item.setNote(itemDto.getNote());
             item.setStatus("PENDING");
             item.setWarehouseRequest(request);
-            return item;
-        }).collect(Collectors.toList());
+            items.add(item);
+        }
 
         request.setItems(items);
 

@@ -484,14 +484,23 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public Order createStoreOrder(StoreOrderDTO dto) {
         System.out.println("Creating store order with DTO: " + dto);
         if (dto.getStore_id() == null) {
             throw new IllegalArgumentException("Store ID must not be null");
         }
+
+        User user = null;
+        if (dto.getUser_id() != null) {
+            user = userRepository.findById(dto.getUser_id())
+                    .orElseThrow(() -> new RuntimeException("User not found with ID " + dto.getUser_id()));
+        }
+
         Order order = new Order();
         order.setStore(storeRepository.findById(dto.getStore_id()).orElseThrow());
         order.setFullName(dto.getFull_name());
+        order.setUser(user);
         order.setPhone(dto.getPhone());
         order.setAddress("In-store order");
         order.setDeliveryDate(LocalDateTime.now().toString());
@@ -505,6 +514,7 @@ public class OrderServiceImpl implements OrderService {
         order.setShippingFee(dto.getShipping_fee());
         order.setFinalPrice(dto.getFinal_price());
         order.setOrderCode(OrderCodeGenerator.generateOrderCode());
+        orderRepository.save(order);
 
         List<OrderItem> items = new ArrayList<>();
         for (StoreOrderDTO.OrderItemDTO itemDTO : dto.getOrder_items()) {
@@ -539,8 +549,9 @@ public class OrderServiceImpl implements OrderService {
                 item.setQuantity(usedQty);
                 item.setQuantityInBase(itemDTO.getQuantity_in_base());
                 item.setPrice(itemDTO.getPrice());
-                item.setBatch(inventory.getBatch()); // Set the batch from inventory
+                item.setBatch(inventory.getBatch());
 
+                orderItemRepository.save(item);
                 items.add(item);
 
                 // Update inventory quantity
@@ -554,9 +565,8 @@ public class OrderServiceImpl implements OrderService {
                 throw new IllegalArgumentException("Not enough stock for product ID: " + itemDTO.getProduct_id());
             }
         }
-        order.setOrderItems(items);
 
-        return orderRepository.save(order);
+        return order;
     }
 
 }

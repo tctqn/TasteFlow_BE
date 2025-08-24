@@ -113,4 +113,9 @@ public class StockMovementController {
     public List<StockMovement> getDamagedAndExpired() {
         return stockMovementService.getDamagedAndExpired();
     }
+
+    @GetMapping("/damaged-expired/{storeId}")
+    public List<StockMovement> getDamagedAndExpired(@PathVariable Long storeId) {
+        return stockMovementService.getDamagedAndExpiredInStore(storeId);
+    }
 }

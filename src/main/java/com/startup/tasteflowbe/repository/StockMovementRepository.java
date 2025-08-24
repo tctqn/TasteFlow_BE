@@ -16,4 +16,7 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, Lo
 
     @Query("SELECT sm FROM StockMovement sm WHERE sm.movementType IN :types")
     List<StockMovement> findMovementsByTypes(@Param("types") Collection<String> types);
+
+    @Query("SELECT sm FROM StockMovement sm WHERE sm.movementType IN :types AND store.storeId = :storeId")
+    List<StockMovement> findMovementsByTypesInStore(@Param("types") Collection<String> types, Long storeId);
 }

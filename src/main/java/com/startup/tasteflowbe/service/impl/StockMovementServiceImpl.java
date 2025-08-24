@@ -254,4 +254,9 @@ public class StockMovementServiceImpl implements StockMovementService {
     public List<StockMovement> getDamagedAndExpired() {
         return stockMovementRepository.findMovementsByTypes(Arrays.asList("DAMAGE", "EXPIRED"));
     }
+
+    @Override
+    public List<StockMovement> getDamagedAndExpiredInStore(Long storeId) {
+        return stockMovementRepository.findMovementsByTypesInStore(Arrays.asList("DAMAGE", "EXPIRED"), storeId);
+    }
 }

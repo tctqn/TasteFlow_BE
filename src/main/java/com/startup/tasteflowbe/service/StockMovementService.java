@@ -20,7 +20,9 @@ public interface StockMovementService {
 
     List<StockMovement> getStockMovementsToStore(Long storeId);
 
-    public List<StockMovement> getDamagedAndExpired();
+    List<StockMovement> getDamagedAndExpired();
+
+    List<StockMovement> getDamagedAndExpiredInStore(Long storeId);
 
     String damageStock(DamageStockRequestDTO dto);
 }

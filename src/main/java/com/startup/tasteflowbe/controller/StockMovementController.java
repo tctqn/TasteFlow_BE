@@ -109,4 +109,8 @@ public class StockMovementController {
         return ResponseEntity.ok(result);
     }
 
+    @GetMapping("/damaged-expired")
+    public List<StockMovement> getDamagedAndExpired() {
+        return stockMovementService.getDamagedAndExpired();
+    }
 }

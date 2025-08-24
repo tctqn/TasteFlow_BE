@@ -27,8 +27,12 @@ public class OrderController {
     private final OrderItemRepository orderItemRepository;
 
     @GetMapping
-    public ResponseEntity<List<Order>> getAllOrders() {
-        return ResponseEntity.ok(orderService.getAllOrders());
+    public ResponseEntity<List<OrderResponseDTO>> getAllOrders() {
+        List<OrderResponseDTO> dtoList = orderService.getAllOrders()
+                .stream()
+                .map(orderMapper::toDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(dtoList);
     }
 
     @GetMapping("status/{orderCode}")

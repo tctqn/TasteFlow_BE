@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,7 +33,7 @@ public class NotificationServiceImpl implements NotificationService {
         Notification notification = new Notification();
         notification.setType(type);
         notification.setContent(content);
-        notification.setCreatedAt(LocalDateTime.now());
+        notification.setCreatedAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
         notificationRepository.save(notification);
 
         // Gắn thông báo vào từng user

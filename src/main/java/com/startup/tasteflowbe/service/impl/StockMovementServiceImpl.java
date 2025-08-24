@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -247,5 +248,10 @@ public class StockMovementServiceImpl implements StockMovementService {
         stockMovementRepository.save(movement);
 
         return "Đã cập nhật tồn kho và ghi nhận lịch sử hỏng/hết hạn.";
+    }
+
+    @Override
+    public List<StockMovement> getDamagedAndExpired() {
+        return stockMovementRepository.findMovementsByTypes(Arrays.asList("DAMAGE", "EXPIRED"));
     }
 }

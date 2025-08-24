@@ -7,6 +7,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 import com.google.common.collect.ImmutableList;
 import com.google.genai.Client;
@@ -189,7 +191,7 @@ public class AIProcessServiceImpl implements AIProcessService {
     @Override
     public GeminiResponse customerAdvisor(Long customerId) {
         List<Order> orders = orderRepository.findOrdersByUser_UserId(customerId);
-
+        List<Product> products = productRepository.findAll();
         int totalOrders = orders != null ? orders.size() : 0;
         int totalOrderItems = 0;
         double totalSpent = 0.0;
@@ -204,26 +206,32 @@ public class AIProcessServiceImpl implements AIProcessService {
             }
         }
 
+        String productList = products.stream()
+                .map(Product::getName)
+                .collect(Collectors.joining(" "));
+
         long activePromotions = promotionRepository != null ? promotionRepository.count() : 0L;
 
-        String prompt = String.format("""
-                NHIỆM VỤ: Tư vấn cá nhân hóa cho khách hàng TasteFlow
+        String prompt = String.format(
+                """
+                        NHIỆM VỤ: Tư vấn cá nhân hóa cho khách hàng TasteFlow
 
-                THÔNG TIN KHÁCH HÀNG:
-                - ID: %d
-                - Tổng đơn hàng: %d
-                - Tổng sản phẩm đã mua: %d
-                - Tổng chi tiêu: %.0f VND
-                - Khuyến mãi hiện tại: %d chương trình
+                        THÔNG TIN KHÁCH HÀNG:
+                        - ID: %d
+                        - Tổng đơn hàng: %d
+                        - Tổng sản phẩm đã mua: %d
+                        - Tổng chi tiêu: %.0f VND
+                        - Khuyến mãi hiện tại: %d chương trình
+                        - Các sản phẩm có trong hệ thống: %s
 
-                YÊU CẦU OUTPUT:
-                1. Viết 1 đoạn văn tiếng Việt (120-150 từ)
-                2. Cấu trúc: Đánh giá khách hàng → 2 gợi ý sản phẩm/combo → 2 mẹo sử dụng → Call-to-action
-                3. Tone: Thân thiện, cá nhân hóa, khuyến khích
-                4. Không markdown, không bullet points
-                5. Dựa trên data thực tế để đưa insights
-                """,
-                customerId, totalOrders, totalOrderItems, totalSpent, activePromotions);
+                        YÊU CẦU OUTPUT:
+                        1. Viết 1 đoạn văn tiếng Việt (50-80 từ)
+                        2. Cấu trúc: Đánh giá khách hàng → 2 gợi ý sản phẩm/combo có trong hệ thống → 2 mẹo sử dụng → Call-to-action
+                        3. Tone: Thân thiện, cá nhân hóa, khuyến khích
+                        4. Không markdown, không bullet points
+                        5. Dựa trên data thực tế để đưa insights
+                        """,
+                customerId, totalOrders, totalOrderItems, totalSpent, activePromotions, productList);
 
         GeminiRequest geminiRequest = new GeminiRequest();
         geminiRequest.setPrompt(prompt.toString());

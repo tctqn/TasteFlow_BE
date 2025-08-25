@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 
 @Service
@@ -208,7 +209,7 @@ public class OrderServiceImpl implements OrderService {
         // 2. Tạo đối tượng Order
         Order order = orderMapper.toEntity(dto);
         order.setUser(user);
-        order.setOrderDate(LocalDateTime.now());
+        order.setOrderDate(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
         order.setOrderCode(OrderCodeGenerator.generateOrderCode());
 
         Store store = storeService.getStoreById(dto.getStoreId())
@@ -313,18 +314,19 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.save(order); // Cập nhật invoice nếu có
 
         // Gửi thông báo tới người dùng và cửa hàng
-        notificationService.sendNotificationToUsers(
-                Arrays.asList(user.getUserId(), store.getManager().getUserId()),
-                NotificationType.ORDER,
-                "Đơn hàng" + order.getOrderCode() + " đã được tạo: ");
-
+        if (user != null && store.getManager() != null) {
+            notificationService.sendNotificationToUsers(
+                    Arrays.asList(user.getUserId(), store.getManager().getUserId()),
+                    NotificationType.ORDER,
+                    "Đơn hàng" + order.getOrderCode() + " đã được tạo: ");
+        }
         return orderMapper.toDto(order);
     }
 
     @Transactional
     @Override
     public CreatePaymentResponseDTO handleOnlinePayment(OrderResponseDTO order) {
-        Long amount = order.getTotalPrice().longValue();
+        Long amount = order.getFinalPrice().longValue();
         String description = "Thanh toán đơn hàng";
         return paymentService.createPayment(Long.parseLong(order.getOrderCode()), amount, description);
     }

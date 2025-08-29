@@ -7,6 +7,7 @@ import org.hibernate.annotations.BatchSize;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Table(
@@ -56,6 +57,6 @@ public class Payment {
 
     @PrePersist
     protected void onCreate() {
-        if (paymentDate == null) paymentDate = LocalDateTime.now();
+        if (paymentDate == null) paymentDate = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
     }
 }

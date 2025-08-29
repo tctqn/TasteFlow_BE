@@ -6,6 +6,7 @@ import lombok.*;
 import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Entity
@@ -53,7 +54,7 @@ public class Product {
     @PrePersist
     protected void onCreate() {
         if (createdAt == null)
-            createdAt = LocalDateTime.now();
+            createdAt = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         if (isDraft == null)
             isDraft = Boolean.FALSE;
     }

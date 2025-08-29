@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -72,7 +73,7 @@ public class ProductBatchController {
         productBatch.setQuantity(productBatchDTO.getQuantity());
         productBatch.setManufactureDate(productBatchDTO.getManufactureDate());
         productBatch.setNote(productBatchDTO.getNote());
-        productBatch.setReceivedDate(LocalDateTime.now());
+        productBatch.setReceivedDate(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
         productBatch.setImportPrice(BigDecimal.ZERO);
         productBatch.setStatus("PENDING");
 

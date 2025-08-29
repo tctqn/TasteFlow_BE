@@ -8,6 +8,7 @@ import org.hibernate.annotations.BatchSize;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Table(name = "product_batches", indexes = {
@@ -86,7 +87,7 @@ public class ProductBatch {
     @PrePersist
     protected void onCreate() {
         if (receivedDate == null)
-            receivedDate = LocalDateTime.now();
+            receivedDate = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         if (importPrice == null)
             importPrice = BigDecimal.ZERO;
     }

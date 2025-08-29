@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Service
 @RequiredArgsConstructor
@@ -48,7 +49,7 @@ public class StoreStaffServiceImpl implements StoreStaffService {
         storeStaff.setUser(staff);
         storeStaff.setStore(store);
         storeStaff.setActive(true);
-        storeStaff.setAssignedDate(LocalDateTime.now());
+        storeStaff.setAssignedDate(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
 
         storeStaffRepository.save(storeStaff);
     }

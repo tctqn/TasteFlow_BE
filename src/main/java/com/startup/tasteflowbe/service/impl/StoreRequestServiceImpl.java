@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -96,7 +97,7 @@ public class StoreRequestServiceImpl implements StoreRequestService {
 
         switch (status) {
             case "Completed":
-                existingRequest.setCompletedDate(LocalDateTime.now());
+                existingRequest.setCompletedDate(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
 
                 Store store = storeRepository.findByStoreId(existingRequest.getStoreId());
                 notificationService.sendNotificationToUsers(

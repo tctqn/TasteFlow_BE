@@ -2,6 +2,7 @@ package com.startup.tasteflowbe.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
@@ -44,6 +45,6 @@ public class StoreRequest {
 
     @PrePersist
     protected void onCreate() {
-        requestDate = LocalDateTime.now();
+        requestDate = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
     }
 }

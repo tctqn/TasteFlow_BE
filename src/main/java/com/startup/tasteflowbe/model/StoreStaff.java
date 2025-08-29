@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Table(name = "store_staff")
@@ -28,5 +29,5 @@ public class StoreStaff {
     private boolean active = true;
 
     @Column(name = "assigned_date", nullable = false)
-    private LocalDateTime assignedDate = LocalDateTime.now();
+    private LocalDateTime assignedDate = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
 }

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Service
 @RequiredArgsConstructor
@@ -42,7 +43,7 @@ public class UserVoucherServiceImpl implements UserVoucherService {
         UserVoucher userVoucher = new UserVoucher();
         userVoucher.setUser(user);
         userVoucher.setVoucher(voucher);
-        userVoucher.setClaimedAt(LocalDateTime.now());
+        userVoucher.setClaimedAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
         userVoucher.setUsed(false);
         return userVoucherRepository.save(userVoucher);
     }

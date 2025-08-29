@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -72,7 +73,7 @@ public class VoucherServiceImpl implements VoucherService {
 
     @Override
     public List<VoucherResponseDTO> getAvailableVouchers(User user, BigDecimal totalPrice) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
 
         List<Voucher> publicVouchers = voucherRepository
                 .findAllByDistributionTypeAndStartDateBeforeAndEndDateAfterAndQuantityGreaterThan(
@@ -129,7 +130,7 @@ public class VoucherServiceImpl implements VoucherService {
 
     @Override
     public List<VoucherResponseDTO> getPublicVouchers(BigDecimal totalPrice) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
 
         List<Voucher> publicVouchers = voucherRepository
                 .findAllByDistributionTypeAndStartDateBeforeAndEndDateAfterAndQuantityGreaterThan(

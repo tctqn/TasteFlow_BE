@@ -85,4 +85,16 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
   @Query("SELECT DISTINCT i.product FROM Inventory i WHERE i.store.storeId = :storeId")
   List<Product> findDistinctProductsByStoreId(@Param("storeId") Long storeId);
 
+    @Query("""
+    select i from Inventory i
+    join fetch i.batch b
+    where i.store.storeId = :storeId
+      and i.product.productId in :productIds
+      and b.expirationDate >= CURRENT_DATE
+    order by b.expirationDate asc, i.inventoryId asc
+""")
+    List<Inventory> findByStoreAndProductIdsOrderByFefo(
+            @Param("storeId") Long storeId,
+            @Param("productIds") List<Long> productIds
+    );
 }

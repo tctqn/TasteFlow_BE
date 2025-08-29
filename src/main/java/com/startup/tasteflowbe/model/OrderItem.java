@@ -52,7 +52,7 @@ public class OrderItem {
     @ManyToOne
     @JoinColumn(name = "batch_id")
     @JsonIgnore
-    private ProductBatch batch; // có thể null
+    private ProductBatch batch;
 
     @Column(name = "quantity", nullable = false)
     @ToString.Include

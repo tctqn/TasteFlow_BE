@@ -43,7 +43,6 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
           FROM Inventory i
           JOIN i.batch b
           WHERE i.store.storeId = :storeId
-            AND b.expirationDate >= CURRENT_DATE
       """)
   List<Inventory> findByStore_StoreId(Long storeId);
 
@@ -64,7 +63,6 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
           JOIN i.batch b
           WHERE i.warehouse.warehouseId = :warehouseId
             AND i.store IS NULL
-            AND b.expirationDate >= CURRENT_DATE
       """)
   List<Inventory> findByWarehouse_WarehouseId(Long warehouseId);
 

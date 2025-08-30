@@ -51,4 +51,19 @@ public class StockMovement {
     @JoinColumn(name = "request_id")
     private StoreRequest storeRequest;
 
+    @Override
+    public String toString() {
+        return "StockMovement{" +
+                "movementId=" + movementId +
+                ", warehouse=" + (warehouse != null ? warehouse.getWarehouseId() : null) +
+                ", store=" + (store != null ? store.getStoreId() : null) +
+                ", product=" + (product != null ? product.getProductId() : null) +
+                ", batch=" + (batch != null ? batch.getBatchId() : null) +
+                ", movementType=" + movementType +
+                ", quantity=" + quantity +
+                ", movementDate=" + movementDate +
+                ", note='" + note + '\'' +
+                ", storeRequest=" + (storeRequest != null ? storeRequest.getRequestId() : null) +
+                '}';
+    }
 }

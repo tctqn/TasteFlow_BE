@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Table(name = "user_vouchers")
@@ -35,7 +36,7 @@ public class UserVoucher {
 
     @PrePersist
     public void prePersist() {
-        this.claimedAt = LocalDateTime.now();
+        this.claimedAt = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         this.used = false;
     }
 }

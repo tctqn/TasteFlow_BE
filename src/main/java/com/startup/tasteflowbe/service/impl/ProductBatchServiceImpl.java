@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -119,7 +120,7 @@ public class ProductBatchServiceImpl implements ProductBatchService {
         stockMovement.setProduct(productBatch.getProduct());
         stockMovement.setQuantity(quantityInBaseUnit);
         stockMovement.setBatch(productBatch);
-        stockMovement.setMovementDate(LocalDateTime.now());
+        stockMovement.setMovementDate(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
         stockMovement.setNote(MovementType.IMPORT_BATCH.getDescription());
         stockMovement.setMovementType(MovementType.IMPORT_BATCH);
         stockMovementRepository.save(stockMovement);

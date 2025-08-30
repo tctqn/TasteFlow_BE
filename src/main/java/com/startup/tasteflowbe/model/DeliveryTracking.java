@@ -12,6 +12,7 @@ import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDateTime;
 import java.time.LocalDate;
+import java.time.ZoneId;
 
 @Entity
 @Table(
@@ -62,11 +63,11 @@ public class DeliveryTracking {
 
     @PrePersist
     protected void onCreate() {
-        if (updatedAt == null) updatedAt = LocalDateTime.now();
+        if (updatedAt == null) updatedAt = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
     }
 
     @PreUpdate
     protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
     }
 }

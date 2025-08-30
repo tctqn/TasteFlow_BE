@@ -6,13 +6,20 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
 public interface PromotionRepository extends JpaRepository<Promotion, Long> {
-    @Query("SELECT p FROM Promotion p JOIN p.applicableProducts ap JOIN p.applicableStores s " +
-            "WHERE ap.productId = :productId AND s.storeId = :storeId " +
-            "AND p.startDate <= CURRENT_TIMESTAMP AND p.endDate >= CURRENT_TIMESTAMP")
-    List<Promotion> findValidPromotionsForProductAtStore(@Param("productId") Long productId,
-                                                         @Param("storeId") Long storeId);
+    @Query("""
+        SELECT DISTINCT p
+        FROM Promotion p
+        LEFT JOIN p.applicableStores s
+        WHERE p.isActive = true
+          AND p.startDate <= :now
+          AND p.endDate   >= :now
+          AND (s.storeId = :storeId OR s IS NULL)
+    """)
+    List<Promotion> findActiveForStore(@Param("storeId") Long storeId,
+                                       @Param("now") LocalDateTime now);
 }

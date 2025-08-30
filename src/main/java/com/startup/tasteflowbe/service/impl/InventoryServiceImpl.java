@@ -282,8 +282,7 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
-    public List<BatchDetailDTO> getBatchDetailsByProductAndWarehouseOrStore(Long productId, Long warehouseId,
-            Long storeId) {
+    public List<BatchDetailDTO> getBatchDetailsByProductAndWarehouseOrStore(Long productId, Long warehouseId, Long storeId) {
         List<Inventory> inventories = inventoryRepository.findByProductAndWarehouseOrStore(productId, warehouseId,
                 storeId);
         if (warehouseId != null) {
@@ -417,6 +416,9 @@ public class InventoryServiceImpl implements InventoryService {
     public int updateReorderLevel(Long productId, Long warehouseId, Long storeId, Integer reorderLevel) {
         List<Inventory> inventories = inventoryRepository.findByProductAndWarehouseOrStore(productId, warehouseId,
                 storeId);
+        if (warehouseId != null) {
+            inventories = inventories.stream().filter(inv -> inv.getStore() == null).toList();
+        }
         for (Inventory inv : inventories) {
             inv.setReorderLevel(reorderLevel);
         }

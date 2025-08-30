@@ -34,7 +34,7 @@ public interface ProductService {
     void deleteProduct(Long id);
 
     // ✅ Phần Multi-Unit Inventory support
-    List<ProductListItemDTO> getAllProductForList(); // dùng cho FE list card
+    List<ProductListItemDTO> getAllProductForList(Long storeId);
 
     ProductDetailDTO getProductDetail(Long productId); // dùng cho FE detail
 

@@ -9,6 +9,7 @@ import com.startup.tasteflowbe.enums.PaymentMethod;
 import com.startup.tasteflowbe.mapper.OrderMapper;
 import com.startup.tasteflowbe.model.Order;
 import com.startup.tasteflowbe.repository.OrderItemRepository;
+import com.startup.tasteflowbe.service.OrderAvailabilityService;
 import com.startup.tasteflowbe.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +26,7 @@ public class OrderController {
     private final OrderService orderService;
     private final OrderMapper orderMapper;
     private final OrderItemRepository orderItemRepository;
-
+    private final OrderAvailabilityService orderAvailabilityService;
     @GetMapping
     public ResponseEntity<List<OrderResponseDTO>> getAllOrders() {
         List<OrderResponseDTO> dtoList = orderService.getAllOrders()
@@ -103,36 +104,11 @@ public class OrderController {
         return ResponseEntity.ok(orderResponse);
     }
 
-    // private StoreOrderResponseDTO convertToDto(Order order) {
-    // if (order == null) {
-    // return null;
-    // }
-    //
-    // // Chuyển đổi List<OrderItem> -> List<OrderItemResponseDTO>
-    // List<OrderItem> orderItems =
-    // orderItemRepository.findByOrder_OrderId(order.getOrderId());
-    // List<OrderItemResponseDTO> orderItemDtos = orderItems.stream()
-    // .map(item -> {
-    // OrderItemResponseDTO itemDto = new OrderItemResponseDTO();
-    // itemDto.setProductId(item.getProduct().getProductId());
-    // itemDto.setProductName(item.getProduct().getName());
-    // itemDto.setQuantity(item.getQuantity());
-    // itemDto.setPrice(item.getPrice());
-    // return itemDto;
-    // })
-    // .collect(Collectors.toList());
-    //
-    // // Tạo và trả về DTO chính
-    // StoreOrderResponseDTO dto = new StoreOrderResponseDTO();
-    // dto.setOrderId(order.getOrderId());
-    // dto.setOrderCode(order.getOrderCode());
-    // dto.setTotal_price(order.getTotalPrice());
-    // dto.setStatus(order.getStatus());
-    // dto.setOrder_date(order.getOrderDate());
-    // dto.setUser(order.getUser());
-    // dto.setOrderItems(orderItemDtos);
-    //
-    // return dto;
-    // }
+    @GetMapping("/{orderId}/with-availability")
+    public ResponseEntity<OrderResponseDTO> getDetail(@PathVariable Long orderId) {
+        OrderResponseDTO dto = orderAvailabilityService.getOrderDetailWithAvailability(orderId);
+        return dto == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
+    }
+
 
 }

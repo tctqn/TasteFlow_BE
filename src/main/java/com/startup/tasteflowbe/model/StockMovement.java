@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Table(name = "stock_movements")
@@ -42,7 +43,7 @@ public class StockMovement {
     private Integer quantity;
 
     @Column(name = "movement_date", nullable = false)
-    private LocalDateTime movementDate = LocalDateTime.now();
+    private LocalDateTime movementDate = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
 
     @Column(name = "note")
     private String note;

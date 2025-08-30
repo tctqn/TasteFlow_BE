@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -76,7 +77,7 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
                 batch.setWarehouse(warehouse);
                 batch.setQuantity(itemDto.getQuantity());
                 batch.setImportPrice(productUnit.getPrice().multiply(qt));
-                batch.setReceivedDate(LocalDateTime.now());
+                batch.setReceivedDate(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
                 batch.setStatus("SHIPPED");
                 batch.setUnit(productUnit.getUnit());
                 batch.setSupplier(supplier);

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -63,7 +64,7 @@ public class StockMovementServiceImpl implements StockMovementService {
         movement.setMovementType(dto.getMovementType());
         movement.setQuantity(dto.getQuantity());
         movement.setNote(dto.getNote());
-        movement.setMovementDate(java.time.LocalDateTime.now()); // Set ngày giờ hiện tại
+        movement.setMovementDate(java.time.LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"))); // Set ngày giờ hiện tại
 
         // Lưu và trả về
         return stockMovementRepository.save(movement);
@@ -181,7 +182,7 @@ public class StockMovementServiceImpl implements StockMovementService {
                     movement.setProduct(product);
                     movement.setBatch(inv.getBatch()); // batch được chọn động
                     movement.setQuantity(usedFromThisBatch);
-                    movement.setMovementDate(LocalDateTime.now());
+                    movement.setMovementDate(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
                     movement.setMovementType(MovementType.TRANSFER_TO_STORE);
                     movement.setStoreRequest(storeRequestRepository.findById(requestId).orElseThrow());
                     movement.setNote("Chuyển " + usedFromThisBatch + " sản phẩm từ batch "
@@ -243,7 +244,7 @@ public class StockMovementServiceImpl implements StockMovementService {
         movement.setBatch(inventory.getBatch());
         movement.setQuantity(dto.getDamageQuantity());
         movement.setMovementType(dto.getMovementType());
-        movement.setMovementDate(LocalDateTime.now());
+        movement.setMovementDate(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
         movement.setNote(dto.getNote());
         stockMovementRepository.save(movement);
 

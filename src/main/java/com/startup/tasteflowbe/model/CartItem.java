@@ -10,6 +10,7 @@ import lombok.ToString;
 import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Table(
@@ -51,7 +52,7 @@ public class CartItem {
     @PrePersist
     protected void onCreate() {
         if (addedAt == null) {
-            addedAt = LocalDateTime.now();
+            addedAt = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         }
     }
 

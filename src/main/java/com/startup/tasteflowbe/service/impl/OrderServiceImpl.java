@@ -239,8 +239,8 @@ public class OrderServiceImpl implements OrderService {
             BigDecimal bestDiscount = BigDecimal.ZERO;
 
             for (Voucher voucher : voucherMap.values()) {
-                if (voucher.getStartDate().isAfter(LocalDateTime.now())
-                        || voucher.getEndDate().isBefore(LocalDateTime.now())) {
+                if (voucher.getStartDate().isAfter(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
+                        || voucher.getEndDate().isBefore(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))) {
                     continue;
                 }
 
@@ -296,7 +296,7 @@ public class OrderServiceImpl implements OrderService {
             invoice.setInvoiceEmail(dto.getInvoiceInfo().getEmail());
             invoice.setInvoiceTaxCode(dto.getInvoiceInfo().getTaxCode());
             invoice.setInvoiceCompanyAddress(dto.getInvoiceInfo().getCompanyAddress());
-            invoice.setIssuedAt(LocalDateTime.now());
+            invoice.setIssuedAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
             invoice.setTotalAmount(order.getTotalPrice());
 
             try {
@@ -422,8 +422,8 @@ public class OrderServiceImpl implements OrderService {
         order.setUser(user);
         order.setPhone(dto.getPhone());
         order.setAddress("In-store order");
-        order.setDeliveryDate(LocalDateTime.now().toString());
-        order.setDeliverySlot(LocalDateTime.now().toString());
+        order.setDeliveryDate(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")).toString());
+        order.setDeliverySlot(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")).toString());
         order.setPaymentMethod(PaymentMethod.valueOf(dto.getPayment_method()));
         order.setStatus(OrderStatus.valueOf(dto.getStatus()));
         order.setNeedInvoice(dto.getNeed_invoice());

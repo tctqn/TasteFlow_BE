@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,7 +29,7 @@ public class ImageStorageServiceImpl implements ImageStorageService {
                 .referenceTable(relatedTable)
                 .referenceId(recordId)
                 .description("Ảnh được upload từ FE")
-                .createdAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
                 .build();
         return imageRepo.save(image);
     }

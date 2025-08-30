@@ -19,6 +19,7 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
 import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 @Service
@@ -75,7 +76,7 @@ public class S3ServiceImpl implements S3Service {
         public String uploadImage(MultipartFile file) {
                 try {
                         String key = "images/"
-                                        + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+                                        + LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")).format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
                                         + "_" + file.getOriginalFilename();
 
                         PutObjectRequest putRequest = PutObjectRequest.builder()

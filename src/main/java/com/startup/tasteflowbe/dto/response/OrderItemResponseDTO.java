@@ -1,5 +1,6 @@
 package com.startup.tasteflowbe.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,4 +23,7 @@ public class OrderItemResponseDTO {
     private Integer quantityInBase;
     private BigDecimal price;
     private BigDecimal discount;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private OrderItemAvailabilityDTO availability;
 }

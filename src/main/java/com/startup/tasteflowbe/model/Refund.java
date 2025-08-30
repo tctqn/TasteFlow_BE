@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Table(name = "refunds")
@@ -36,5 +37,5 @@ public class Refund {
     private String status;
 
     @Column(name = "refund_date", nullable = false)
-    private LocalDateTime refundDate = LocalDateTime.now();
+    private LocalDateTime refundDate = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
 }

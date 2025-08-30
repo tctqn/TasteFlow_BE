@@ -12,6 +12,7 @@ import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Entity
@@ -103,7 +104,7 @@ public class Order {
 
         // Hệ thống
         @Column(name = "order_date", nullable = false)
-        private LocalDateTime orderDate = LocalDateTime.now();
+        private LocalDateTime orderDate = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
 
         @ManyToOne
         @JoinColumn(name = "shipping_address_id")
@@ -125,6 +126,6 @@ public class Order {
         @PrePersist
         protected void prePersist() {
                 if (orderDate == null)
-                        orderDate = LocalDateTime.now();
+                        orderDate = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         }
 }

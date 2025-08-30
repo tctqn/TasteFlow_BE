@@ -10,6 +10,7 @@ import lombok.ToString;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Table(
@@ -62,6 +63,6 @@ public class Invoice {
 
     @PrePersist
     protected void onCreate() {
-        if (issuedAt == null) issuedAt = LocalDateTime.now();
+        if (issuedAt == null) issuedAt = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
     }
 }

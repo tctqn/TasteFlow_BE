@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -97,4 +98,14 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
             @Param("storeId") Long storeId,
             @Param("productIds") List<Long> productIds
     );
+
+    @Query("""
+        select i.product.productId as productId, sum(i.quantity) as qty
+        from Inventory i
+        where i.store.storeId = :storeId
+          and i.product.productId in :productIds
+        group by i.product.productId
+    """)
+    List<ProductStockAgg> sumQtyByStoreAndProductIds(@Param("storeId") Long storeId,
+                                                     @Param("productIds") Collection<Long> productIds);
 }

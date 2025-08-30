@@ -17,8 +17,10 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    public ResponseEntity<List<ProductListItemDTO>> getAllProductsForList() {
-        return ResponseEntity.ok(productService.getAllProductForList());
+    public ResponseEntity<List<ProductListItemDTO>> getAllProductsForList(
+            @RequestParam(value = "storeId", required = false) Long storeId
+    ) {
+        return ResponseEntity.ok(productService.getAllProductForList(storeId));
     }
 
     @GetMapping("/{id}/detail")

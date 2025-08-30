@@ -24,8 +24,10 @@ public class AdminProductController {
     private final S3Service s3Service;
 
     @GetMapping
-    public ResponseEntity<List<ProductListItemDTO>> getAllProductsForList() {
-        return ResponseEntity.ok(productService.getAllProductForList());
+    public ResponseEntity<List<ProductListItemDTO>> getAllProductsForList(
+            @RequestParam(value = "storeId", required = false) Long storeId
+    ) {
+        return ResponseEntity.ok(productService.getAllProductForList(storeId));
     }
 
     @GetMapping("/{id}")

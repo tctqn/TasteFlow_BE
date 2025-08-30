@@ -9,6 +9,7 @@ import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.startup.tasteflowbe.dto.request.ProductRequestDTO;
 import com.startup.tasteflowbe.dto.response.ProductResponseDTO;
+import com.startup.tasteflowbe.enums.DiscountType;
 import com.startup.tasteflowbe.mapper.ProductMapper;
 import com.startup.tasteflowbe.model.*;
 import com.startup.tasteflowbe.repository.*;
@@ -30,11 +31,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
@@ -50,6 +48,8 @@ public class ProductServiceImpl implements ProductService {
     private final UnitRepository unitRepository;
     private final ProductMapper productMapper;
     private final S3ServiceImpl s3Service;
+    private final PromotionRepository promotionRepository;
+    private final InventoryRepository inventoryRepository;
 
     // ✅ Phần CRUD Admin cũ giữ nguyên
     @Override
@@ -337,25 +337,111 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public List<ProductListItemDTO> getAllProductForList() {
-        List<ProductUnit> allUnits = productUnitRepository.findAll();
-        Map<Long, ProductBatch> productToLatestBatch = new HashMap<>();
+    public List<ProductListItemDTO> getAllProductForList(Long storeId) {
+        // 1) Lấy tất cả base units (toàn hệ thống)
+        final List<ProductUnit> units = productUnitRepository.findAllBaseUnitsWithProduct();
 
-        return allUnits.stream().filter(unit -> unit.getIsBaseUnit()).map(unit -> {
-            ProductListItemDTO dto = productMapper.productUnitToProductListItemDTO(unit);
+        // 2) Nếu cần promotion theo store, load trước (để tránh gọi vòng lặp)
+        final List<Promotion> activePromos = (storeId == null)
+                ? Collections.emptyList()
+                : promotionRepository.findActiveForStore(storeId, LocalDateTime.now());
 
-            Long productId = unit.getProduct().getProductId();
+        // 3) Map lô mới nhất để lấy supplier
+        final Map<Long, ProductBatch> productToLatestBatch = new HashMap<>();
 
-            ProductBatch batch = productToLatestBatch.computeIfAbsent(productId, pid -> productBatchRepository
-                    .findTopByProductOrderByReceivedDateDesc(unit.getProduct()).orElse(null));
+        // 4) Nếu có storeId, gom danh sách productId -> query tồn kho 1 phát
+        Map<Long, Integer> stockMap;
+        if (storeId != null && !units.isEmpty()) {
+            List<Long> productIds = units.stream()
+                    .map(u -> u.getProduct().getProductId())
+                    .distinct()
+                    .toList();
 
-            if (batch != null) {
-                dto.setSupplierName(batch.getSupplier().getName());
+            List<ProductStockAgg> rows = inventoryRepository
+                    .sumQtyByStoreAndProductIds(storeId, productIds);
+
+            stockMap = rows.stream().collect(Collectors.toMap(
+                    ProductStockAgg::getProductId,
+                    r -> Optional.ofNullable(r.getQty()).orElse(0)
+            ));
+        } else {
+            stockMap = Collections.emptyMap();
+        }
+
+        // 5) Duyệt và map DTO
+        return units.stream().map(u -> {
+            ProductListItemDTO dto = productMapper.productUnitToProductListItemDTO(u);
+
+            Long productId = u.getProduct().getProductId();
+
+            // supplier từ lô mới nhất
+            ProductBatch latest = productToLatestBatch.computeIfAbsent(
+                    productId,
+                    __ -> productBatchRepository
+                            .findTopByProductOrderByReceivedDateDesc(u.getProduct())
+                            .orElse(null)
+            );
+            if (latest != null && latest.getSupplier() != null) {
+                dto.setSupplierName(latest.getSupplier().getName());
+            }
+
+            // Giá khuyến mãi theo store (nếu có)
+            BigDecimal base = dto.getPrice() == null ? BigDecimal.ZERO : dto.getPrice();
+            BigDecimal best = base;
+            String badge = null;
+            Long promoId = null;
+
+            if (!activePromos.isEmpty()) {
+                Long catId = (u.getProduct().getCategory() != null)
+                        ? u.getProduct().getCategory().getCategoryId()
+                        : null;
+
+                for (Promotion p : activePromos) {
+                    boolean matchProduct = p.getApplicableProducts().isEmpty() ||
+                            p.getApplicableProducts().stream().anyMatch(pp -> pp.getProductId().equals(productId));
+                    boolean matchCategory = p.getApplicableCategories().isEmpty() ||
+                            (catId != null && p.getApplicableCategories().stream().anyMatch(cc -> cc.getCategoryId().equals(catId)));
+
+                    if (!(matchProduct || matchCategory)) continue;
+
+                    BigDecimal discounted = base;
+                    if (p.isPercentage()) {
+                        BigDecimal pct = Optional.ofNullable(p.getDiscountPercentage()).orElse(BigDecimal.ZERO);
+                        discounted = base.subtract(base.multiply(pct).divide(BigDecimal.valueOf(100)));
+                        if (discounted.compareTo(best) < 0) {
+                            best = discounted.max(BigDecimal.ZERO);
+                            badge = "Giảm " + pct.stripTrailingZeros().toPlainString() + "%";
+                            promoId = p.getPromotionId();
+                        }
+                    } else if (p.isAmount()) {
+                        BigDecimal amt = Optional.ofNullable(p.getDiscountAmount()).orElse(BigDecimal.ZERO);
+                        discounted = base.subtract(amt);
+                        if (discounted.compareTo(best) < 0) {
+                            best = discounted.max(BigDecimal.ZERO);
+                            badge = "-" + amt.stripTrailingZeros().toPlainString();
+                            promoId = p.getPromotionId();
+                        }
+                    }
+                }
+            }
+
+            dto.setDiscountedPrice(best);
+            dto.setPromoBadge(badge);
+            dto.setAppliedPromotionId(promoId);
+
+            // Tồn kho theo store (nếu có storeId); nếu null => admin, không set
+            if (storeId != null) {
+                int qty = stockMap.getOrDefault(productId, 0);
+                dto.setAvailableQty(qty);
+                dto.setOutOfStock(qty <= 0); // sản phẩm không có tại store -> true
             }
 
             return dto;
-        }).collect(Collectors.toList());
+        }).toList();
     }
+
+
+
 
     @Override
     public ProductDetailDTO getProductDetail(Long productId) {

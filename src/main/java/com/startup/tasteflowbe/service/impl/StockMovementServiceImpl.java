@@ -5,7 +5,9 @@ import com.startup.tasteflowbe.dto.StoreTransferParam;
 import com.startup.tasteflowbe.dto.request.StockMovementRequestDTO;
 import com.startup.tasteflowbe.dto.request.DamageStockRequestDTO;
 import com.startup.tasteflowbe.enums.MovementType;
+import com.startup.tasteflowbe.enums.NotificationType;
 import com.startup.tasteflowbe.repository.*;
+import com.startup.tasteflowbe.service.NotificationService;
 import com.startup.tasteflowbe.service.StockMovementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,6 +38,9 @@ public class StockMovementServiceImpl implements StockMovementService {
     private final StoreRepository storeRepository;
 
     private final StoreRequestRepository storeRequestRepository;
+
+    private final NotificationService notificationService;
+
 
     @Override
     public StockMovement createStockMovement(StockMovementRequestDTO dto) {
@@ -170,6 +175,7 @@ public class StockMovementServiceImpl implements StockMovementService {
 
             // Lưu log stock movement cho từng store dựa trên transferList
             for (StoreTransferParam param : transferList) {
+                Store store = storeRepository.findById(param.getStoreId()).orElseThrow();
                 int storeQty = param.getQuantity();
                 if (storeQty <= 0)
                     continue;
@@ -178,21 +184,28 @@ public class StockMovementServiceImpl implements StockMovementService {
                 if (usedFromThisBatch > 0) {
                     StockMovement movement = new StockMovement();
                     movement.setWarehouse(warehouse);
-                    movement.setStore(storeRepository.findById(param.getStoreId()).orElseThrow());
+                    movement.setStore(store);
                     movement.setProduct(product);
                     movement.setBatch(inv.getBatch()); // batch được chọn động
                     movement.setQuantity(usedFromThisBatch);
                     movement.setMovementDate(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
                     movement.setMovementType(MovementType.TRANSFER_TO_STORE);
                     movement.setStoreRequest(storeRequestRepository.findById(requestId).orElseThrow());
-                    movement.setNote("Chuyển " + usedFromThisBatch + " sản phẩm từ batch "
+                    movement.setNote("Chuyển " + usedFromThisBatch + " sản phẩm từ lô "
                             + inv.getBatch().getBatchId() + " đến cửa hàng " + param.getStoreId());
                     stockMovementRepository.save(movement);
 
                     // Cập nhật lại số lượng còn cần cho cửa hàng này
                     param.setQuantity(storeQty - usedFromThisBatch);
                     deduct -= usedFromThisBatch;
+
+                    notificationService.sendNotificationToUsers(
+                            Arrays.asList(store.getManager().getUserId(), warehouse.getManager().getUserId()),
+                            NotificationType.ALERT,
+                            "Chuyển " + usedFromThisBatch + " sản phẩm từ lô "
+                            + inv.getBatch().getBatchId() + " đến cửa hàng " + store.getName());
                 }
+
             }
 
             remaining -= deduct;

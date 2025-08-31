@@ -28,7 +28,13 @@ public class StoreRequestItem {
     @Column(name = "quantity", nullable = false)
     private Long quantity;
 
+    @Column(name = "actual_quantity")
+    private Long actualQuantity;
+
     @Column(name = "unit_id", nullable = false)
     private Long unitId;
+
+    @Column(name = "status", nullable = false)
+    private String status;
 
 }

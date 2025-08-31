@@ -10,4 +10,6 @@ import java.util.List;
 public interface StoreRequestItemRepository extends JpaRepository<StoreRequestItem, Integer> {
 
     List<StoreRequestItem> findByStoreRequest_RequestId(Long requestId);
+
+    StoreRequestItem findByStoreRequest_RequestIdAndProductId(Long requestId, Long productId);
 }

@@ -5,7 +5,9 @@ import com.startup.tasteflowbe.dto.StoreTransferParam;
 import com.startup.tasteflowbe.dto.request.StockMovementRequestDTO;
 import com.startup.tasteflowbe.dto.request.DamageStockRequestDTO;
 import com.startup.tasteflowbe.enums.MovementType;
+import com.startup.tasteflowbe.enums.NotificationType;
 import com.startup.tasteflowbe.repository.*;
+import com.startup.tasteflowbe.service.NotificationService;
 import com.startup.tasteflowbe.service.StockMovementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,6 +38,10 @@ public class StockMovementServiceImpl implements StockMovementService {
     private final StoreRepository storeRepository;
 
     private final StoreRequestRepository storeRequestRepository;
+
+    private final NotificationService notificationService;
+
+    private final StoreRequestItemRepository storeRequestItemRepository;
 
     @Override
     public StockMovement createStockMovement(StockMovementRequestDTO dto) {
@@ -134,16 +140,13 @@ public class StockMovementServiceImpl implements StockMovementService {
     @Transactional
     public void transferToStores(Long requestId, Long warehouseId, Long productId,
             List<StoreTransferParam> transferList) {
-        // Lấy warehouse và product
         Warehouse warehouse = warehouseRepository.findById(warehouseId).orElseThrow();
         Product product = productRepository.findById(productId).orElseThrow();
 
-        // Tính tổng quantity cần chuyển
         int totalQuantity = transferList.stream()
                 .mapToInt(StoreTransferParam::getQuantity)
                 .sum();
 
-        // Lấy tất cả tồn kho theo warehouse + product (không filter batchId)
         List<Inventory> inventories = inventoryRepository
                 .findByWarehouse_WarehouseIdAndProduct_ProductIdAndStoreIsNullOrderByBatch_ExpirationDateAsc(
                         warehouseId, productId);
@@ -152,13 +155,11 @@ public class StockMovementServiceImpl implements StockMovementService {
             throw new IllegalArgumentException("Không tìm thấy tồn kho cho sản phẩm này trong kho.");
         }
 
-        // Tính tổng tồn kho khả dụng
         int available = inventories.stream().mapToInt(Inventory::getQuantity).sum();
         if (available < totalQuantity) {
             throw new IllegalArgumentException("Không đủ hàng trong kho để chuyển.");
         }
 
-        // Trừ tồn kho từ nhiều batch (FIFO theo expiration_date)
         int remaining = totalQuantity;
         for (Inventory inv : inventories) {
             if (remaining <= 0)
@@ -168,8 +169,8 @@ public class StockMovementServiceImpl implements StockMovementService {
             inv.setQuantity(inv.getQuantity() - deduct);
             inventoryRepository.save(inv);
 
-            // Lưu log stock movement cho từng store dựa trên transferList
             for (StoreTransferParam param : transferList) {
+                Store store = storeRepository.findById(param.getStoreId()).orElseThrow();
                 int storeQty = param.getQuantity();
                 if (storeQty <= 0)
                     continue;
@@ -178,29 +179,85 @@ public class StockMovementServiceImpl implements StockMovementService {
                 if (usedFromThisBatch > 0) {
                     StockMovement movement = new StockMovement();
                     movement.setWarehouse(warehouse);
-                    movement.setStore(storeRepository.findById(param.getStoreId()).orElseThrow());
+                    movement.setStore(store);
                     movement.setProduct(product);
-                    movement.setBatch(inv.getBatch()); // batch được chọn động
+                    movement.setBatch(inv.getBatch());
                     movement.setQuantity(usedFromThisBatch);
                     movement.setMovementDate(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
                     movement.setMovementType(MovementType.TRANSFER_TO_STORE);
                     movement.setStoreRequest(storeRequestRepository.findById(requestId).orElseThrow());
-                    movement.setNote("Chuyển " + usedFromThisBatch + " sản phẩm từ batch "
+                    movement.setNote("Chuyển " + usedFromThisBatch + " sản phẩm từ lô "
                             + inv.getBatch().getBatchId() + " đến cửa hàng " + param.getStoreId());
                     stockMovementRepository.save(movement);
 
-                    // Cập nhật lại số lượng còn cần cho cửa hàng này
                     param.setQuantity(storeQty - usedFromThisBatch);
                     deduct -= usedFromThisBatch;
+
+                    notificationService.sendNotificationToUsers(
+                            Arrays.asList(store.getManager().getUserId(), warehouse.getManager().getUserId()),
+                            NotificationType.ALERT,
+                            "Chuyển " + usedFromThisBatch + " sản phẩm từ lô "
+                                    + inv.getBatch().getBatchId() + " đến cửa hàng " + store.getName());
                 }
+
             }
 
             remaining -= deduct;
         }
 
-        // Update trạng thái store_request
-        StoreRequest storeRequest = storeRequestRepository.findById(requestId).orElseThrow();
-        storeRequest.setStatus("Processing");
+        StoreRequestItem item = storeRequestItemRepository.findByStoreRequest_RequestIdAndProductId(requestId,
+                productId);
+        if (totalQuantity < item.getQuantity()) {
+            item.setActualQuantity(Long.valueOf(totalQuantity));
+            item.setStatus("Partial");
+            storeRequestItemRepository.save(item);
+        } else {
+            item.setStatus("Processing");
+            storeRequestItemRepository.save(item);
+        }
+
+        StoreRequest request = storeRequestRepository.findById(requestId).orElseThrow();
+        updateParentRequestStatus(request);
+    }
+
+    @Override
+    @Transactional
+    public void rejectStoreRequestItem(Long requestId, Long productId) {
+        StoreRequestItem item = storeRequestItemRepository.findByStoreRequest_RequestIdAndProductId(requestId,
+                productId);
+        if (item == null) {
+            throw new IllegalArgumentException("Không tìm thấy mục yêu cầu cho sản phẩm và yêu cầu đã cho.");
+        }
+        item.setStatus("Rejected");
+        storeRequestItemRepository.save(item);
+
+        StoreRequest request = storeRequestRepository.findById(requestId).orElseThrow();
+        updateParentRequestStatus(request);
+    }
+
+    private void updateParentRequestStatus(StoreRequest request) {
+        long totalItems = request.getItems().size();
+        long approvedCount = request.getItems().stream().filter(i -> "Approved".equals(i.getStatus())).count();
+        long rejectedCount = request.getItems().stream().filter(i -> "Rejected".equals(i.getStatus())).count();
+        long partiallyApprovedCount = request.getItems().stream()
+                .filter(i -> "Partial".equals(i.getStatus())).count();
+
+        System.out.println("Status Update - Total: " + totalItems + ", Approved: " + approvedCount +
+                ", Rejected: " + rejectedCount + ", Partially Approved: " + partiallyApprovedCount);
+
+        if (approvedCount == totalItems) {
+            request.setStatus("Approved");
+        } else if (rejectedCount == totalItems) {
+            request.setStatus("Rejected");
+        } else if (rejectedCount + approvedCount == totalItems) {
+            request.setStatus("Completed");
+        } else if (approvedCount > 0 || partiallyApprovedCount > 0) {
+            request.setStatus("Partial");
+        } else {
+            request.setStatus("Processing");
+        }
+
+        storeRequestRepository.save(request);
     }
 
     @Override

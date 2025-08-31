@@ -77,7 +77,18 @@ public class InventoryServiceImpl implements InventoryService {
         newInventory.setProduct(product);
         newInventory.setBatch(productBatch);
         newInventory.setQuantity(inventoryRequestDTO.getQuantity());
-        newInventory.setReorderLevel(inventoryRequestDTO.getReorderLevel());
+
+        List<Inventory> existingInventories = inventoryRepository
+                .findByWarehouse_WarehouseIdAndProduct_ProductId(
+                        inventoryRequestDTO.getWarehouseId(),
+                        inventoryRequestDTO.getProductId());
+
+        if (!existingInventories.isEmpty()) {
+            int reorderLevel = existingInventories.get(0).getReorderLevel();
+            newInventory.setReorderLevel(reorderLevel);
+        } else {
+            newInventory.setReorderLevel(10);
+        }
 
         // 4. Lưu và trả về entity mới
         return inventoryRepository.save(newInventory);
@@ -140,7 +151,8 @@ public class InventoryServiceImpl implements InventoryService {
     @Override
     @Transactional
     public List<ProductInventoryDTO> getInventoryAllUnitByStore(Long storeId) {
-        // Lấy tất cả inventory của cửa hàng để suy ra danh sách productId có hàng tại store
+        // Lấy tất cả inventory của cửa hàng để suy ra danh sách productId có hàng tại
+        // store
         List<Inventory> allInvAtStore = inventoryRepository.findByStore_StoreId(storeId);
 
         Set<Long> productIds = allInvAtStore.stream()
@@ -154,10 +166,9 @@ public class InventoryServiceImpl implements InventoryService {
 
         for (Long productId : productIds) {
             // CHỈ lấy tồn kho còn hàng và CHƯA HẾT HẠN, sort FEFO (expiry asc)
-            List<Inventory> validInventories =
-                    inventoryRepository
-                            .findByStore_StoreIdAndProduct_ProductIdAndQuantityGreaterThanAndBatch_ExpirationDateAfterOrderByBatch_ExpirationDateAsc(
-                                    storeId, productId, 0, today);
+            List<Inventory> validInventories = inventoryRepository
+                    .findByStore_StoreIdAndProduct_ProductIdAndQuantityGreaterThanAndBatch_ExpirationDateAfterOrderByBatch_ExpirationDateAsc(
+                            storeId, productId, 0, today);
 
             // Tổng số lượng base từ các lô hợp lệ
             int baseQty = validInventories.stream()
@@ -165,7 +176,8 @@ public class InventoryServiceImpl implements InventoryService {
                     .sum();
 
             Product product = productRepository.findById(productId).orElse(null);
-            if (product == null) continue;
+            if (product == null)
+                continue;
 
             List<ProductUnit> units = productUnitRepository
                     .findByProduct_ProductId(productId)
@@ -184,7 +196,6 @@ public class InventoryServiceImpl implements InventoryService {
 
         return result;
     }
-
 
     @Override
     public int getAvailableStock(Long storeId, Long productId, Long unitId) {

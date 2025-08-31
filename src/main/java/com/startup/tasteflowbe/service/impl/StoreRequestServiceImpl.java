@@ -5,8 +5,10 @@ import com.startup.tasteflowbe.enums.NotificationType;
 import com.startup.tasteflowbe.model.Store;
 import com.startup.tasteflowbe.model.StoreRequest;
 import com.startup.tasteflowbe.model.StoreRequestItem;
+import com.startup.tasteflowbe.model.Warehouse;
 import com.startup.tasteflowbe.repository.StoreRepository;
 import com.startup.tasteflowbe.repository.StoreRequestRepository;
+import com.startup.tasteflowbe.repository.WarehouseRepository;
 import com.startup.tasteflowbe.service.NotificationService;
 import com.startup.tasteflowbe.service.StoreRequestService;
 import jakarta.persistence.EntityNotFoundException;
@@ -27,6 +29,7 @@ public class StoreRequestServiceImpl implements StoreRequestService {
 
     private final StoreRequestRepository storeRequestRepository;
     private final StoreRepository storeRepository;
+    private final WarehouseRepository warehouseRepository;
     private final NotificationService notificationService;
 
     @Override
@@ -58,10 +61,19 @@ public class StoreRequestServiceImpl implements StoreRequestService {
                 item.setQuantity(itemDTO.getQuantity());
                 item.setUnitId(itemDTO.getUnitId());
                 item.setStoreRequest(storeRequest);
+                item.setStatus("Pending");
                 requestItems.add(item);
             });
         }
         storeRequest.setItems(requestItems);
+
+        Store store = storeRepository.findByStoreId(requestDTO.getStoreId());
+        Warehouse warehouse = warehouseRepository.findById(requestDTO.getWarehouseId()).orElseThrow();
+
+        notificationService.sendNotificationToUsers(
+                Arrays.asList(store.getManager().getUserId(), warehouse.getManager().getUserId()),
+                NotificationType.ALERT,
+                "Yêu cầu nhập hàng tới cửa hàng " + store.getName() + " đã được tạo.");
 
         return storeRequestRepository.save(storeRequest);
     }

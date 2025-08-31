@@ -17,11 +17,11 @@ public class StoreOrderDTO {
     private String payment_method;
     private String status;
     private Boolean need_invoice;
-    private BigDecimal total_price;
+    private BigDecimal totalPrice;
     private BigDecimal voucher_discount;
     private String note;
-    private BigDecimal shipping_fee;
-    private BigDecimal final_price;
+    private BigDecimal shippingFee;
+    private BigDecimal finalPrice;
     private List<OrderItemDTO> order_items;
 
     @Data

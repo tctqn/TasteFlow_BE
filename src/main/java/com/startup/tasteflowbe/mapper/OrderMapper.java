@@ -16,6 +16,13 @@ public interface OrderMapper {
     @Mapping(target = "orderCode", ignore = true)
     @Mapping(target = "orderDate", expression = "java(java.time.LocalDateTime.now())")
     @Mapping(target = "user", ignore = true)
+    @Mapping(target = "pointsApplied", source = "pointsApplied")
+    @Mapping(target = "shippingFee", source = "shippingFee")
+    @Mapping(target = "finalPrice", source = "finalPrice")
+    @Mapping(target = "totalPrice", source = "totalPrice")
+    @Mapping(target = "paymentMethod", source = "paymentMethod")
+    @Mapping(target = "phone", source = "phone")
+    @Mapping(target = "address", source = "address")
     Order toEntity(OrderRequestDTO dto);
 
     @Mapping(target = "items", source = "orderItems")

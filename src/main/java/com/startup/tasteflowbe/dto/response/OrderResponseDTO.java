@@ -23,6 +23,8 @@ public class OrderResponseDTO {
     private BigDecimal totalPrice;
     private BigDecimal shippingFee;
     private BigDecimal finalPrice;
+    private Integer pointsApplied;
+    private Integer pointsUsed;
     private String refCode;
     private boolean needInvoice;
     private String invoiceCompanyName;

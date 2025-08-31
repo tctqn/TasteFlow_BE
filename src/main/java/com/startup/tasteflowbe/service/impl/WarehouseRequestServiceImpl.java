@@ -54,7 +54,7 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
     @Override
     @Transactional
     public WarehouseRequest createWarehouseRequest(CreateWarehouseRequestDTO dto) {
-
+        int directCount = 0;
         Warehouse warehouse = warehouseRepository.findById(dto.getWarehouseId())
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy kho với ID: " + dto.getWarehouseId()));
 
@@ -93,7 +93,7 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
                 item.setStatus("DIRECT_TRANSFER");
                 item.setWarehouseRequest(request);
                 items.add(item);
-
+                directCount++;
                 continue;
             }
 
@@ -105,7 +105,9 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
             item.setWarehouseRequest(request);
             items.add(item);
         }
-
+        if (directCount == dto.getItems().size()) {
+            request.setStatus("COMPLETED");
+        }
         request.setItems(items);
 
         // Lấy tất cả Admins

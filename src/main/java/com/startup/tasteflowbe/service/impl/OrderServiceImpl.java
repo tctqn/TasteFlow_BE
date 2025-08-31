@@ -108,9 +108,10 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new RuntimeException("Order not found with id " + id));
 
         OrderStatus current = order.getStatus();
-        OrderStatus target  = OrderStatus.valueOf(status);
+        OrderStatus target = OrderStatus.valueOf(status);
 
-        // Nếu chuyển sang CONFIRMED và trước đó chưa CONFIRMED trở lên -> trừ tồn kho (FEFO)
+        // Nếu chuyển sang CONFIRMED và trước đó chưa CONFIRMED trở lên -> trừ tồn kho
+        // (FEFO)
         if (target == OrderStatus.CONFIRMED
                 && (current == OrderStatus.PENDING || current == OrderStatus.PAID)) {
             commitInventoryForOrder(order);
@@ -128,12 +129,14 @@ public class OrderServiceImpl implements OrderService {
      */
     private void commitInventoryForOrder(Order order) {
         for (OrderItem item : order.getOrderItems()) {
-            if (item.getProduct() == null) continue;
+            if (item.getProduct() == null)
+                continue;
 
             // Số lượng cần trừ (ưu tiên quantityInBase nếu hệ thống quản lý theo base unit)
             int remainingQty = item.getQuantityInBase() != null ? item.getQuantityInBase() : item.getQuantity();
 
-            // Lấy list tồn kho tại cửa hàng theo sản phẩm, còn hàng, chưa hết hạn, sort expiry asc (FEFO)
+            // Lấy list tồn kho tại cửa hàng theo sản phẩm, còn hàng, chưa hết hạn, sort
+            // expiry asc (FEFO)
             List<Inventory> inventories = inventoryRepository
                     .findByStore_StoreIdAndProduct_ProductIdAndQuantityGreaterThanAndBatch_ExpirationDateAfterOrderByBatch_ExpirationDateAsc(
                             order.getStore().getStoreId(),
@@ -142,10 +145,12 @@ public class OrderServiceImpl implements OrderService {
                             LocalDate.now());
 
             for (Inventory inv : inventories) {
-                if (remainingQty <= 0) break;
+                if (remainingQty <= 0)
+                    break;
 
                 int available = inv.getQuantity();
-                if (available <= 0) continue;
+                if (available <= 0)
+                    continue;
 
                 int used = Math.min(available, remainingQty);
 
@@ -484,6 +489,11 @@ public class OrderServiceImpl implements OrderService {
                 throw new IllegalArgumentException("Not enough stock for product ID: " + itemDTO.getProduct_id());
             }
         }
+
+        int point = user.getPoints() != null ? user.getPoints() : 0;
+        point += order.getFinalPrice().intValue() / 10000;
+        user.setPoints(point);
+        userRepository.save(user);
 
         return order;
     }

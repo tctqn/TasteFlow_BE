@@ -18,6 +18,8 @@ public interface StockMovementService {
     void transferToStores(Long requestId, Long warehouseId, Long productId,
             List<StoreTransferParam> transferList);
 
+    void rejectStoreRequestItem(Long requestId, Long productId);
+
     List<StockMovement> getStockMovementsToStore(Long storeId);
 
     List<StockMovement> getDamagedAndExpired();

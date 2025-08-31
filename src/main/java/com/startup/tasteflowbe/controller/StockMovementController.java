@@ -1,7 +1,9 @@
 package com.startup.tasteflowbe.controller;
 
 import com.startup.tasteflowbe.model.ProductBatch;
+import com.startup.tasteflowbe.model.ProductUnit;
 import com.startup.tasteflowbe.model.StockMovement;
+import com.startup.tasteflowbe.repository.ProductUnitRepository;
 import com.startup.tasteflowbe.dto.response.StockMovementDTO;
 import com.startup.tasteflowbe.dto.StoreTransferParam;
 import com.startup.tasteflowbe.dto.request.StockMovementRequestDTO;
@@ -22,6 +24,7 @@ import java.util.stream.Collectors;
 public class StockMovementController {
 
     private final StockMovementService stockMovementService;
+    private final ProductUnitRepository productUnitRepository;
 
     @PostMapping
     public ResponseEntity<StockMovement> createStockMovement(
@@ -47,6 +50,13 @@ public class StockMovementController {
             @RequestParam Long productId,
             @RequestBody List<StoreTransferParam> transferList) {
         stockMovementService.transferToStores(requestId, warehouseId, productId, transferList);
+    }
+
+    @PostMapping("/reject-item")
+    public void rejectStoreRequestItem(
+            @RequestParam Long requestId,
+            @RequestParam Long productId) {
+        stockMovementService.rejectStoreRequestItem(requestId, productId);
     }
 
     @GetMapping("/store/{storeId}")
@@ -93,6 +103,11 @@ public class StockMovementController {
         if (movement.getProduct() != null) {
             dto.setProductId(movement.getProduct().getProductId());
             dto.setProductName(movement.getProduct().getName());
+            ProductUnit unit = productUnitRepository
+                    .findByProduct_ProductIdAndIsBaseUnit(movement.getProduct().getProductId(), true);
+            if (unit != null) {
+                dto.setPrice(unit.getPrice());
+            }
         }
 
         if (movement.getStoreRequest() != null) {
@@ -110,12 +125,18 @@ public class StockMovementController {
     }
 
     @GetMapping("/damaged-expired")
-    public List<StockMovement> getDamagedAndExpired() {
-        return stockMovementService.getDamagedAndExpired();
+    public List<StockMovementResponseDTO> getDamagedAndExpired() {
+        return stockMovementService.getDamagedAndExpired()
+                .stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/damaged-expired/{storeId}")
-    public List<StockMovement> getDamagedAndExpired(@PathVariable Long storeId) {
-        return stockMovementService.getDamagedAndExpiredInStore(storeId);
+    public List<StockMovementResponseDTO> getDamagedAndExpired(@PathVariable Long storeId) {
+        return stockMovementService.getDamagedAndExpiredInStore(storeId)
+                .stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
     }
 }

@@ -8,5 +8,4 @@ public class InventoryRequestDTO {
     private Long productId;
     private Long batchId;
     private int quantity;
-    private int reorderLevel;
 }

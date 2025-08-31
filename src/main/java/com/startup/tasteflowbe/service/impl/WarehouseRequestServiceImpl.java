@@ -86,6 +86,14 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
 
                 productBatchRepository.save(batch);
 
+                WarehouseRequestItem item = new WarehouseRequestItem();
+                item.setProductUnitId(itemDto.getProductUnitId().intValue());
+                item.setQuantity(itemDto.getQuantity());
+                item.setNote(itemDto.getNote());
+                item.setStatus("DIRECT_TRANSFER");
+                item.setWarehouseRequest(request);
+                items.add(item);
+
                 continue;
             }
 
@@ -270,8 +278,9 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
             notificationService.sendNotificationToUsers(
                     Arrays.asList(savedItem.getWarehouseRequest().getWarehouse().getManager().getUserId()),
                     NotificationType.ALERT,
-                    "Yêu cầu nhập hàng tới " + savedItem.getWarehouseRequest().getWarehouse().getName() + " đã được duyệt");
-                    
+                    "Yêu cầu nhập hàng tới " + savedItem.getWarehouseRequest().getWarehouse().getName()
+                            + " đã được duyệt");
+
         }
 
         // Update parent request status with properly loaded request
@@ -350,6 +359,7 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
         long totalItems = request.getItems().size();
         long approvedCount = request.getItems().stream().filter(i -> "APPROVED".equals(i.getStatus())).count();
         long rejectedCount = request.getItems().stream().filter(i -> "REJECTED".equals(i.getStatus())).count();
+        long directCount = request.getItems().stream().filter(i -> "DIRECT_TRANSFER".equals(i.getStatus())).count();
         long partiallyApprovedCount = request.getItems().stream()
                 .filter(i -> "PARTIALLY_APPROVED".equals(i.getStatus())).count();
 
@@ -360,6 +370,8 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
             request.setStatus("APPROVED");
         } else if (rejectedCount == totalItems) {
             request.setStatus("REJECTED");
+        } else if (rejectedCount + approvedCount + directCount == totalItems) {
+            request.setStatus("COMPLETED");
         } else if (approvedCount > 0 || partiallyApprovedCount > 0) {
             request.setStatus("PARTIALLY_APPROVED");
         } else {

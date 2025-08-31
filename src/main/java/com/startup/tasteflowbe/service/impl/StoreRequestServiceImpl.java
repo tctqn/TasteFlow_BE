@@ -61,6 +61,7 @@ public class StoreRequestServiceImpl implements StoreRequestService {
                 item.setQuantity(itemDTO.getQuantity());
                 item.setUnitId(itemDTO.getUnitId());
                 item.setStoreRequest(storeRequest);
+                item.setStatus("Pending");
                 requestItems.add(item);
             });
         }

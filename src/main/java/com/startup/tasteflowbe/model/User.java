@@ -55,6 +55,9 @@ public class User {
     @Column(name = "points")
     private Integer points = 0;
 
+    @Column(name = "points_used")
+    private Integer pointsUsed = 0;
+
     @OneToOne(mappedBy = "manager")
     @JsonIgnore
     private Warehouse warehouse;

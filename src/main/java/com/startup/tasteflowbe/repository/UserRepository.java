@@ -26,4 +26,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     @Query("SELECT u FROM User u JOIN StoreStaff ss ON u = ss.user WHERE ss.store.storeId = :storeId AND ss.active = true")
     List<User> findActiveUsersByStoreId(Long storeId);
+
+    @Query("SELECT u.points FROM User u WHERE u.userId = :userId")
+    Integer findPointByUserId(Long userId);
 }

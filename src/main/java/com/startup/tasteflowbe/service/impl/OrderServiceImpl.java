@@ -115,6 +115,40 @@ public class OrderServiceImpl implements OrderService {
         if (target == OrderStatus.CONFIRMED
                 && (current == OrderStatus.PENDING || current == OrderStatus.PAID)) {
             commitInventoryForOrder(order);
+            User user = order.getUser();
+            Store store = order.getStore();
+            if (user != null && store.getManager() != null) {
+                notificationService.sendNotificationToUsers(
+                        Arrays.asList(user.getUserId(), store.getManager().getUserId()),
+                        NotificationType.ORDER,
+                        "Đơn hàng " + order.getOrderCode() + " đã được xác nhận");
+            }
+        }
+
+        if(target == OrderStatus.DELIVERED) {
+            User user = order.getUser();
+            Store store = order.getStore();
+            if (user != null && store.getManager() != null) {
+                Integer pointsToAdd = order.getFinalPrice().divide(BigDecimal.valueOf(1000)).intValue();
+                notificationService.sendNotificationToUsers(
+                        Arrays.asList(user.getUserId(), store.getManager().getUserId()),
+                        NotificationType.ORDER,
+                        "Đơn hàng " + order.getOrderCode() + " đã được giao thành công. Bạn nhân được " + pointsToAdd + " điểm thưởng từ đơn hàng này");
+                user.setPointsUsed(user.getPointsUsed() + pointsToAdd);
+                user.setPoints(user.getPoints() + pointsToAdd);
+                userRepository.save(user);
+            }
+        }
+
+        if(target == OrderStatus.CANCELLED) {
+            User user = order.getUser();
+            Store store = order.getStore();
+            if (user != null && store.getManager() != null) {
+                notificationService.sendNotificationToUsers(
+                        Arrays.asList(user.getUserId(), store.getManager().getUserId()),
+                        NotificationType.ORDER,
+                        "Đơn hàng " + order.getOrderCode() + " đã bị hủy.");
+            }
         }
 
         order.setStatus(target);
@@ -285,10 +319,22 @@ public class OrderServiceImpl implements OrderService {
 
         // 5. Lưu order và orderItems
         order.setOrderItems(orderItems);
+        if(user != null && user.getPoints() != null && order.getPointsApplied() > 0) {
+            order.setPointsApplied(user.getPoints());
+            user.setPoints(0);
+            order.setFinalPrice(order.getFinalPrice().subtract(BigDecimal.valueOf(order.getPointsApplied())));
+            if(totalPrice.compareTo(BigDecimal.ZERO) < 0) {
+                totalPrice = BigDecimal.ZERO;
+            }
+            userRepository.save(user);
+        }
         order.setTotalPrice(totalPrice);
+
         if (!voucherMap.isEmpty()) {
             order.setVouchers(new ArrayList<>(voucherMap.values()));
         }
+
+
 
         order = orderRepository.save(order);
         orderItemRepository.saveAll(orderItems);
@@ -323,7 +369,7 @@ public class OrderServiceImpl implements OrderService {
             notificationService.sendNotificationToUsers(
                     Arrays.asList(user.getUserId(), store.getManager().getUserId()),
                     NotificationType.ORDER,
-                    "Đơn hàng" + order.getOrderCode() + " đã được tạo: ");
+                    "Đơn hàng " + order.getOrderCode() + " đã được tạo");
         }
         return orderMapper.toDto(order);
     }

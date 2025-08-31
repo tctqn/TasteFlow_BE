@@ -30,6 +30,7 @@ public class OrderRequestDTO {
     private String note;
     private String refCode;
     private PaymentMethod paymentMethod;
+    private Integer pointsApplied;
 
     // Thông tin xuất hóa đơn
     private boolean needInvoice;

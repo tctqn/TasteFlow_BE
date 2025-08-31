@@ -90,4 +90,9 @@ public class UserServiceImpl implements UserService {
     public List<User> getActiveUsersByStoreId(Long storeId) {
         return userRepository.findActiveUsersByStoreId(storeId);
     }
+
+    @Override
+    public Integer getPointByUserId(Long userId) {
+        return userRepository.findPointByUserId(userId);
+    }
 }

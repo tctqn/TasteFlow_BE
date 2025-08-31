@@ -58,4 +58,12 @@ public class UserController {
         return ResponseEntity.ok(userService.getActiveUsersByStoreId(storeId));
     }
 
+    @GetMapping("/{id}/points")
+    public ResponseEntity<Integer> getPointsByUserId(@PathVariable Long id) {
+        Integer points = userService.getPointByUserId(id);
+        if (points == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(userService.getPointByUserId(id));
+    }
 }

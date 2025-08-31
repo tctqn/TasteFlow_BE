@@ -102,6 +102,9 @@ public class Order {
         @Column(name = "voucher_discount", precision = 10, scale = 2)
         private BigDecimal voucherDiscount;
 
+        @Column(name = "points_applied")
+        private Integer pointsApplied = 0;
+
         // Hệ thống
         @Column(name = "order_date", nullable = false)
         private LocalDateTime orderDate = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));

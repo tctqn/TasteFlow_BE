@@ -79,7 +79,8 @@ public class SecurityConfig {
                                                                 "/ws/ai/**", // SockJS handshake + /info
                                                                 "/topic/**", // STOMP topic subscriptions
                                                                 "/app/**",
-                                                                "/api/ai/**")
+                                                                "/api/ai/**",
+                                                            "/api/users/*/points")
                                                 .permitAll()
 
                                                 // CUSTOMER routes

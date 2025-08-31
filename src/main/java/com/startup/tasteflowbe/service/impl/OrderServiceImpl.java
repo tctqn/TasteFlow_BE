@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -129,7 +130,9 @@ public class OrderServiceImpl implements OrderService {
             User user = order.getUser();
             Store store = order.getStore();
             if (user != null && store.getManager() != null) {
-                Integer pointsToAdd = order.getFinalPrice().divide(BigDecimal.valueOf(1000)).intValue();
+                int pointsToAdd = order.getFinalPrice()
+                        .divide(BigDecimal.valueOf(1000), RoundingMode.HALF_UP)
+                        .intValue();
                 notificationService.sendNotificationToUsers(
                         Arrays.asList(user.getUserId(), store.getManager().getUserId()),
                         NotificationType.ORDER,
@@ -478,11 +481,11 @@ public class OrderServiceImpl implements OrderService {
         order.setPaymentMethod(PaymentMethod.valueOf(dto.getPayment_method()));
         order.setStatus(OrderStatus.valueOf(dto.getStatus()));
         order.setNeedInvoice(dto.getNeed_invoice());
-        order.setTotalPrice(dto.getTotal_price());
+        order.setTotalPrice(dto.getTotalPrice());
         order.setVoucherDiscount(dto.getVoucher_discount());
         order.setNote(dto.getNote());
-        order.setShippingFee(dto.getShipping_fee());
-        order.setFinalPrice(dto.getFinal_price());
+        order.setShippingFee(dto.getShippingFee());
+        order.setFinalPrice(dto.getFinalPrice());
         order.setOrderCode(OrderCodeGenerator.generateOrderCode());
         orderRepository.save(order);
 

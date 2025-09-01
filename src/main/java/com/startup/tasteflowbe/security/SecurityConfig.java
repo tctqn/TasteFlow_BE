@@ -80,7 +80,8 @@ public class SecurityConfig {
                                                                 "/topic/**", // STOMP topic subscriptions
                                                                 "/app/**",
                                                                 "/api/ai/**",
-                                                            "/api/users/*/points")
+                                                            "/api/users/*/points",
+                                                        "/api/users/*/pointsUsed")
                                                 .permitAll()
 
                                                 // CUSTOMER routes

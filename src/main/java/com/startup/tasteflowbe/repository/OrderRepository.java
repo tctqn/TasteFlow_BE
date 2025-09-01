@@ -1,6 +1,8 @@
 package com.startup.tasteflowbe.repository;
 
 import com.startup.tasteflowbe.model.Order;
+import com.startup.tasteflowbe.model.User;
+import com.startup.tasteflowbe.model.Voucher;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -25,5 +27,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         where o.orderId = :orderId
     """)
         Optional<Order> findByIdWithItemsAndStore(@Param("orderId") Long orderId);
+
+    @Query("SELECT COUNT(o) FROM Order o JOIN o.vouchers v WHERE o.user = :user AND v = :voucher")
+    int countByUserAndVoucher(@Param("user") User user, @Param("voucher") Voucher voucher);
+
 
 }

@@ -237,11 +237,11 @@ public class StockMovementServiceImpl implements StockMovementService {
                 productId);
         int actualQuantity = item.getActualQuantity() != null ? item.getActualQuantity().intValue() : 0;
         if (totalQuantity + actualQuantity < item.getQuantity()) {
-            item.setActualQuantity(Long.valueOf(totalQuantity));
+            item.setActualQuantity((long) totalQuantity);
             item.setStatus("Partial");
             storeRequestItemRepository.save(item);
         } else {
-            item.setActualQuantity(Long.valueOf(totalQuantity + actualQuantity));
+            item.setActualQuantity((long)(totalQuantity) + (long)(actualQuantity));
             item.setStatus("Processing");
             storeRequestItemRepository.save(item);
         }

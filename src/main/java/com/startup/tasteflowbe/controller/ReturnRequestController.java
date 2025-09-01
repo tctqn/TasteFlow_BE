@@ -59,4 +59,17 @@ public class ReturnRequestController {
         service.deleteReturnRequest(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{id}/approve")
+    public ResponseEntity<ReturnRequestResponseDTO> approve(@PathVariable Long id) {
+        return ResponseEntity.ok(service.approveReturnRequest(id));
+    }
+
+    @PostMapping("/{id}/reject")
+    public ResponseEntity<ReturnRequestResponseDTO> reject(
+            @PathVariable Long id,
+            @RequestParam(value = "reason", required = false) String reason
+    ) {
+        return ResponseEntity.ok(service.rejectReturnRequest(id, reason));
+    }
 }

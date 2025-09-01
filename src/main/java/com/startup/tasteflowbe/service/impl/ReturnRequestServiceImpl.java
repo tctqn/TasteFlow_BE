@@ -3,6 +3,7 @@ package com.startup.tasteflowbe.service.impl;
 import com.startup.tasteflowbe.dto.request.ReturnItemRequestDTO;
 import com.startup.tasteflowbe.dto.request.ReturnRequestRequestDTO;
 import com.startup.tasteflowbe.dto.response.ReturnRequestResponseDTO;
+import com.startup.tasteflowbe.enums.ReturnResolution;
 import com.startup.tasteflowbe.enums.ReturnStatus;
 import com.startup.tasteflowbe.mapper.ReturnMapper;
 import com.startup.tasteflowbe.model.ReturnAttachment;
@@ -17,10 +18,13 @@ import com.startup.tasteflowbe.service.S3Service;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -153,5 +157,50 @@ public class ReturnRequestServiceImpl implements ReturnRequestService {
         int dot = filename.lastIndexOf('.');
         if (dot < 0) return null;
         return filename.substring(dot + 1);
+    }
+
+    @Override
+    @Transactional
+    public ReturnRequestResponseDTO approveReturnRequest(Long id) {
+        ReturnRequest rr = returnRequestRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Return request not found"));
+
+        if (rr.getStatus() != ReturnStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PENDING requests can be approved");
+        }
+
+        // (Tuỳ chọn) Nếu có item hoàn tiền mà thiếu thông tin ngân hàng thì chặn
+        boolean hasRefund = rr.getItems().stream()
+                .anyMatch(i -> i.getResolution() == ReturnResolution.REFUND);
+        if (hasRefund && (isBlank(rr.getBankName()) || isBlank(rr.getBankAccount()))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing bank info for REFUND request");
+        }
+
+        rr.setStatus(ReturnStatus.APPROVED);
+        returnRequestRepository.save(rr);
+        return mapper.toResponse(rr);
+    }
+
+    @Override
+    @Transactional
+    public ReturnRequestResponseDTO rejectReturnRequest(Long id, String reason) {
+        ReturnRequest rr = returnRequestRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Return request not found"));
+
+        if (rr.getStatus() != ReturnStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PENDING requests can be rejected");
+        }
+
+        rr.setStatus(ReturnStatus.REJECTED);
+        if (!isBlank(reason)) {
+            String note = (rr.getNotes() == null ? "" : rr.getNotes() + "\n");
+            rr.setNotes(note + "Lý do từ chối: " + reason);
+        }
+        returnRequestRepository.save(rr);
+        return mapper.toResponse(rr);
+    }
+
+    private static boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
     }
 }

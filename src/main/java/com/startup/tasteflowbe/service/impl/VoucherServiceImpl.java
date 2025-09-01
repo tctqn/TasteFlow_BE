@@ -72,61 +72,91 @@ public class VoucherServiceImpl implements VoucherService {
     }
 
     @Override
-    public List<VoucherResponseDTO> getAvailableVouchers(User user, BigDecimal totalPrice) {
+    public List<VoucherResponseDTO> getAvailableVouchers(User user, BigDecimal cartTotalPrice) {
         LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
 
-        List<Voucher> publicVouchers = voucherRepository
+        // 1) PUBLIC còn thời gian
+        List<Voucher> publicActive = voucherRepository
                 .findAllByDistributionTypeAndStartDateBeforeAndEndDateAfterAndQuantityGreaterThan(
                         DistributionType.PUBLIC, now, now, 0);
 
-        List<UserVoucher> claimed = userVoucherRepository.findByUser_UserId(user.getUserId());
+        // 2) Tất cả claim của user
+        List<UserVoucher> userClaims = userVoucherRepository.findByUser_UserId(user.getUserId());
 
-        Set<Long> claimedIds = claimed.stream()
-                .map(uv -> uv.getVoucher().getVoucherId())
-                .collect(Collectors.toSet());
+        Map<Long, VoucherResponseDTO> merged = new LinkedHashMap<>();
 
-        List<VoucherResponseDTO> result = new ArrayList<>();
+        // Helper build dto
+        java.util.function.Function<Voucher, VoucherResponseDTO> buildDto = v -> {
+            boolean minOk = cartTotalPrice.compareTo(
+                    Optional.ofNullable(v.getMinOrderAmount()).orElse(BigDecimal.ZERO)) >= 0;
 
-        for (Voucher v : publicVouchers) {
-            boolean isClaimed = claimedIds.contains(v.getVoucherId());
-            boolean isValid = totalPrice.compareTo(Optional.ofNullable(v.getMinOrderAmount()).orElse(BigDecimal.ZERO)) >= 0;
+            Integer quantity = Optional.ofNullable(v.getQuantity()).orElse(0);
+            int claimedAll = userVoucherRepository.countClaimed(v);
+            int remainingGlobal = Math.max(0, quantity - claimedAll);
 
-            result.add(VoucherResponseDTO.builder()
+            Integer maxPerUser = Optional.ofNullable(v.getMaxPerUser()).orElse(0);
+            int usedByUser = userVoucherRepository.countUsedByUserAndVoucher(user, v);
+            int remainingForUser = (maxPerUser > 0) ? Math.max(0, maxPerUser - usedByUser) : Integer.MAX_VALUE;
+
+            boolean userClaimed = userVoucherRepository.countClaimedByUser(user, v) > 0;
+            boolean anyUnusedClaim = userClaims.stream()
+                    .anyMatch(uv -> uv.getVoucher().getVoucherId().equals(v.getVoucherId()) && !uv.isUsed());
+
+            boolean validTime = !(v.getStartDate().isAfter(now) || v.getEndDate().isBefore(now));
+            boolean valid =
+                    validTime
+                            && minOk
+                            && remainingGlobal > 0
+                            && remainingForUser > 0
+                            && (!userClaimed || anyUnusedClaim);
+
+            return VoucherResponseDTO.builder()
                     .voucherId(v.getVoucherId())
                     .code(v.getCode())
                     .title(v.getTitle())
+                    .description(v.getDescription())
                     .discountAmount(v.getDiscountAmount())
                     .discountPercent(v.getDiscountPercent())
                     .minOrderAmount(v.getMinOrderAmount())
-                    .isStackable(v.isStackable())
-                    .claimed(isClaimed)
-                    .used(false)
-                    .valid(isValid)
+                    .freeShipping(Boolean.TRUE.equals(v.getFreeShipping()))
                     .discountType(v.getDiscountType().name())
-                    .build());
-        }
+                    .isStackable(v.isStackable())
+                    .claimed(userClaimed)
+                    .used(userClaimed && !anyUnusedClaim) // true nếu user đã claim và không còn claim nào unused
+                    .valid(valid)
+                    .build();
+        };
 
-        for (UserVoucher uv : claimed) {
+        // 3) Ưu tiên merge voucher user đã claim
+        for (UserVoucher uv : userClaims) {
             Voucher v = uv.getVoucher();
-            boolean isValid = totalPrice.compareTo(Optional.ofNullable(v.getMinOrderAmount()).orElse(BigDecimal.ZERO)) >= 0;
-
-            result.add(VoucherResponseDTO.builder()
-                    .voucherId(v.getVoucherId())
-                    .code(v.getCode())
-                    .title(v.getTitle())
-                    .discountAmount(v.getDiscountAmount())
-                    .discountPercent(v.getDiscountPercent())
-                    .minOrderAmount(v.getMinOrderAmount())
-                    .isStackable(v.isStackable())
-                    .claimed(true)
-                    .used(uv.isUsed())
-                    .valid(isValid && !uv.isUsed())
-                    .discountType(v.getDiscountType().name())
-                    .build());
+            merged.put(v.getVoucherId(), buildDto.apply(v));
         }
+
+        // 4) Thêm PUBLIC chưa claim
+        for (Voucher v : publicActive) {
+            merged.putIfAbsent(v.getVoucherId(), buildDto.apply(v));
+        }
+
+        // 5) Kết quả
+        List<VoucherResponseDTO> result = new ArrayList<>(merged.values());
+
+        result.removeIf(dto -> dto.isClaimed() && dto.isUsed());
+
+        result.removeIf(dto -> !dto.isValid());
+
+        // Sắp xếp: ưu tiên valid trước, rồi claimed
+        result.sort((a, b) -> {
+            int byValid = Boolean.compare(b.isValid(), a.isValid());
+            if (byValid != 0) return byValid;
+            int byClaimed = Boolean.compare(b.isClaimed(), a.isClaimed());
+            if (byClaimed != 0) return byClaimed;
+            return 0;
+        });
 
         return result;
     }
+
 
     @Override
     public List<VoucherResponseDTO> getPublicVouchers(BigDecimal totalPrice) {

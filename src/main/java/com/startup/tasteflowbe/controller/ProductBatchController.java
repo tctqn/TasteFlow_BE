@@ -10,6 +10,8 @@ import com.startup.tasteflowbe.service.ProductBatchService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -30,6 +32,8 @@ public class ProductBatchController {
     private final WarehouseRepository warehouseRepository;
     private final UnitRepository unitRepository;
     private final ProductUnitRepository productUnitRepository;
+    private final JavaMailSender mailSender;
+
 
     @GetMapping
     public ResponseEntity<List<ProductBatchResponseDTO>> getAllProductBatches() {
@@ -79,6 +83,24 @@ public class ProductBatchController {
 
         ProductBatch createdBatch = productBatchService.createProductBatch(productBatch);
         ProductBatchResponseDTO responseDTO = convertToDto(createdBatch);
+
+        String message = String.format(
+                "Chào %s,\n\n" +
+                        "Bạn đã tạo mới lô hàng thành công. Thông tin lô hàng như sau:\n\n" +
+                        "Sản phẩm: " + product.getName() + "\n" +
+                        "Số lượng: " + productBatch.getQuantity() + "\n" +
+                        "Lô sản phẩm: " + productBatch.getBatchId() + "\n" +
+                        "Lô hàng được chuyển đến kho: " + warehouse.getName() + "\n" +
+                        "Ngày nhận: " + productBatch.getReceivedDate() + "\n\n" +
+                        "Nhà cung cấp: " + supplier.getName() + "\n\n" +
+                        "Trân trọng,\nTasteFlow",
+                warehouse.getManager().getFirstName() + " " + warehouse.getManager().getLastName());
+
+        SimpleMailMessage mail = new SimpleMailMessage();
+        mail.setTo(warehouse.getManager().getEmail());
+        mail.setSubject("Đã tạo mới lô hàng");
+        mail.setText(message);
+        mailSender.send(mail);
         return ResponseEntity.ok(responseDTO);
     }
 

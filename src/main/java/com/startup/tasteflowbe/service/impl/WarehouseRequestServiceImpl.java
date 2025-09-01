@@ -25,6 +25,9 @@ import com.startup.tasteflowbe.service.WarehouseRequestService;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,10 +35,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -50,6 +50,7 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
     private final ProductBatchRepository productBatchRepository;
     private final NotificationService notificationService;
     private final UserRepository userRepository;
+    private final JavaMailSender mailSender;
 
     @Override
     @Transactional
@@ -124,6 +125,23 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
                 NotificationType.ALERT,
                 "Yêu cầu nhập hàng mới đã được tạo từ " + warehouse.getName());
 
+        // Lấy tất cả Admins
+        List<User> admins = userRepository.findByRole(Role.ADMIN);
+        List<String> adminEmails = admins.stream()
+                .map(User::getEmail)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        // Gửi mail đến toàn bộ admins
+        String message = "Yêu cầu nhập hàng mới đã được tạo từ " + warehouse.getName();
+
+        SimpleMailMessage mail = new SimpleMailMessage();
+        mail.setTo(adminEmails.toArray(new String[0])); // gửi đến nhiều người
+        mail.setSubject("Tạo mới yêu cầu nhập hàng về kho");
+        mail.setText(message);
+
+        System.out.println("Sending email to admins: " + adminEmails);
+        mailSender.send(mail);
         return requestRepository.save(request);
     }
 
@@ -296,6 +314,8 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
             return; // Don't create batch for zero quantity
         }
 
+        Warehouse warehouse = item.getWarehouseRequest().getWarehouse();
+
         ProductUnit productUnit = productUnitRepository.findById(item.getProductUnitId().longValue())
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Không tìm thấy ProductUnit: " + item.getProductUnitId()));
@@ -315,10 +335,34 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
                 productUnit.getPrice().multiply(BigDecimal.valueOf(item.getFulfilledQuantity())));
         productBatch.setManufactureDate(LocalDate.now());
 
-        System.out.println("Creating ProductBatch: " + productBatch.getStatus() + " for Product: "
-                + productBatch.getProduct().getName() + " with Quantity: " + productBatch.getQuantity());
+        System.out.println("Lô hàng đang được tạo: " + productBatch.getStatus() + " cho sản phẩm: "
+                + productBatch.getProduct().getName() + " với số lượng: " + productBatch.getQuantity());
 
         productBatchRepository.save(productBatch);
+
+        String message = String.format(
+                "Chào %s,\n\n" +
+                        "Bạn đã tạo mới lô hàng thành công. Thông tin lô hàng như sau:\n\n" +
+                        "Sản phẩm: " + productBatch.getProduct().getName() + "\n" +
+                        "Số lượng: " + productBatch.getQuantity() + "\n" +
+                        "Lô sản phẩm: " + productBatch.getBatchId() + "\n" +
+                        "Lô hàng được chuyển đến kho: " + warehouse.getName() + "\n" +
+                        "Ngày nhận: " + productBatch.getReceivedDate() + "\n\n" +
+                        "Nhà cung cấp: " + (
+                            itemInfo.getSupplierId() != null
+                                ? supplierRepository.findById(itemInfo.getSupplierId().longValue())
+                                    .orElseThrow(() -> new EntityNotFoundException("Supplier không tồn tại"))
+                                    .getName()
+                                : "Không có"
+                        ) + "\n\n" +
+                        "Trân trọng,\nTasteFlow",
+                warehouse.getManager().getFirstName() + " " + warehouse.getManager().getLastName());
+
+        SimpleMailMessage mail = new SimpleMailMessage();
+        mail.setTo(warehouse.getManager().getEmail());
+        mail.setSubject("Đã tạo mới lô hàng");
+        mail.setText(message);
+        mailSender.send(mail);
     }
 
     private void createProductBatchFromApproval(WarehouseRequestItem item, ItemApprovalDTO approvalDTO,
@@ -326,6 +370,8 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
         if (batchQuantity == null || batchQuantity <= 0) {
             return; // Don't create batch for zero quantity
         }
+
+        Warehouse warehouse = item.getWarehouseRequest().getWarehouse();
 
         ProductUnit productUnit = productUnitRepository.findById(item.getProductUnitId().longValue())
                 .orElseThrow(() -> new EntityNotFoundException(
@@ -350,6 +396,32 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
                 + productBatch.getProduct().getName() + " with Quantity: " + productBatch.getQuantity());
 
         productBatchRepository.save(productBatch);
+
+        
+        String message = String.format(
+                "Chào %s,\n\n" +
+                        "Lô hàng đã được duyệt và đang vận chuyển về kho. Thông tin lô hàng như sau:\n\n" +
+                        "Sản phẩm: " + productBatch.getProduct().getName() + "\n" +
+                        "Số lượng: " + productBatch.getQuantity() + "\n" +
+                        "Lô sản phẩm: " + productBatch.getBatchId() + "\n" +
+                        "Lô hàng được chuyển đến kho: " + warehouse.getName() + "\n" +
+                        "Ngày hết hạn: " + productBatch.getExpirationDate() + "\n\n" +
+                        "Nhà cung cấp: " + (
+                            approvalDTO.getSupplierId() != null
+                                ? supplierRepository.findById(approvalDTO.getSupplierId().longValue())
+                                    .orElseThrow(() -> new EntityNotFoundException("Supplier không tồn tại"))
+                                    .getName()
+                                : "Không có"
+                        ) + "\n\n" +
+                        "Trân trọng,\nTasteFlow",
+                warehouse.getManager().getFirstName() + " " + warehouse.getManager().getLastName());
+
+        SimpleMailMessage mail = new SimpleMailMessage();
+        mail.setTo(warehouse.getManager().getEmail());
+        mail.setSubject("Đã tạo mới lô hàng");
+        mail.setText(message);
+        System.out.println("Sending email to: " + warehouse.getManager().getEmail());
+        mailSender.send(mail);
     }
 
     // Overloaded method for backward compatibility

@@ -25,4 +25,8 @@ public interface AIProcessService {
     public String buildWarehouseJsonInput(Long warehouseId, Long productId);
 
     public GeminiResponse warehouseReplenishmentAdvisor(String jsonInput);
+
+    public GeminiResponse storeAdvisor(Long storeId, String userInput);
+
+    public GeminiResponse warehouseAdvisor(Long warehouseId, String userInput);
 }

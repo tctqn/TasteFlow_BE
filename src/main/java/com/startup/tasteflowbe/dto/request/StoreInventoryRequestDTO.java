@@ -2,10 +2,10 @@ package com.startup.tasteflowbe.dto.request;
 
 import lombok.Data;
 
-
 @Data
 public class StoreInventoryRequestDTO {
     private Integer quantity;
+    private Integer expectedQuantity;
     private Long batchId;
     private Long warehouseId;
     private Long productId;

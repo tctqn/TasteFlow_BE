@@ -3,11 +3,13 @@ package com.startup.tasteflowbe.service.impl;
 import com.startup.tasteflowbe.dto.request.InventoryRequestDTO;
 import com.startup.tasteflowbe.dto.request.StoreInventoryRequestDTO;
 import com.startup.tasteflowbe.dto.response.*;
+import com.startup.tasteflowbe.enums.MovementType;
 import com.startup.tasteflowbe.model.*;
 import com.startup.tasteflowbe.repository.InventoryRepository;
 import com.startup.tasteflowbe.repository.ProductBatchRepository;
 import com.startup.tasteflowbe.repository.ProductRepository;
 import com.startup.tasteflowbe.repository.ProductUnitRepository;
+import com.startup.tasteflowbe.repository.StockMovementRepository;
 import com.startup.tasteflowbe.repository.WarehouseRepository;
 import com.startup.tasteflowbe.service.*;
 
@@ -18,6 +20,8 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
 @Service
@@ -25,6 +29,8 @@ import java.time.temporal.ChronoUnit;
 public class InventoryServiceImpl implements InventoryService {
 
     private final InventoryRepository inventoryRepository;
+
+    private final StockMovementRepository stockMovementRepository;
 
     private final WarehouseService warehouseService;
 
@@ -89,6 +95,19 @@ public class InventoryServiceImpl implements InventoryService {
         } else {
             newInventory.setReorderLevel(10);
         }
+        if (inventoryRequestDTO.getQuantity() < inventoryRequestDTO.getExpectedQuantity()) {
+            StockMovement movement = new StockMovement();
+            movement.setWarehouse(warehouse);
+            movement.setProduct(product);
+            movement.setBatch(productBatch);
+            movement.setQuantity(
+                    inventoryRequestDTO.getExpectedQuantity() - inventoryRequestDTO.getQuantity());
+            movement.setMovementDate(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
+            movement.setMovementType(MovementType.DAMAGE);
+            movement.setNote(inventoryRequestDTO.getExpectedQuantity() - inventoryRequestDTO.getQuantity()
+                    + " sản phẩm không đạt chất lượng khi nhập vào kho " + warehouse.getName());
+            stockMovementRepository.save(movement);
+        }
 
         // 4. Lưu và trả về entity mới
         return inventoryRepository.save(newInventory);
@@ -115,12 +134,26 @@ public class InventoryServiceImpl implements InventoryService {
         inventory.setProduct(productBatch.getProduct());
         inventory.setQuantity(storeInventoryRequestDTO.getQuantity());
         inventory.setStore(store);
-        inventory.setReorderLevel(storeInventoryRequestDTO.getReorder_level());
         inventory.setWarehouse(warehouse);
 
         inventoryRepository.save(inventory);
 
         storeRequestService.updateStoreRequestStatus(storeRequest.getRequestId(), storeInventoryRequestDTO.getStatus());
+
+        if (storeInventoryRequestDTO.getQuantity() < storeInventoryRequestDTO.getExpectedQuantity()) {
+            StockMovement movement = new StockMovement();
+            movement.setWarehouse(warehouse);
+            movement.setStore(store);
+            movement.setProduct(productBatch.getProduct());
+            movement.setBatch(productBatch);
+            movement.setQuantity(
+                    storeInventoryRequestDTO.getExpectedQuantity() - storeInventoryRequestDTO.getQuantity());
+            movement.setMovementDate(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
+            movement.setMovementType(MovementType.DAMAGE);
+            movement.setNote(storeInventoryRequestDTO.getExpectedQuantity() - storeInventoryRequestDTO.getQuantity()
+                    + " sản phẩm không đạt chất lượng khi nhập vào cửa hàng " + store.getName());
+            stockMovementRepository.save(movement);
+        }
     }
 
     @Override
@@ -293,7 +326,8 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
-    public List<BatchDetailDTO> getBatchDetailsByProductAndWarehouseOrStore(Long productId, Long warehouseId, Long storeId) {
+    public List<BatchDetailDTO> getBatchDetailsByProductAndWarehouseOrStore(Long productId, Long warehouseId,
+            Long storeId) {
         List<Inventory> inventories = inventoryRepository.findByProductAndWarehouseOrStore(productId, warehouseId,
                 storeId);
         if (warehouseId != null) {

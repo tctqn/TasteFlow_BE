@@ -19,4 +19,6 @@ public interface ReturnRequestService {
     ReturnRequestResponseDTO updateReturnRequest(Long id, ReturnRequestRequestDTO returnRequest, MultipartFile image) throws IOException;
 
     void deleteReturnRequest(Long id);
+    ReturnRequestResponseDTO approveReturnRequest(Long id);
+    ReturnRequestResponseDTO rejectReturnRequest(Long id, String reason);
 }

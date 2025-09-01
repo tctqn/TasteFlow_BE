@@ -30,6 +30,9 @@ public class ReturnRequest {
     @Enumerated(EnumType.STRING)
     private ReturnStatus status = ReturnStatus.PENDING;
 
+    private String bankName;
+    private String bankAccount;
+
     private String reasonCode;
     private String notes;
 

@@ -11,6 +11,7 @@ import com.startup.tasteflowbe.model.ReturnRequest;
 import com.startup.tasteflowbe.repository.ReturnAttachmentRepository;
 import com.startup.tasteflowbe.repository.ReturnItemRepository;
 import com.startup.tasteflowbe.repository.ReturnRequestRepository;
+import com.startup.tasteflowbe.service.ProductService;
 import com.startup.tasteflowbe.service.ReturnRequestService;
 import com.startup.tasteflowbe.service.S3Service;
 import jakarta.persistence.EntityNotFoundException;
@@ -31,6 +32,7 @@ public class ReturnRequestServiceImpl implements ReturnRequestService {
 
     private final ReturnRequestRepository returnRequestRepository;
     private final ReturnItemRepository returnItemRepository;
+    private final ProductService productService;
     private final ReturnAttachmentRepository attachmentRepository;
     private final ReturnMapper mapper;
     private final S3Service s3Service;
@@ -50,8 +52,10 @@ public class ReturnRequestServiceImpl implements ReturnRequestService {
 
     @Override
     public List<ReturnRequestResponseDTO> getReturnRequestsByOriginalOrderCode(String orderCode) {
-        List<ReturnRequest> list = returnRequestRepository.findByOriginalOrderCodeIgnoreCase(orderCode);
-        return mapper.toResponseList(list);
+        return returnRequestRepository.findByOriginalOrderCode(orderCode)
+                .stream()
+                .map(mapper::toResponse)
+                .toList();
     }
 
     @Override
@@ -125,7 +129,7 @@ public class ReturnRequestServiceImpl implements ReturnRequestService {
         List<ReturnItem> items = new ArrayList<>(itemDTOs.size());
         for (ReturnItemRequestDTO itemDTO : itemDTOs) {
             ReturnItem item = mapper.toEntity(itemDTO);
-            // map qty -> quantity (vì entity là quantity)
+            item.setProductName(productService.getProductById(itemDTO.getProductId()).get().getName());
             item.setQuantity(itemDTO.getQty());
             item.setReturnRequest(entity);
             items.add(item);

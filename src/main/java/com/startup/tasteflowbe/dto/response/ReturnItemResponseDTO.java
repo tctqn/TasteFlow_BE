@@ -11,6 +11,7 @@ public class ReturnItemResponseDTO {
     private Long id;
     private Long orderItemId;
     private Long productId;
+    private String productName;
     private BigDecimal qty;
     private ItemCondition condition;
     private ReturnResolution resolution;

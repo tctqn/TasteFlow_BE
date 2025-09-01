@@ -34,6 +34,7 @@ public class SecurityConfig {
                 CorsConfiguration frontendConfig = new CorsConfiguration();
                 frontendConfig.addAllowedOrigin("http://localhost:8081"); // Allow your frontend origin
                 frontendConfig.addAllowedOrigin("https://tasteflow-ui.vercel.app");
+                frontendConfig.addAllowedOrigin("https://tasteflow.id.vn/");
                 frontendConfig.addAllowedMethod("*"); // Allow all HTTP methods (GET, POST, etc.)
                 frontendConfig.addAllowedHeader("*"); // Allow all headers
                 frontendConfig.setAllowCredentials(true);
@@ -80,8 +81,8 @@ public class SecurityConfig {
                                                                 "/topic/**", // STOMP topic subscriptions
                                                                 "/app/**",
                                                                 "/api/ai/**",
-                                                            "/api/users/*/points",
-                                                        "/api/users/*/pointsUsed")
+                                                                "/api/users/*/points",
+                                                                "/api/users/*/pointsUsed")
                                                 .permitAll()
 
                                                 // CUSTOMER routes

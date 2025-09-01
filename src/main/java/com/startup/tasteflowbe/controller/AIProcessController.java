@@ -42,6 +42,16 @@ public class AIProcessController {
         return aiProcessService.warehouseManagerAdvisor(warehouseId, prompt);
     }
 
+    @PostMapping("/store-advisor/{storeId}")
+    public GeminiResponse storeAdvisor(@PathVariable Long storeId, @RequestBody String prompt) {
+        return aiProcessService.storeAdvisor(storeId, prompt);
+    }
+
+    @PostMapping("/warehouse-advisor/{warehouseId}")
+    public GeminiResponse warehouseAdvisor(@PathVariable Long warehouseId, @RequestBody String prompt) {
+        return aiProcessService.warehouseAdvisor(warehouseId, prompt);
+    }
+
     @GetMapping("/admin-advisor/{period}")
     public GeminiResponse adminAdvisor(@PathVariable String period) {
         return aiProcessService.adminAdvisor(period);

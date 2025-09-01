@@ -20,14 +20,6 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
 
     List<Inventory> findByWarehouse_WarehouseIdAndProduct_ProductId(Long warehouseId, Long productId);
 
-    @Query("""
-                SELECT i
-                FROM Inventory i
-                JOIN i.batch b
-                WHERE i.warehouse.warehouseId = :warehouseId
-                  AND i.product.productId = :productId
-                  AND b.expirationDate >= CURRENT_DATE
-            """)
     List<Inventory> findByWarehouse_WarehouseIdAndProduct_ProductIdAndStoreIsNullOrderByBatch_ExpirationDateAsc(
             Long warehouseId,
             Long productId);

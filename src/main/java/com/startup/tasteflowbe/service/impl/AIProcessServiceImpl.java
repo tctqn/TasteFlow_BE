@@ -23,6 +23,7 @@ import com.google.genai.types.ThinkingConfig;
 import com.google.genai.types.Tool;
 import com.startup.tasteflowbe.dto.request.GeminiRequest;
 import com.startup.tasteflowbe.dto.response.GeminiResponse;
+import com.startup.tasteflowbe.enums.StoreStatus;
 import com.startup.tasteflowbe.model.Inventory;
 import com.startup.tasteflowbe.model.Order;
 import com.startup.tasteflowbe.model.OrderItem;
@@ -76,24 +77,32 @@ public class AIProcessServiceImpl implements AIProcessService {
         List<Order> orders = orderRepository.findAll();
         List<Inventory> inventories = inventoryRepository.findAll();
 
-        String promtBuild = String.format("""
-                NHIỆM VỤ: Phân tích dữ liệu và đưa ra gợi ý cho người dùng dựa trên promt đưa vào
+        String promtBuild = String
+                .format("""
+                        NHIỆM VỤ: Tư vấn mua sắm cho khách hàng TasteFlow dựa trên thông tin và nhu cầu nhập vào.
 
-                THÔNG TIN:
-                - Promt: %s
-                - Sản phẩm: %d
-                - Khuyến mãi: %d
-                - Cửa hàng: %d
-                - Đơn hàng: %d
-                - Tồn kho: %d
+                        THÔNG TIN:
+                        - Yêu cầu của khách hàng: %s
+                        - Danh sách sản phẩm: %s
+                        - Danh sách khuyến mãi: %s
+                        - Danh sách cửa hàng: %s
+                        - Danh sách đơn hàng: %s
+                        - Danh sách tồn kho: %s
 
-                YÊU CẦU OUTPUT:
-                1. Viết đoạn văn tiếng Việt (100-120 từ)
-                2. Cấu trúc: Tóm tắt dữ liệu → Phân tích insights → 2-3 gợi ý hành động
-                3. Tone: Chuyên nghiệp, thực tế, actionable
-                4. Không sử dụng markdown hay bullet points
-                """,
-                prompt, products.size(), promotions.size(), stores.size(), orders.size(), inventories.size());
+                        YÊU CẦU OUTPUT:
+                        1. Viết đoạn văn tiếng Việt (30-50 từ)
+                        2. Cấu trúc: Tóm tắt nhu cầu khách hàng → Gợi ý sản phẩm/phù hợp → 2-3 khuyến mãi hoặc ưu đãi → Call-to-action
+                        3. Tone: Thân thiện, cá nhân hóa, khuyến khích trải nghiệm mua sắm
+                        4. Không sử dụng markdown hay bullet points
+                        """,
+                        prompt,
+                        products.stream().map(Product::getName).collect(Collectors.joining(", ")),
+                        promotions.stream().map(Promotion::getName).collect(Collectors.joining(", ")),
+                        stores.stream().map(Store::getName).collect(Collectors.joining(", ")),
+                        orders.stream().map(o -> "ĐH#" + o.getOrderId()).collect(Collectors.joining(", ")),
+                        inventories.stream()
+                                .map(inv -> String.format("%s: %d", inv.getProduct().getName(), inv.getQuantity()))
+                                .collect(Collectors.joining(", ")));
 
         GeminiRequest geminiRequest = new GeminiRequest();
         geminiRequest.setPrompt(promtBuild);
@@ -123,7 +132,7 @@ public class AIProcessServiceImpl implements AIProcessService {
         prompt.append("\nYÊU CẦU OUTPUT:\n");
         prompt.append("1. Viết bằng tiếng Việt, văn phong chuyên nghiệp\n");
         prompt.append("2. Cấu trúc: Tóm tắt xu hướng → Phân tích chi tiết → 3 khuyến nghị cụ thể\n");
-        prompt.append("3. Độ dài: 150-200 từ\n");
+        prompt.append("3. Độ dài: 30-50 từ\n");
         prompt.append("4. Không sử dụng markdown, bullet points hay ký tự đặc biệt\n");
         prompt.append("5. Tập trung vào actionable insights cho quản lý\n\n");
 
@@ -225,7 +234,7 @@ public class AIProcessServiceImpl implements AIProcessService {
                         - Các sản phẩm có trong hệ thống: %s
 
                         YÊU CẦU OUTPUT:
-                        1. Viết 1 đoạn văn tiếng Việt (50-80 từ)
+                        1. Viết 1 đoạn văn tiếng Việt (30-50 từ)
                         2. Cấu trúc: Đánh giá khách hàng → 2 gợi ý sản phẩm/combo có trong hệ thống → 2 mẹo sử dụng → Call-to-action
                         3. Tone: Thân thiện, cá nhân hóa, khuyến khích
                         4. Không markdown, không bullet points
@@ -235,6 +244,102 @@ public class AIProcessServiceImpl implements AIProcessService {
 
         GeminiRequest geminiRequest = new GeminiRequest();
         geminiRequest.setPrompt(prompt.toString());
+        return processPrompt(geminiRequest);
+    }
+
+    @Override
+    public GeminiResponse storeAdvisor(Long storeId, String userInput) {
+        List<Order> orders = orderRepository.findByStore_StoreId(storeId);
+        List<Inventory> inventories = inventoryRepository.findByStore_StoreId(storeId);
+        List<Promotion> promotions = promotionRepository.findAll();
+
+        int totalOrders = orders != null ? orders.size() : 0;
+        int totalInventoryItems = inventories != null ? inventories.size() : 0;
+        long activePromotions = promotions != null ? promotions.size() : 0L;
+
+        double totalRevenue = orders != null
+                ? orders.stream().filter(o -> o.getTotalPrice() != null)
+                        .mapToDouble(o -> o.getTotalPrice().doubleValue()).sum()
+                : 0.0;
+
+        String inventorySummary = inventories != null
+                ? inventories.stream()
+                        .map(inv -> String.format("%s: %d", inv.getProduct().getName(), inv.getQuantity()))
+                        .collect(Collectors.joining(", "))
+                : "";
+
+        String prompt = String.format(
+                """
+                        NHIỆM VỤ: Tư vấn cho cửa hàng TasteFlow dựa trên dữ liệu thực tế và yêu cầu người dùng.
+
+                        INPUT NGƯỜI DÙNG: %s
+
+                        DỮ LIỆU CỬA HÀNG (ID: %d):
+                        - Tổng đơn hàng: %d
+                        - Doanh thu: %,.0f VND
+                        - Số lượng mặt hàng tồn kho: %d
+                        - Khuyến mãi hiện tại: %d chương trình
+                        - Tồn kho: %s
+
+                        YÊU CẦU OUTPUT:
+                        1. Đoạn văn tiếng Việt (30-50 từ)
+                        2. Cấu trúc: Phản hồi theo input người dùng → Phân tích dữ liệu thực tế → Gợi ý hành động hoặc sản phẩm → Call-to-action
+                        3. Tone: Thân thiện, cá nhân hóa
+                        4. Không markdown, không bullet points
+                        """,
+                userInput, storeId, totalOrders, totalRevenue, totalInventoryItems, activePromotions, inventorySummary);
+
+        GeminiRequest geminiRequest = new GeminiRequest();
+        geminiRequest.setPrompt(prompt);
+        return processPrompt(geminiRequest);
+    }
+
+    @Override
+    public GeminiResponse warehouseAdvisor(Long warehouseId, String userInput) {
+        List<Inventory> inventoryLots = inventoryRepository.findByWarehouse_WarehouseId(warehouseId);
+        List<ProductBatch> productBatches = productBatchRepository.findByWarehouseWarehouseId(warehouseId);
+        long productsCount = productRepository != null ? productRepository.count() : 0L;
+
+        int inventoryLotsCount = inventoryLots != null ? inventoryLots.size() : 0;
+        int productBatchesCount = productBatches != null ? productBatches.size() : 0;
+
+        // Metrics cho warehouse
+        int expiringBatches = productBatches != null
+                ? (int) productBatches.stream()
+                        .filter(pb -> pb.getExpirationDate() != null
+                                && pb.getExpirationDate().isBefore(LocalDate.now().plusDays(14)))
+                        .count()
+                : 0;
+        int lowStockItems = inventoryLots != null
+                ? (int) inventoryLots.stream()
+                        .filter(inv -> inv.getQuantity() <= inv.getReorderLevel())
+                        .count()
+                : 0;
+
+        String prompt = String.format(
+                """
+                        NHIỆM VỤ: Tư vấn quản lý kho TasteFlow - Tối ưu inventory & procurement planning dựa trên input người dùng.
+
+                        INPUT NGƯỜI DÙNG: %s
+
+                        WAREHOUSE METRICS (ID: %d):
+                        - Lô hàng tồn: %d
+                        - Batch sản phẩm: %d
+                        - Tổng SKUs: %d
+                        - Items cần nhập: %d
+                        - Batch gần hết hạn: %d
+
+                        YÊU CẦU OUTPUT:
+                        1. Đoạn văn tiếng Việt (30-50 từ)
+                        2. Cấu trúc: Phản hồi theo input người dùng → Phân tích dữ liệu thực tế → Gợi ý hành động hoặc kế hoạch nhập hàng → Call-to-action
+                        3. Tone: Phân tích, chiến lược, data-driven
+                        4. Không markdown, không bullet points
+                        """,
+                userInput, warehouseId, inventoryLotsCount, productBatchesCount, productsCount, lowStockItems,
+                expiringBatches);
+
+        GeminiRequest geminiRequest = new GeminiRequest();
+        geminiRequest.setPrompt(prompt);
         return processPrompt(geminiRequest);
     }
 
@@ -276,7 +381,7 @@ public class AIProcessServiceImpl implements AIProcessService {
                 - Chương trình KM: %d
 
                 YÊU CẦU OUTPUT:
-                1. Đoạn văn tiếng Việt (150-180 từ)
+                1. Đoạn văn tiếng Việt (30-50 từ)
                 2. Cấu trúc: Đánh giá tổng quan → 3 hành động ưu tiên → Đề xuất KM cho 7 ngày tới
                 3. Tone: Chuyên nghiệp, thực tế, hướng hành động
                 4. Không markdown, tập trung vào ROI và impact
@@ -320,7 +425,7 @@ public class AIProcessServiceImpl implements AIProcessService {
                 - Batch gần hết hạn: %d
 
                 YÊU CẦU OUTPUT:
-                1. Đoạn văn tiếng Việt (140-170 từ)
+                1. Đoạn văn tiếng Việt (30-50 từ)
                 2. Cấu trúc: Tình hình tồn kho → Kế hoạch procurement → Risk management
                 3. Focus: Prevent stockout, minimize waste, optimize turnover
                 4. Tone: Phân tích, chiến lược, data-driven
@@ -355,25 +460,25 @@ public class AIProcessServiceImpl implements AIProcessService {
 
         if (stores != null) {
             activeStores = (int) stores.stream()
-                    .filter(s -> "OPEN".equals(s.getStatus()))
+                    .filter(s -> StoreStatus.OPEN == s.getStatus())
                     .count();
         }
+        System.out.println("Active stores: " + activeStores + "/" + storesCount);
 
         String prompt = String.format("""
-                NHIỆM VỤ: Báo cáo điều hành TasteFlow - Executive Dashboard & Strategic Priorities
+                NHIỆM VỤ: Tạo báo cáo hệ thống TasteFlow
 
-                SYSTEM OVERVIEW (%s):
-                - Tổng cửa hàng: %d (Hoạt động: %d)
-                - Tổng đơn hàng: %d
+                ĐẦU VÀO (%s):
+                - Tổng số cửa hàng: %d
+                - Số cửa hàng đang hoạt động (status=OPEN): %d
+                - Tổng số đơn hàng: %d
                 - Doanh thu hệ thống: %.0f VND
-                - Tỷ lệ stores hoạt động: %.1f%%
+                - Tỷ lệ cửa hàng hoạt động: %.1f%%
 
                 YÊU CẦU OUTPUT:
-                1. Đoạn văn tiếng Việt (160-200 từ)
-                2. Cấu trúc: Executive summary → 3 strategic priorities → Risk alerts → Next actions
-                3. Tone: Executive level, strategic thinking, data-backed decisions
-                4. Focus: System performance, growth opportunities, operational risks
-                5. Timeline-specific recommendations với measurable outcomes
+                1. Viết 1 đoạn văn tiếng Việt (30-50 từ) chỉ nêu lại các số liệu thực tế trên.
+                2. Không đưa ra suy luận, không nhận xét,không giả định, chỉ khuyến nghị.
+                3. Nội dung trung lập, chỉ mang tính báo cáo mô tả dữ liệu.
                 """,
                 period, storesCount, activeStores, ordersCount, totalSystemRevenue,
                 storesCount > 0 ? (double) activeStores / storesCount * 100 : 0.0);
@@ -486,7 +591,7 @@ public class AIProcessServiceImpl implements AIProcessService {
                 %s
 
                 YÊU CẦU OUTPUT:
-                1. Đoạn văn tiếng Việt (150-200 từ)
+                1. Đoạn văn tiếng Việt (30-50 từ)
                 2. Cấu trúc: Phân tích budget → 2-3 combo cụ thể với giá → Cách tối ưu (voucher/KM) → CTA mạnh
                 3. Tone: Personal shopper chuyên nghiệp, thực tế, value-focused
                 4. Đề xuất combo CỤ THỂ với tên sản phẩm và giá thật
@@ -530,7 +635,7 @@ public class AIProcessServiceImpl implements AIProcessService {
                 - Active promotions: %d
 
                 YÊU CẦU OUTPUT:
-                1. Đoạn văn tiếng Việt (120-150 từ)
+                1. Đoạn văn tiếng Việt (30-50 từ)
                 2. Cấu trúc: Product highlight → 2 món ăn suggestions → Ingredient pairing → Action steps
                 3. Tone: Food enthusiast, inspiring, practical
                 4. Focus: Easy recipes, ingredient synergy, seasonal cooking

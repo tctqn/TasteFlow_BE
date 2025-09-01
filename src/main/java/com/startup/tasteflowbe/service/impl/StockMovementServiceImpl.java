@@ -10,6 +10,9 @@ import com.startup.tasteflowbe.repository.*;
 import com.startup.tasteflowbe.service.NotificationService;
 import com.startup.tasteflowbe.service.StockMovementService;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +45,9 @@ public class StockMovementServiceImpl implements StockMovementService {
     private final NotificationService notificationService;
 
     private final StoreRequestItemRepository storeRequestItemRepository;
+        
+    private final JavaMailSender mailSender;
+
 
     @Override
     public StockMovement createStockMovement(StockMovementRequestDTO dto) {
@@ -198,6 +204,22 @@ public class StockMovementServiceImpl implements StockMovementService {
                             NotificationType.ALERT,
                             "Chuyển " + usedFromThisBatch + " sản phẩm từ lô "
                                     + inv.getBatch().getBatchId() + " đến cửa hàng " + store.getName());
+
+                    String message = String.format(
+                        "Chào %s,%n%n" +
+                        "Chuyển %d sản phẩm từ lô %s đến cửa hàng %s%n%n" +
+                        "Trân trọng,%nTasteFlow",
+                        store.getManager().getFirstName() + " " + store.getManager().getLastName(),
+                        usedFromThisBatch,
+                        inv.getBatch().getBatchId(),
+                        store.getName()
+                    );
+
+                    SimpleMailMessage mail = new SimpleMailMessage();
+                    mail.setTo(store.getManager().getEmail());
+                    mail.setSubject("Chuyển hàng về cửa hàng " + store.getName());
+                    mail.setText(message);
+                    mailSender.send(mail);
                 }
 
             }

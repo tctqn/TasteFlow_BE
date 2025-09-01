@@ -128,6 +128,23 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
                 NotificationType.ALERT,
                 "Yêu cầu nhập hàng mới đã được tạo từ " + warehouse.getName());
 
+        // Lấy tất cả Admins
+        List<User> admins = userRepository.findByRole(Role.ADMIN);
+        List<String> adminEmails = admins.stream()
+                .map(User::getEmail)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        // Gửi mail đến toàn bộ admins
+        String message = "Yêu cầu nhập hàng mới đã được tạo từ " + warehouse.getName();
+
+        SimpleMailMessage mail = new SimpleMailMessage();
+        mail.setTo(adminEmails.toArray(new String[0])); // gửi đến nhiều người
+        mail.setSubject("Tạo mới yêu cầu nhập hàng về kho");
+        mail.setText(message);
+
+        System.out.println("Sending email to admins: " + adminEmails);
+        mailSender.send(mail);
         return requestRepository.save(request);
     }
 
@@ -334,10 +351,13 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
                         "Lô sản phẩm: " + productBatch.getBatchId() + "\n" +
                         "Lô hàng được chuyển đến kho: " + warehouse.getName() + "\n" +
                         "Ngày nhận: " + productBatch.getReceivedDate() + "\n\n" +
-                        "Nhà cung cấp: " + itemInfo.getSupplierId() != null
-                            ? supplierRepository.findById(itemInfo.getSupplierId().longValue()).orElse(null).getName()
-                            : "Không có" 
-                            + "\n\n" +
+                        "Nhà cung cấp: " + (
+                            itemInfo.getSupplierId() != null
+                                ? supplierRepository.findById(itemInfo.getSupplierId().longValue())
+                                    .orElseThrow(() -> new EntityNotFoundException("Supplier không tồn tại"))
+                                    .getName()
+                                : "Không có"
+                        ) + "\n\n" +
                         "Trân trọng,\nTasteFlow",
                 warehouse.getManager().getFirstName() + " " + warehouse.getManager().getLastName());
 
@@ -383,7 +403,7 @@ public class WarehouseRequestServiceImpl implements WarehouseRequestService {
         
         String message = String.format(
                 "Chào %s,\n\n" +
-                        "Bạn đã tạo mới lô hàng thành công. Thông tin lô hàng như sau:\n\n" +
+                        "Lô hàng đã được duyệt và đang vận chuyển về kho. Thông tin lô hàng như sau:\n\n" +
                         "Sản phẩm: " + productBatch.getProduct().getName() + "\n" +
                         "Số lượng: " + productBatch.getQuantity() + "\n" +
                         "Lô sản phẩm: " + productBatch.getBatchId() + "\n" +

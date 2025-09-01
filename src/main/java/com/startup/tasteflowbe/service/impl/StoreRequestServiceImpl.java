@@ -14,6 +14,9 @@ import com.startup.tasteflowbe.service.StoreRequestService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -31,6 +34,7 @@ public class StoreRequestServiceImpl implements StoreRequestService {
     private final StoreRepository storeRepository;
     private final WarehouseRepository warehouseRepository;
     private final NotificationService notificationService;
+    private final JavaMailSender mailSender;
 
     @Override
     public List<StoreRequest> getAllStoreRequests() {
@@ -74,6 +78,19 @@ public class StoreRequestServiceImpl implements StoreRequestService {
                 Arrays.asList(store.getManager().getUserId(), warehouse.getManager().getUserId()),
                 NotificationType.ALERT,
                 "Yêu cầu nhập hàng tới cửa hàng " + store.getName() + " đã được tạo.");
+
+        String message = String.format(
+                "Chào %s,\n\n" +
+                        "Yêu cầu nhập hàng tới cửa hàng " + store.getName() + " đã được tạo." + "\n\n" +
+                        "Vui lòng kiểm tra hệ thống để biết thông tin chi tiết.\n\n" +
+                        "Trân trọng,\nTasteFlow",
+                warehouse.getManager().getFirstName() + " " + warehouse.getManager().getLastName());
+
+        SimpleMailMessage mail = new SimpleMailMessage();
+        mail.setTo(warehouse.getManager().getEmail());
+        mail.setSubject("Yêu cầu nhập hàng mới từ cửa hàng " + store.getName());
+        mail.setText(message);
+        mailSender.send(mail);
 
         return storeRequestRepository.save(storeRequest);
     }

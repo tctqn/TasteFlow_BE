@@ -15,4 +15,5 @@ public interface UserService {
     List<User> getAvailableStoreManagers();
     List<User> getActiveUsersByStoreId(Long storeId);
     Integer getPointByUserId(Long userId);
+    Integer getPointUsedByUserId(Long userId);
 }

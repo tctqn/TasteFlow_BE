@@ -10,10 +10,8 @@ import java.util.List;
 
 @Repository
 public interface ReturnRequestRepository extends JpaRepository<ReturnRequest, Long> {
-    @EntityGraph(attributePaths = {"items", "attachments"})
     List<ReturnRequest> findAll();
 
-    @EntityGraph(attributePaths = {"items", "attachments"})
     List<ReturnRequest> findByOriginalOrderCodeIgnoreCase(String originalOrderCode);
 
     List<ReturnRequest> findByOriginalOrderCode(String orderCode);

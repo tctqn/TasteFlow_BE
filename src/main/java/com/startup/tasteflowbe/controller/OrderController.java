@@ -96,7 +96,7 @@ public class OrderController {
     public ResponseEntity<?> checkout(@RequestBody OrderRequestDTO requestDTO) {
         OrderResponseDTO orderResponse = orderService.createOrder(requestDTO);
 
-        if (requestDTO.getPaymentMethod() == PaymentMethod.ONLINE) {
+        if (requestDTO.getPaymentMethod() == PaymentMethod.ONLINE || requestDTO.getFinalPrice().intValue() > 0) {
             CreatePaymentResponseDTO paymentResponse = orderService.handleOnlinePayment(orderResponse);
             return ResponseEntity.ok(paymentResponse);
         }

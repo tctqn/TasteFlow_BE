@@ -31,8 +31,8 @@ public class ReturnRequestController {
         return ResponseEntity.ok(service.getReturnRequestById(id));
     }
 
-    @GetMapping("/by-order/{orderCode}")
-    public ResponseEntity<List<ReturnRequestResponseDTO>> getByOrder(@PathVariable String orderCode) {
+    @GetMapping("/order/{orderCode}")
+    public ResponseEntity<List<ReturnRequestResponseDTO>> getByOrderCode(@PathVariable String orderCode) {
         return ResponseEntity.ok(service.getReturnRequestsByOriginalOrderCode(orderCode));
     }
 

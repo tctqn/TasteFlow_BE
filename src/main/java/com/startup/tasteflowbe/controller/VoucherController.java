@@ -36,17 +36,16 @@ public class VoucherController {
     }
 
     @GetMapping("/available")
-    public ResponseEntity<List<VoucherResponseDTO>> getAvailableVouchers(@RequestParam BigDecimal totalPrice) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null || !authentication.isAuthenticated()
-                || authentication.getPrincipal().equals("anonymousUser")) {
-            // Anonymous user → chỉ trả voucher PUBLIC
+    public ResponseEntity<List<VoucherResponseDTO>> getAvailableVouchers(
+            @RequestParam BigDecimal totalPrice,
+            @RequestParam(required = false) Long userId
+    ) {
+        if (userId == null) {
             return ResponseEntity.ok(voucherService.getPublicVouchers(totalPrice));
         }
 
-        String username = authentication.getName();
-        User user = userRepository.findByUsername(username).orElseThrow();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id " + userId));
 
         return ResponseEntity.ok(voucherService.getAvailableVouchers(user, totalPrice));
     }

@@ -6,6 +6,7 @@ import lombok.Data;
 import java.time.Instant;
 import java.util.List;
 
+// ReturnRequestResponseDTO.java
 @Data
 public class ReturnRequestResponseDTO {
     private Long id;
@@ -16,6 +17,11 @@ public class ReturnRequestResponseDTO {
     private String reasonCode;
     private String notes;
     private Instant createdAt;
+
+    private String bankName;
+    private String bankAccount;
+
     private List<ReturnItemResponseDTO> items;
     private List<ReturnAttachmentResponseDTO> attachments;
 }
+

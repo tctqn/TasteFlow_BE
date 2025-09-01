@@ -29,4 +29,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT u.points FROM User u WHERE u.userId = :userId")
     Integer findPointByUserId(Long userId);
+
+    @Query("SELECT u.pointsUsed FROM User u WHERE u.userId = :userId")
+    Integer findUsedPointByUserId(Long userId);
 }

@@ -26,6 +26,7 @@ public class ReturnItem {
 
     private Long orderItemId;
     private Long productId;
+    private String productName;
 
     private BigDecimal quantity;
     @Enumerated(EnumType.STRING)

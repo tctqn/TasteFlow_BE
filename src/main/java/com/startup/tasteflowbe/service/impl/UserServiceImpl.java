@@ -95,4 +95,9 @@ public class UserServiceImpl implements UserService {
     public Integer getPointByUserId(Long userId) {
         return userRepository.findPointByUserId(userId);
     }
+
+    @Override
+    public Integer getPointUsedByUserId(Long userId) {
+        return userRepository.findUsedPointByUserId(userId) ;
+    }
 }

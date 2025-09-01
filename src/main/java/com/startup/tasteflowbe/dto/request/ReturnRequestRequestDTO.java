@@ -15,6 +15,9 @@ public class ReturnRequestRequestDTO {
     @NotNull
     private Long storeId;
     private Long customerId;
+    private String bankName;
+    private String bankAccount;
+
 
     @NotBlank private String reasonCode; // "Sản phẩm bị hỏng, vỡ"...
     private String notes;

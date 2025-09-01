@@ -55,6 +55,7 @@ public class OrderServiceImpl implements OrderService {
     private final ProductRepository productRepository;
 
     private final OrderMapper orderMapper;
+    private final UserVoucherRepository userVoucherRepository;
 
     private final PaymentService paymentService;
     private final StoreService storeService;
@@ -111,8 +112,6 @@ public class OrderServiceImpl implements OrderService {
         OrderStatus current = order.getStatus();
         OrderStatus target = OrderStatus.valueOf(status);
 
-        // Nếu chuyển sang CONFIRMED và trước đó chưa CONFIRMED trở lên -> trừ tồn kho
-        // (FEFO)
         if (target == OrderStatus.CONFIRMED
                 && (current == OrderStatus.PENDING || current == OrderStatus.PAID)) {
             commitInventoryForOrder(order);
@@ -123,6 +122,9 @@ public class OrderServiceImpl implements OrderService {
                         Arrays.asList(user.getUserId(), store.getManager().getUserId()),
                         NotificationType.ORDER,
                         "Đơn hàng " + order.getOrderCode() + " đã được xác nhận");
+            }
+            if(order.getFinalPrice().compareTo(BigDecimal.ZERO) == 0){
+                target = OrderStatus.PAID;
             }
         }
 
@@ -235,20 +237,19 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public OrderResponseDTO createOrder(OrderRequestDTO dto) {
-        // 1. Xác định User từ dto hoặc từ authentication
+        // 1) Resolve user
         User user = null;
         if (dto.getUserId() != null) {
             user = userRepository.findById(Long.parseLong(dto.getUserId()))
                     .orElseThrow(() -> new RuntimeException("User not found with ID " + dto.getUserId()));
         }
-
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
             String username = (String) auth.getPrincipal();
             user = userRepository.findByUsername(username).orElse(user);
         }
 
-        // 2. Tạo đối tượng Order
+        // 2) Tạo order cơ bản từ DTO
         Order order = orderMapper.toEntity(dto);
         order.setUser(user);
         order.setOrderDate(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
@@ -258,54 +259,91 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new RuntimeException("Store not found with ID " + dto.getStoreId()));
         order.setStore(store);
 
-        // 3. Chuẩn bị dữ liệu voucher
+        // ===== A. Tính subtotal gốc (TRƯỚC khuyến mãi) để dùng check minOrderAmount =====
+        BigDecimal subtotalGross = BigDecimal.ZERO; // tổng tiền hàng trước mọi voucher
+        for (CartItemDTO ci : dto.getCartItems()) {
+            BigDecimal line = ci.getPrice().multiply(BigDecimal.valueOf(ci.getQuantity()));
+            subtotalGross = subtotalGross.add(line);
+        }
+
+        // 3) Chuẩn bị voucher (kiểm tra hạn dùng, số lượng, maxPerUser, minOrderAmount)
         Map<Long, Voucher> voucherMap = new HashMap<>();
-        if (dto.getVoucherIds() != null) {
+        boolean hasFreeShippingVoucher = false;
+
+        if (dto.getVoucherIds() != null && !dto.getVoucherIds().isEmpty()) {
+            LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+
             for (Long voucherId : dto.getVoucherIds()) {
                 Voucher voucher = voucherRepository.findById(voucherId)
                         .orElseThrow(() -> new RuntimeException("Voucher không tồn tại: " + voucherId));
+
+                // hạn dùng
+                if (voucher.getStartDate().isAfter(now) || voucher.getEndDate().isBefore(now)) {
+                    throw new RuntimeException("Voucher " + voucher.getCode() + " hiện không còn hiệu lực");
+                }
+
+                // min order (dùng subtotalGross)
+                BigDecimal minOrder = Optional.ofNullable(voucher.getMinOrderAmount()).orElse(BigDecimal.ZERO);
+                if (subtotalGross.compareTo(minOrder) < 0) {
+                    throw new RuntimeException("Đơn chưa đạt tối thiểu để dùng voucher " + voucher.getCode());
+                }
+
+                // số lượng tổng (quantity vs tất cả claim trong user_vouchers)
+                if (voucher.getQuantity() != null) {
+                    int claimed = userVoucherRepository.countClaimed(voucher);
+                    if (claimed >= voucher.getQuantity()) {
+                        throw new RuntimeException("Voucher " + voucher.getCode() + " đã hết số lượng");
+                    }
+                }
+
+                // maxPerUser (đếm số claim used=true của user)
+                if (user != null && voucher.getMaxPerUser() != null) {
+                    int usedByUser = userVoucherRepository.countUsedByUserAndVoucher(user, voucher);
+                    if (usedByUser >= voucher.getMaxPerUser()) {
+                        throw new RuntimeException("Bạn đã dùng hết lượt cho voucher " + voucher.getCode());
+                    }
+                }
+
                 voucherMap.put(voucherId, voucher);
+                if (Boolean.TRUE.equals(voucher.getFreeShipping())) {
+                    hasFreeShippingVoucher = true;
+                }
             }
         }
 
-        // 4. Xử lý từng cart item => tạo OrderItem + tính giảm giá
+        // 4) Tính giá từng item (best discount theo voucher áp dụng theo sản phẩm / danh mục)
         List<OrderItem> orderItems = new ArrayList<>();
-        BigDecimal totalPrice = BigDecimal.ZERO;
+        BigDecimal itemsSubtotalAfterDiscount = BigDecimal.ZERO; // tổng tiền hàng SAU khuyến mãi sản phẩm
 
+        BigDecimal originalUnitPrice = null;
         for (CartItemDTO itemDTO : dto.getCartItems()) {
             Product product = productRepository.findById(itemDTO.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Product not found"));
-            ProductUnit productUnit = productUnitRepository.findById(itemDTO.getProductUnitId()).orElseThrow();
+                    .orElseThrow(() -> new RuntimeException("Product not found: " + itemDTO.getProductId()));
+            ProductUnit productUnit = productUnitRepository.findById(itemDTO.getProductUnitId())
+                    .orElseThrow(() -> new RuntimeException("Product unit not found: " + itemDTO.getProductUnitId()));
 
-            BigDecimal originalPrice = itemDTO.getPrice();
-            BigDecimal bestDiscount = BigDecimal.ZERO;
+            originalUnitPrice = itemDTO.getPrice();
+            BigDecimal bestDiscountPerUnit = BigDecimal.ZERO;
 
             for (Voucher voucher : voucherMap.values()) {
-                if (voucher.getStartDate().isAfter(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))
-                        || voucher.getEndDate().isBefore(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))) {
-                    continue;
-                }
-
-                boolean isApplicable = voucher.getApplicableProducts().contains(product)
-                        || voucher.getApplicableCategories().contains(product.getCategory());
-
-                if (!isApplicable)
-                    continue;
+                // freeShipping không tác động vào giá sản phẩm
+                if (Boolean.TRUE.equals(voucher.getFreeShipping())) continue;
 
                 if (voucher.getDiscountType() == DiscountType.PERCENT && voucher.getDiscountPercent() != null) {
-                    BigDecimal discount = originalPrice.multiply(voucher.getDiscountPercent())
+                    BigDecimal discount = originalUnitPrice
+                            .multiply(voucher.getDiscountPercent())
                             .divide(BigDecimal.valueOf(100));
-                    if (discount.compareTo(bestDiscount) > 0)
-                        bestDiscount = discount;
+                    if (discount.compareTo(bestDiscountPerUnit) > 0) bestDiscountPerUnit = discount;
                 } else if (voucher.getDiscountType() == DiscountType.AMOUNT && voucher.getDiscountAmount() != null) {
-                    if (voucher.getDiscountAmount().compareTo(bestDiscount) > 0)
-                        bestDiscount = voucher.getDiscountAmount();
+                    if (voucher.getDiscountAmount().compareTo(bestDiscountPerUnit) > 0) {
+                        bestDiscountPerUnit = voucher.getDiscountAmount();
+                    }
                 }
             }
 
-            BigDecimal finalPrice = originalPrice.subtract(bestDiscount).max(BigDecimal.ZERO);
-            BigDecimal totalItemPrice = finalPrice.multiply(BigDecimal.valueOf(itemDTO.getQuantity()));
-            BigDecimal totalDiscount = bestDiscount.multiply(BigDecimal.valueOf(itemDTO.getQuantity()));
+            BigDecimal finalUnitPrice = originalUnitPrice.subtract(bestDiscountPerUnit).max(BigDecimal.ZERO);
+            BigDecimal lineAmount = finalUnitPrice.multiply(BigDecimal.valueOf(itemDTO.getQuantity()));
+            BigDecimal lineDiscount = bestDiscountPerUnit.multiply(BigDecimal.valueOf(itemDTO.getQuantity()));
 
             OrderItem item = new OrderItem();
             item.setOrder(order);
@@ -313,36 +351,97 @@ public class OrderServiceImpl implements OrderService {
             item.setProductUnit(productUnit);
             item.setQuantity(itemDTO.getQuantity());
             item.setQuantityInBase(itemDTO.getQuantity());
-            item.setPrice(totalItemPrice);
-            item.setDiscount(totalDiscount);
+            item.setPrice(originalUnitPrice);
+            item.setDiscount(lineDiscount);// tổng giảm cho line
 
             orderItems.add(item);
-            totalPrice = totalPrice.add(totalItemPrice);
+            itemsSubtotalAfterDiscount = itemsSubtotalAfterDiscount.add(lineAmount);
         }
 
-        // 5. Lưu order và orderItems
         order.setOrderItems(orderItems);
-        if(user != null && user.getPoints() != null && order.getPointsApplied() > 0) {
-            order.setPointsApplied(user.getPoints());
-            user.setPoints(0);
-            order.setFinalPrice(order.getFinalPrice().subtract(BigDecimal.valueOf(order.getPointsApplied())));
-            if(totalPrice.compareTo(BigDecimal.ZERO) < 0) {
-                totalPrice = BigDecimal.ZERO;
-            }
-            userRepository.save(user);
-        }
-        order.setTotalPrice(totalPrice);
+        order.setTotalPrice(subtotalGross);
 
+        // 5) Gán vouchers vào order (ghi ra order_vouchers)
         if (!voucherMap.isEmpty()) {
             order.setVouchers(new ArrayList<>(voucherMap.values()));
         }
 
+        // ===== B. Tính phí ship & giảm ship (freeShipping) =====
+        BigDecimal shippingFee = Optional.ofNullable(dto.getShippingFee()).orElse(BigDecimal.ZERO);
+        BigDecimal shippingDiscount = BigDecimal.ZERO;
+        if (hasFreeShippingVoucher && shippingFee.compareTo(BigDecimal.ZERO) > 0) {
+            // freeShip: giảm tối đa bằng phí ship hiện có
+            shippingDiscount = shippingFee;
+        }
 
+        // Tổng trước khi trừ điểm = (tổng hàng sau KM) + ship - giảm ship
+        BigDecimal totalBeforePoints = itemsSubtotalAfterDiscount
+                .add(shippingFee)
+                .subtract(shippingDiscount)
+                .max(BigDecimal.ZERO);
 
+        // 6) Áp dụng điểm theo DTO (giới hạn theo user.points và totalBeforePoints)
+        int pointsApplied = 0;
+        if (user != null && dto.getPointsApplied() != null && dto.getPointsApplied() > 0) {
+            long userPts = (user.getPoints() == null) ? 0L : user.getPoints();
+            long wantApply = dto.getPointsApplied().longValue();
+
+            long maxApplicable = Math.min(userPts, totalBeforePoints.longValue());
+            long actualApplied = Math.max(0, Math.min(wantApply, maxApplicable));
+
+            if (actualApplied > 0) {
+                pointsApplied = (int) actualApplied;
+                user.setPoints((int) (userPts - actualApplied));
+                userRepository.save(user);
+            }
+        }
+        order.setPointsApplied(pointsApplied);
+
+        // finalPrice = tổng trước điểm - điểm
+        BigDecimal finalPrice = totalBeforePoints.subtract(BigDecimal.valueOf(pointsApplied)).max(BigDecimal.ZERO);
+        order.setShippingFee(shippingFee);
+        order.setFinalPrice(finalPrice);
+
+        // 7) Lưu order + items
         order = orderRepository.save(order);
         orderItemRepository.saveAll(orderItems);
 
-        // 6. Nếu cần hóa đơn
+        // 8) Đánh dấu dùng voucher trong user_vouchers
+        if (user != null && !voucherMap.isEmpty()) {
+            LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+            for (Voucher v : voucherMap.values()) {
+                // re-check capacity ngay trước khi tạo claim mới để tránh race
+                if (v.getQuantity() != null) {
+                    int claimed = userVoucherRepository.countClaimed(v);
+                    if (claimed >= v.getQuantity()) {
+                        throw new RuntimeException("Voucher " + v.getCode() + " vừa hết số lượng. Vui lòng thử lại.");
+                    }
+                }
+
+                final User finalUser = user;
+                UserVoucher uv = userVoucherRepository
+                        .findTopByUserAndVoucherAndUsedFalseOrderByClaimedAtAsc(user, v)
+                        .orElseGet(() -> {
+                            UserVoucher created = new UserVoucher();
+                            created.setUser(finalUser);
+                            created.setVoucher(v);
+                            created.setClaimedAt(now);
+                            created.setUsed(false);
+                            return userVoucherRepository.save(created);
+                        });
+
+                // Mark used
+                uv.setUsed(true);
+                userVoucherRepository.save(uv);
+
+                // Cập nhật voucher.claimedCount
+                v.setClaimedCount(v.getClaimedCount() + 1);
+                voucherRepository.save(v);
+            }
+        }
+
+
+        // 9) Hóa đơn (nếu có)
         if (dto.isNeedInvoice() && dto.getInvoiceInfo() != null) {
             Invoice invoice = new Invoice();
             invoice.setOrder(order);
@@ -363,19 +462,22 @@ public class OrderServiceImpl implements OrderService {
 
             order.setInvoice(invoice);
             invoiceRepository.save(invoice);
+            orderRepository.save(order);
         }
 
-        orderRepository.save(order); // Cập nhật invoice nếu có
-
-        // Gửi thông báo tới người dùng và cửa hàng
+        // 10) Notify
         if (user != null && store.getManager() != null) {
             notificationService.sendNotificationToUsers(
                     Arrays.asList(user.getUserId(), store.getManager().getUserId()),
                     NotificationType.ORDER,
                     "Đơn hàng " + order.getOrderCode() + " đã được tạo");
         }
+
         return orderMapper.toDto(order);
     }
+
+
+
 
     @Transactional
     @Override

@@ -16,6 +16,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Arrays;
@@ -155,7 +156,12 @@ public class StockMovementServiceImpl implements StockMovementService {
 
         List<Inventory> inventories = inventoryRepository
                 .findByWarehouse_WarehouseIdAndProduct_ProductIdAndStoreIsNullOrderByBatch_ExpirationDateAsc(
-                        warehouseId, productId);
+                        warehouseId, productId)
+                .stream()
+                .filter(inv -> inv.getBatch().getExpirationDate() == null
+                        || !inv.getBatch().getExpirationDate().isBefore(LocalDate.now()))
+                .filter(inv -> inv.getQuantity() != null && inv.getQuantity() > 0)
+                .collect(Collectors.toList());
 
         if (inventories.isEmpty()) {
             throw new IllegalArgumentException("Không tìm thấy tồn kho cho sản phẩm này trong kho.");
@@ -197,7 +203,7 @@ public class StockMovementServiceImpl implements StockMovementService {
                     stockMovementRepository.save(movement);
 
                     param.setQuantity(storeQty - usedFromThisBatch);
-                    deduct -= usedFromThisBatch;
+                    remaining -= usedFromThisBatch;
 
                     notificationService.sendNotificationToUsers(
                             Arrays.asList(store.getManager().getUserId(), warehouse.getManager().getUserId()),
@@ -224,7 +230,7 @@ public class StockMovementServiceImpl implements StockMovementService {
 
             }
 
-            remaining -= deduct;
+//            remaining -= deduct;
         }
 
         StoreRequestItem item = storeRequestItemRepository.findByStoreRequest_RequestIdAndProductId(requestId,

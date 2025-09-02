@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface StockMovementRepository extends JpaRepository<StockMovement, Long> {
+    @Query("SELECT sm FROM StockMovement sm WHERE sm.store.storeId = :storeId AND sm.movementType = 'TRANSFER_TO_STORE'")
     List<StockMovement> findByStore_StoreId(Long storeId);
 
     @Query("SELECT sm FROM StockMovement sm WHERE sm.movementType IN :types")

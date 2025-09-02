@@ -4,6 +4,7 @@ import com.startup.tasteflowbe.dto.request.OrderRequestDTO;
 import com.startup.tasteflowbe.dto.request.StoreOrderDTO;
 import com.startup.tasteflowbe.dto.request.UpdateOrderStatusDTO;
 import com.startup.tasteflowbe.dto.response.CreatePaymentResponseDTO;
+import com.startup.tasteflowbe.dto.response.FulfillmentDTO;
 import com.startup.tasteflowbe.dto.response.OrderResponseDTO;
 import com.startup.tasteflowbe.enums.PaymentMethod;
 import com.startup.tasteflowbe.mapper.OrderMapper;
@@ -81,10 +82,13 @@ public class OrderController {
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<OrderResponseDTO> updateOrderStatus(@PathVariable Long id,
-            @RequestBody UpdateOrderStatusDTO request) {
-        return ResponseEntity.ok(orderService.updateOrderStatus(id, request.getStatus(), request.getNotes()));
+    public ResponseEntity<OrderResponseDTO> updateOrderStatus(
+            @PathVariable Long id,
+            @RequestBody UpdateOrderStatusDTO request
+    ) {
+        return ResponseEntity.ok(orderService.updateOrderStatus(id, request));
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteOrder(@PathVariable Long id) {
@@ -110,5 +114,10 @@ public class OrderController {
         return dto == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
     }
 
+
+    @GetMapping("/{id}/allocations")
+    public ResponseEntity<FulfillmentDTO> getOrderAllocations(@PathVariable Long id) {
+        return ResponseEntity.ok(orderService.getOrderAllocations(id));
+    }
 
 }

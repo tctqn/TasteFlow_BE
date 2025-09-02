@@ -5,7 +5,8 @@ public enum MovementType {
     TRANSFER_TO_STORE("Xuất kho về cửa hàng"),
     SALE("Bán sản phẩm"),
     DAMAGE("Hàng bị hỏng, loại khỏi kho"),
-    EXPIRED("Hàng hết hạn, loại khỏi kho");
+    EXPIRED("Hàng hết hạn, loại khỏi kho"),
+    RETURN_FROM_CUSTOMER("Trả hàng từ khách");
 
     private final String description;
 

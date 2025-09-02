@@ -31,7 +31,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -346,7 +348,7 @@ public class ProductServiceImpl implements ProductService {
                 ? Collections.emptyList()
                 : promotionRepository.findActiveForStore(storeId, LocalDateTime.now());
 
-        // 3) Map lô mới nhất để lấy supplier
+        // 3) Map lô mới nhất để lấy supplier (ƯU TIÊN lô còn hạn)
         final Map<Long, ProductBatch> productToLatestBatch = new HashMap<>();
 
         // 4) Nếu có storeId, gom danh sách productId -> query tồn kho 1 phát
@@ -357,8 +359,13 @@ public class ProductServiceImpl implements ProductService {
                     .distinct()
                     .toList();
 
+            // CHỈ tính tồn từ lô còn hạn
             List<ProductStockAgg> rows = inventoryRepository
-                    .sumQtyByStoreAndProductIds(storeId, productIds);
+                    .sumQtyByStoreAndProductIdsNotExpired(
+                            storeId,
+                            productIds,
+                            LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"))
+                    );
 
             stockMap = rows.stream().collect(Collectors.toMap(
                     ProductStockAgg::getProductId,
@@ -374,12 +381,17 @@ public class ProductServiceImpl implements ProductService {
 
             Long productId = u.getProduct().getProductId();
 
-            // supplier từ lô mới nhất
+            // supplier từ lô mới nhất CÒN HẠN; nếu không có, fallback về lô mới nhất bất kỳ
             ProductBatch latest = productToLatestBatch.computeIfAbsent(
                     productId,
                     __ -> productBatchRepository
-                            .findTopByProductOrderByReceivedDateDesc(u.getProduct())
-                            .orElse(null)
+                            .findTopByProductAndExpirationDateAfterOrderByReceivedDateDesc(
+                                    u.getProduct(),
+                                    LocalDate.now()
+                            )
+                            .orElseGet(() -> productBatchRepository
+                                    .findTopByProductOrderByReceivedDateDesc(u.getProduct())
+                                    .orElse(null))
             );
             if (latest != null && latest.getSupplier() != null) {
                 dto.setSupplierName(latest.getSupplier().getName());
@@ -433,12 +445,13 @@ public class ProductServiceImpl implements ProductService {
             if (storeId != null) {
                 int qty = stockMap.getOrDefault(productId, 0);
                 dto.setAvailableQty(qty);
-                dto.setOutOfStock(qty <= 0); // sản phẩm không có tại store -> true
+                dto.setOutOfStock(qty <= 0); // chỉ còn lô hết hạn -> qty = 0
             }
 
             return dto;
         }).toList();
     }
+
 
 
 

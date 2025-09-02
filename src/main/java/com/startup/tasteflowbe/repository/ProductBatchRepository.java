@@ -5,6 +5,7 @@ import com.startup.tasteflowbe.model.ProductBatch;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,4 +16,9 @@ public interface ProductBatchRepository extends JpaRepository<ProductBatch, Long
     Optional<ProductBatch> findTopByProductOrderByReceivedDateDesc(Product product);
 
     Optional<ProductBatch> findByRequestItem_RequestItemId(Integer requestItemId);
+
+    Optional<ProductBatch> findTopByProductAndExpirationDateAfterOrderByReceivedDateDesc(
+            Product product,
+            LocalDate date
+    );
 }

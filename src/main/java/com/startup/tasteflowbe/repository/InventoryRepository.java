@@ -102,4 +102,21 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     """)
     List<ProductStockAgg> sumQtyByStoreAndProductIds(@Param("storeId") Long storeId,
                                                      @Param("productIds") Collection<Long> productIds);
+
+    @Query("""
+    select i.product.productId as productId,
+           sum(i.quantity)     as qty
+    from Inventory i
+    where i.store.storeId = :storeId
+      and i.product.productId in :productIds
+      and i.quantity > 0
+      and i.batch.expirationDate > :today
+    group by i.product.productId
+""")
+    List<ProductStockAgg> sumQtyByStoreAndProductIdsNotExpired(
+            @Param("storeId") Long storeId,
+            @Param("productIds") List<Long> productIds,
+            @Param("today") LocalDate today
+    );
+
 }

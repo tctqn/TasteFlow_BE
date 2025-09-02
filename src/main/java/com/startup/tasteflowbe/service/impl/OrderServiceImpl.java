@@ -667,7 +667,7 @@ public class OrderServiceImpl implements OrderService {
             mv.setProduct(oi.getProduct());
             mv.setBatch(oi.getBatch());
             mv.setQuantity(qty);
-            mv.setNote("Return due to cancellation " + order.getOrderCode());
+            mv.setNote("Hủy đơn hàng " + order.getOrderCode());
             stockMovementRepository.save(mv);
         }
     }
@@ -760,7 +760,7 @@ public class OrderServiceImpl implements OrderService {
                 mv.setProduct(baseItem.getProduct());
                 mv.setBatch(pbatch);
                 mv.setQuantity(qty);
-                mv.setNote("Allocate by request for order " + order.getOrderCode());
+                mv.setNote("Bán cho đơn hàng " + order.getOrderCode());
                 stockMovementRepository.save(mv);
             }
 

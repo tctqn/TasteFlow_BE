@@ -113,7 +113,7 @@ public class S3ServiceImpl implements S3Service {
         public String uploadImageFromBytes(byte[] imageBytes, String fileName) {
                 try {
                         String key = "images/"
-                                        + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+                                        + LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")).format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
                                         + "_" + fileName;
 
                         PutObjectRequest putRequest = PutObjectRequest.builder()

@@ -346,7 +346,7 @@ public class ProductServiceImpl implements ProductService {
         // 2) Nếu cần promotion theo store, load trước (để tránh gọi vòng lặp)
         final List<Promotion> activePromos = (storeId == null)
                 ? Collections.emptyList()
-                : promotionRepository.findActiveForStore(storeId, LocalDateTime.now());
+                : promotionRepository.findActiveForStore(storeId, LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
 
         // 3) Map lô mới nhất để lấy supplier (ƯU TIÊN lô còn hạn)
         final Map<Long, ProductBatch> productToLatestBatch = new HashMap<>();

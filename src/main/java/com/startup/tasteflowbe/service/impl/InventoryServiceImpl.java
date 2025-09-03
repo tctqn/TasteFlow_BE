@@ -280,6 +280,9 @@ public class InventoryServiceImpl implements InventoryService {
                 LocalDate manufactureDate = inv.getBatch().getManufactureDate();
                 LocalDate expiryDate = inv.getBatch().getExpirationDate();
                 if (manufactureDate != null && expiryDate != null) {
+                    if (LocalDate.now().isAfter(expiryDate)) {
+                        totalQuantity -= inv.getQuantity();
+                    }
                     long totalDays = ChronoUnit.DAYS.between(manufactureDate, expiryDate);
                     long remainingDays = ChronoUnit.DAYS.between(currentDate, expiryDate);
                     double percentRemaining = totalDays > 0 ? (double) remainingDays / totalDays : 0.0;
@@ -304,7 +307,8 @@ public class InventoryServiceImpl implements InventoryService {
                 expiryStatus = "BÌNH THƯỜNG";
             }
 
-            String status = totalQuantity <= reorderLevel ? "SẮP HẾT HÀNG" : "BÌNH THƯỜNG";
+            String status = (totalQuantity == 0) ? "HẾT HÀNG"
+                    : (totalQuantity <= reorderLevel ? "SẮP HẾT HÀNG" : "BÌNH THƯỜNG");
             WarehouseProductDTO dto = WarehouseProductDTO.builder()
                     .sku(sku)
                     .productId(product.getProductId())
@@ -416,6 +420,9 @@ public class InventoryServiceImpl implements InventoryService {
                 LocalDate manufactureDate = inv.getBatch().getManufactureDate();
                 LocalDate expiryDate = inv.getBatch().getExpirationDate();
                 if (manufactureDate != null && expiryDate != null) {
+                    if (LocalDate.now().isAfter(expiryDate)) {
+                        totalQuantity -= inv.getQuantity();
+                    }
                     long totalDays = ChronoUnit.DAYS.between(manufactureDate, expiryDate);
                     long remainingDays = ChronoUnit.DAYS.between(currentDate, expiryDate);
                     double percentRemaining = totalDays > 0 ? (double) remainingDays / totalDays : 0.0;
@@ -439,7 +446,8 @@ public class InventoryServiceImpl implements InventoryService {
                 expiryStatus = "BÌNH THƯỜNG";
             }
 
-            String status = totalQuantity <= reorderLevel ? "SẮP HẾT HÀNG" : "BÌNH THƯỜNG";
+            String status = (totalQuantity == 0) ? "HẾT HÀNG"
+                    : (totalQuantity <= reorderLevel ? "SẮP HẾT HÀNG" : "BÌNH THƯỜNG");
             StoreProductDTO dto = StoreProductDTO.builder()
                     .productId(product.getProductId())
                     .sku(sku)

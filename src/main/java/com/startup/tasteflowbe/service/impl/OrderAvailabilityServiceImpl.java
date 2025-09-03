@@ -92,8 +92,9 @@ public class OrderAvailabilityServiceImpl implements OrderAvailabilityService {
                     .build());
         }
         dto.setPointsApplied(order.getPointsApplied() == null ? 0 : order.getPointsApplied());
-        dto.setPointsUsed(order.getUser().getPointsUsed()); ;
-
+        if (order.getUser() != null) {
+            dto.setPointsUsed(order.getUser().getPointsUsed());
+        }
         return dto;
     }
 

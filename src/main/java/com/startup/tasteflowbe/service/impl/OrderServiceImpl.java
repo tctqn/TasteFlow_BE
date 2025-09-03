@@ -448,7 +448,7 @@ public class OrderServiceImpl implements OrderService {
             notificationService.sendNotificationToUsers(
                     Arrays.asList(user.getUserId(), store.getManager().getUserId()),
                     NotificationType.ORDER,
-                    "Đơn hàng " + order.getOrderCode() + " đã được thanh toán (PAID)");
+                    "Đơn hàng " + order.getOrderCode() + " đã được thanh toán");
         }
     }
 
@@ -624,7 +624,7 @@ public class OrderServiceImpl implements OrderService {
                 mv.setProduct(oi.getProduct());
                 mv.setBatch(inv.getBatch());
                 mv.setQuantity(take);
-                mv.setNote("Allocate FEFO order " + order.getOrderCode());
+                mv.setNote("Chuẩn bị hàng bán cho đơn hàng " + order.getOrderCode());
                 stockMovementRepository.save(mv);
 
                 remaining -= take;

@@ -534,7 +534,7 @@ public class OrderServiceImpl implements OrderService {
                 movement.setBatch(inventory.getBatch());
                 movement.setMovementType(MovementType.SALE);
                 movement.setQuantity(usedQty);
-                movement.setMovementDate(LocalDateTime.now());
+                movement.setMovementDate(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
                 movement.setNote("Bán tại quầy đơn " + order.getOrderCode());
                 stockMovementRepository.save(movement);
 
@@ -617,7 +617,7 @@ public class OrderServiceImpl implements OrderService {
                 inventoryRepository.save(inv);
 
                 StockMovement mv = new StockMovement();
-                mv.setMovementDate(LocalDateTime.now());
+                mv.setMovementDate(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
                 mv.setMovementType(MovementType.SALE);
                 mv.setStore(order.getStore());
                 mv.setWarehouse(inv.getWarehouse());
@@ -660,7 +660,7 @@ public class OrderServiceImpl implements OrderService {
             inventoryRepository.save(inv);
 
             StockMovement mv = new StockMovement();
-            mv.setMovementDate(LocalDateTime.now());
+            mv.setMovementDate(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
             mv.setMovementType(MovementType.RETURN_FROM_CUSTOMER);
             mv.setStore(order.getStore());
             mv.setWarehouse(inv.getWarehouse());
@@ -753,7 +753,7 @@ public class OrderServiceImpl implements OrderService {
 
                 // movement
                 StockMovement mv = new StockMovement();
-                mv.setMovementDate(LocalDateTime.now());
+                mv.setMovementDate(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
                 mv.setMovementType(movementTypeFor(targetStatus));
                 mv.setStore(order.getStore());
                 mv.setWarehouse(pbatch.getWarehouse());
